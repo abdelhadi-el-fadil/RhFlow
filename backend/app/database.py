@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+from app.models.base import Base
 
 # Load .env file
 load_dotenv()
@@ -19,8 +20,6 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
-
-Base = declarative_base()
 
 
 def get_db():
