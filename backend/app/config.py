@@ -1,13 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "RH Flow v2"
-    DEBUG: bool = True
-    DATABASE_URL: str = "sqlite:///./test.db"
+    DEBUG: bool = False
+    DATABASE_URL: str  # mandatory — no default, app fails fast if missing
+    SECRET_KEY: str    # mandatory — no default
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 settings = Settings()
