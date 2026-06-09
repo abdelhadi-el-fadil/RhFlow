@@ -57,8 +57,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # ---------------------------------------------------------------------------
 # Routers — add here as domains are implemented
 # ---------------------------------------------------------------------------
-# from app.domains.auth.router import router as auth_router
-# app.include_router(auth_router)
+from app.routers.auth import router as auth_router
+app.include_router(auth_router)
 
 # ---------------------------------------------------------------------------
 # Base routes
