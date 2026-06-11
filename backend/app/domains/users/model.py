@@ -19,5 +19,5 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     full_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gsm: Mapped[str | None] = mapped_column(String(20), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column( SQLEnum(UserRole, name="userrole"), nullable=False)
+    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole, name="userrole"), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
