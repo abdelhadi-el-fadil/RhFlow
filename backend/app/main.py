@@ -1,6 +1,7 @@
 import time
+from collections.abc import Awaitable, Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +35,10 @@ app.add_middleware(
 # Request logging middleware
 # ---------------------------------------------------------------------------
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_requests(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     start = time.time()
     response = await call_next(request)
     duration = round((time.time() - start) * 1000, 2)
@@ -93,10 +97,10 @@ app.include_router(auth_router)
 # Base routes
 # ---------------------------------------------------------------------------
 @app.get("/")
-def root():
+def root() -> dict[str, str]:
     return {"message": "RH Flow API is running"}
 
 
 @app.get("/health")
-def health():
+def health() -> dict[str, str]:
     return {"status": "ok"}

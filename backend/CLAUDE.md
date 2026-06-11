@@ -58,6 +58,26 @@ app/
 - Auth in routes: `Depends(get_current_user)`; RBAC: `Depends(require_role(UserRole.X))`.
 - Login errors stay vague (anti account-enumeration). Never log tokens, passwords, or secrets.
 
+## Engineering principles
+
+- **ACID / transactions:** one request = one transaction. `get_db` commits on success and rolls back on any exception — services NEVER call `db.commit()` or `db.rollback()` themselves (they may `db.flush()` to get generated IDs). Multi-step writes must live in a single request/session so they succeed or fail atomically. Standalone scripts (e.g. seeder) manage their own session with explicit commit/rollback/close.
+- **DRY:** one source of truth for everything — enums in `core/enums.py`, generic error codes in `core/codes.py`, response envelopes in `core/schemas.py`, settings in `config.py`, model mixins in `models/base.py`. Before writing a constant, schema, or helper, check whether it already exists in `core/`. Duplicated logic across domains gets extracted to `core/`.
+- **SOLID:**
+  - Single responsibility — the router/service/schemas/exceptions split per domain IS the rule: HTTP concerns in routers, business rules in services, validation in schemas. A function that does two things gets split.
+  - Open/closed — extend by adding new domains/handlers, not by piling conditionals into existing functions (e.g. new roles go in `UserRole` + `require_role`, not `if/elif` chains in routes).
+  - Liskov — exceptions subclass `AppException` and stay substitutable (handled uniformly in `main.py`).
+  - Interface segregation — keep DTOs minimal: a schema exposes only what its endpoint needs (no god-schemas reused everywhere).
+  - Dependency inversion — dependencies are injected via `Depends()` (`get_db`, `get_current_user`, `require_role`), never instantiated inside business logic.
+- General practice: small functions, early returns over deep nesting, no dead/commented-out code, no copy-paste programming.
+
+## Typing — strict everywhere
+
+- Every function and method is fully annotated: all parameters AND the return type (including `-> None`). This applies to routers, services, dependencies, helpers, and scripts — no exceptions.
+- Boundaries are typed by construction: request/response = Pydantic DTOs, DB rows = `Mapped[...]` models, config = `Settings` fields. A value should never cross a layer as a raw `dict` or `Any`.
+- `Any` is forbidden unless there is no alternative, and then it must carry a comment justifying it. No bare collections: `list[UserResponse]`, `dict[str, int]` — never `list`/`dict` alone.
+- Optionals are explicit: `str | None` (modern union syntax), and `None` handling is visible at the call site.
+- Generic helpers use `TypeVar`/`Generic` (like `ApiResponse[T]`) instead of degrading to `Any`.
+
 ## Style
 
 - Everything in English: identifiers, docstrings, comments, log messages. French business names are allowed only as domain/table names (`fiches_de_poste`, `recrutement`).

@@ -25,11 +25,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
-):
+) -> ApiResponse[TokenResponse]:
     token = auth_service.login(db, form_data.username, form_data.password)
     return ApiResponse(data=token)
 
 
 @router.get("/me", response_model=ApiResponse[UserResponse])
-def me(current_user: User = Depends(get_current_user)):
+def me(current_user: User = Depends(get_current_user)) -> ApiResponse[UserResponse]:
     return ApiResponse(data=UserResponse.model_validate(current_user))
