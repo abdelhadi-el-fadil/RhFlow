@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str    # mandatory — no default
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    MINIO_ENDPOINT: str = "localhost:9000"  # compose overrides with minio:9000
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

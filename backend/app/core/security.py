@@ -35,9 +35,6 @@ def verify_password(plain: str, hashed: str) -> bool:
 # ---------------------------------------------------------------------------
 # JWT — PyJWT
 # ---------------------------------------------------------------------------
-ALGORITHM = "HS256"  # HMAC-SHA256: fast, symmetric, fine for a single backend
-
-
 def create_access_token(
     subject: str | int,
     extra_claims: dict[str, Any] | None = None,
@@ -64,8 +61,8 @@ def create_access_token(
     if extra_claims:
         payload.update(extra_claims)
 
-    # jwt.encode() signs with SECRET_KEY using HS256 and returns a string
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
+    # jwt.encode() signs with SECRET_KEY (settings.ALGORITHM) and returns a string
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -76,4 +73,4 @@ def decode_token(token: str) -> dict[str, Any]:
         jwt.ExpiredSignatureError : token is past its exp claim.
         jwt.InvalidTokenError     : signature mismatch, malformed, etc.
     """
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

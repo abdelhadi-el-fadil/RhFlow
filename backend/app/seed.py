@@ -1,29 +1,27 @@
 """
-Database seeder
-===============
+Database seeder.
+
 Creates one user per role for development / initial setup.
 
-Run with:
+Run AFTER migrations have been applied:
+    python -m alembic upgrade head
     python -m app.seed
 
-The seeder is idempotent — safe to run multiple times.
-Existing users (matched by email) are left untouched.
+Idempotent — existing users (matched by email) are left untouched.
 
 Default credentials (change before any real deployment):
-    admin@example.com      / Admin123!       → ADMIN
-    drh@example.com        / Drh123!         → DRH
-    directeur@example.com  / Directeur123!   → DIRECTEUR
-    dg@example.com         / Dg123!          → DG
+    admin@example.com      / Admin123        -> ADMIN
+    drh@example.com        / Drh123          -> DRH
+    directeur@example.com  / Directeur123    -> DIRECTEUR
+    dg@example.com         / Dg123           -> DG
 """
+from sqlalchemy import select
+
 from app.core.enums import UserRole
 from app.core.security import hash_password
-from app.database import SessionLocal, engine
-from app.domains.users.model import User  # importing User registers it on Base.metadata
-from app.models.base import Base
+from app.database import SessionLocal
+from app.domains.users.model import User
 
-# ---------------------------------------------------------------------------
-# Seed data
-# ---------------------------------------------------------------------------
 SEED_USERS: list[dict] = [
     {
         "email": "admin@example.com",
@@ -52,22 +50,15 @@ SEED_USERS: list[dict] = [
 ]
 
 
-# ---------------------------------------------------------------------------
-# Seeder
-# ---------------------------------------------------------------------------
 def seed() -> None:
-    print("Creating tables if they don't exist…")
-    # Creates every table whose model imports Base from app.models.base.
-    # In production, replace this with Alembic migrations.
-    Base.metadata.create_all(bind=engine)
-
-    print("Seeding users…")
+    print("Seeding users...")
     created = skipped = 0
 
     db = SessionLocal()
     try:
         for data in SEED_USERS:
-            if db.query(User).filter(User.email == data["email"]).first():
+            existing = db.scalars(select(User).where(User.email == data["email"])).first()
+            if existing:
                 print(f"  [skip]    {data['email']} already exists")
                 skipped += 1
                 continue

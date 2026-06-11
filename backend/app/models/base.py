@@ -9,7 +9,7 @@ Usage :
 """
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime
+from sqlalchemy import Boolean, DateTime, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -35,7 +35,7 @@ class TimestampMixin:
 class SoftDeleteMixin:
     """Ajoute is_deleted / deleted_at pour la suppression logique."""
 
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
