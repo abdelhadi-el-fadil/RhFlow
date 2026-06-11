@@ -1,77 +1,63 @@
 """
-FastAPI dependency: get_current_user
-=====================================
-Extracts the Bearer token from the Authorization header, validates it,
-and returns the matching User row from the database.
+FastAPI dependencies: get_current_user, require_role
+======================================================
+``get_current_user`` extrait le Bearer token et retourne le User
+correspondant (délègue au service auth).
 
-All protected routes declare this dependency — they never touch JWT logic
-directly. Single place to change auth behaviour for the whole app.
+``require_role(*roles)`` s'appuie sur get_current_user pour appliquer le RBAC.
 
 Usage
 -----
-    from app.core.dependencies import get_current_user
+    from app.core.dependencies import get_current_user, require_role
 
     @router.get("/something")
     def my_route(user: User = Depends(get_current_user)):
         ...
-"""
-from typing import Annotated
 
-import jwt
-from fastapi import Depends, HTTPException, status
+    @router.delete("/users/{id}")
+    def delete_user(user_id: int, _: User = Depends(require_role(UserRole.ADMIN))):
+        ...
+"""
+from typing import Annotated, Callable
+
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.core.security import decode_token
+from app.core.enums import UserRole
+from app.core.exceptions import ForbiddenException
 from app.database import get_db
-from app.models.user import User
+from app.domains.auth.service import get_current_user_from_token
+from app.domains.users.model import User
 
 # ---------------------------------------------------------------------------
-# OAuth2 scheme
+# OAuth2 scheme — pointe vers /auth/login pour le bouton "Authorize" de Swagger
 # ---------------------------------------------------------------------------
-# Points FastAPI to the login endpoint so Swagger UI shows an Authorize button.
-# On each request FastAPI pulls the token out of:  Authorization: Bearer <token>
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 # ---------------------------------------------------------------------------
-# Dependency
+# get_current_user
 # ---------------------------------------------------------------------------
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Session = Depends(get_db),
 ) -> User:
-    """
-    Decode the JWT → read user id from ``sub`` claim → fetch User from DB.
+    """Résout l'utilisateur authentifié à partir du Bearer token."""
+    return get_current_user_from_token(db, token)
 
-    Raises HTTP 401 on any token problem (missing / expired / tampered).
-    Raises HTTP 401 if the user id is absent from the payload.
-    Raises HTTP 404 if the user no longer exists in the database.
-    """
-    credentials_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
-    try:
-        payload = decode_token(token)
-        user_id: str | None = payload.get("sub")
-        if user_id is None:
-            raise credentials_exc
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except jwt.InvalidTokenError:
-        raise credentials_exc
+# ---------------------------------------------------------------------------
+# require_role
+# ---------------------------------------------------------------------------
+def require_role(*roles: UserRole) -> Callable[..., User]:
+    """Retourne une dépendance qui vérifie que le rôle de l'utilisateur
+    fait partie de *roles*. Lève ForbiddenException sinon."""
+    allowed: set[UserRole] = set(roles)
 
-    user = db.get(User, int(user_id))
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user
+    def _enforce(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed:
+            raise ForbiddenException()
+        return current_user
+
+    return _enforce
