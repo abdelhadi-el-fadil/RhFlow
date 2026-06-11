@@ -15,10 +15,11 @@ Default credentials (change before any real deployment):
     directeur@example.com  / Directeur123!   → DIRECTEUR
     dg@example.com         / Dg123!          → DG
 """
+from app.core.enums import UserRole
 from app.core.security import hash_password
 from app.database import SessionLocal, engine
+from app.domains.users.model import User  # importing User registers it on Base.metadata
 from app.models.base import Base
-from app.models.user import UserRole, User  # importing User registers it on Base.metadata
 
 # ---------------------------------------------------------------------------
 # Seed data
