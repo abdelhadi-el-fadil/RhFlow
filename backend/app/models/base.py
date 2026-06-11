@@ -1,8 +1,8 @@
 """
-Base déclarative SQLAlchemy + mixins partagés (DRY) — utilisés par tous
-les modèles, dans tous les domaines.
+SQLAlchemy declarative Base + shared mixins (DRY) — used by every
+model, in every domain.
 
-Usage :
+Usage:
     class User(Base, TimestampMixin, SoftDeleteMixin):
         __tablename__ = "users"
         ...
@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
 
 
 class TimestampMixin:
-    """Ajoute created_at / updated_at, gérés automatiquement par la DB."""
+    """Adds created_at / updated_at, managed automatically by the DB."""
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -33,7 +33,7 @@ class TimestampMixin:
 
 
 class SoftDeleteMixin:
-    """Ajoute is_deleted / deleted_at pour la suppression logique."""
+    """Adds is_deleted / deleted_at for soft deletion."""
 
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(

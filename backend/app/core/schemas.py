@@ -1,8 +1,8 @@
 """
-Schémas de réponse génériques — source unique de vérité pour le format
-des réponses API (DRY), réutilisés par tous les domaines.
+Generic response schemas — single source of truth for the API response
+format (DRY), reused by every domain.
 
-Usage :
+Usage:
     return ApiResponse(data=user_schema)
     return PaginatedResponse(data=items, meta=PaginationMeta(...))
 """
@@ -14,13 +14,13 @@ T = TypeVar("T")
 
 
 class ApiResponse(BaseModel, Generic[T]):
-    """Enveloppe standard pour une ressource unique."""
+    """Standard envelope for a single resource."""
     data: T
     message: str | None = None
 
 
 class PaginationMeta(BaseModel):
-    """Métadonnées de pagination renvoyées au frontend."""
+    """Pagination metadata returned to the frontend."""
     page: int
     page_size: int
     total_items: int
@@ -28,13 +28,13 @@ class PaginationMeta(BaseModel):
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    """Enveloppe standard pour une liste paginée."""
+    """Standard envelope for a paginated list."""
     data: list[T]
     meta: PaginationMeta
 
 
 class PaginationParams(BaseModel):
-    """Query params communs (?page=1&page_size=20) pour les endpoints de liste."""
+    """Common query params (?page=1&page_size=20) for list endpoints."""
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 

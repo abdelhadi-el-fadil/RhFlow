@@ -1,10 +1,10 @@
 """
 FastAPI dependencies: get_current_user, require_role
 ======================================================
-``get_current_user`` extrait le Bearer token et retourne le User
-correspondant (délègue au service auth).
+``get_current_user`` extracts the Bearer token and returns the matching
+User (delegates to the auth service).
 
-``require_role(*roles)`` s'appuie sur get_current_user pour appliquer le RBAC.
+``require_role(*roles)`` builds on get_current_user to enforce RBAC.
 
 Usage
 -----
@@ -31,7 +31,7 @@ from app.domains.auth.service import get_current_user_from_token
 from app.domains.users.model import User
 
 # ---------------------------------------------------------------------------
-# OAuth2 scheme — pointe vers /auth/login pour le bouton "Authorize" de Swagger
+# OAuth2 scheme — points to /auth/login for Swagger's "Authorize" button
 # ---------------------------------------------------------------------------
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -43,7 +43,7 @@ def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Session = Depends(get_db),
 ) -> User:
-    """Résout l'utilisateur authentifié à partir du Bearer token."""
+    """Resolve the authenticated user from the Bearer token."""
     return get_current_user_from_token(db, token)
 
 
@@ -51,8 +51,8 @@ def get_current_user(
 # require_role
 # ---------------------------------------------------------------------------
 def require_role(*roles: UserRole) -> Callable[..., User]:
-    """Retourne une dépendance qui vérifie que le rôle de l'utilisateur
-    fait partie de *roles*. Lève ForbiddenException sinon."""
+    """Return a dependency that checks the user's role is one of *roles*.
+    Raises ForbiddenException otherwise."""
     allowed: set[UserRole] = set(roles)
 
     def _enforce(current_user: User = Depends(get_current_user)) -> User:

@@ -1,11 +1,11 @@
 """
-Exceptions métier — domaine "users".
+Business exceptions — "users" domain.
 """
 from app.core.exceptions import AppException
 
 
 class UserNotFoundException(AppException):
-    """Levée quand un utilisateur référencé (ex: par un token JWT) n'existe plus."""
+    """Raised when a referenced user (e.g. by a JWT) no longer exists."""
 
     def __init__(self):
         super().__init__(404, "User not found", "USERS_NOT_FOUND")

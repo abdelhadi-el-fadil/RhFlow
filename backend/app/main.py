@@ -48,7 +48,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 # ---------------------------------------------------------------------------
-# Exception handlers — réponse uniforme {"detail", "code", "status"}
+# Exception handlers — uniform response {"detail", "code", "status"}
 # ---------------------------------------------------------------------------
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:

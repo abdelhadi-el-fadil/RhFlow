@@ -1,7 +1,7 @@
 """
-Modèle User — domaine "users".
+User model — "users" domain.
 
-Représente un compte utilisateur de l'application.
+Represents an application user account.
 """
 from sqlalchemy import Boolean, String, text
 from sqlalchemy import Enum as SQLEnum

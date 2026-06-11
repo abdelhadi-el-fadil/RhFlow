@@ -1,8 +1,8 @@
 """
-Router — domaine "auth".
+Router — "auth" domain.
 
-POST /auth/login — échange des identifiants contre un JWT
-GET  /auth/me    — profil de l'utilisateur authentifié
+POST /auth/login — exchange credentials for a JWT
+GET  /auth/me    — profile of the authenticated user
 """
 from typing import Annotated
 

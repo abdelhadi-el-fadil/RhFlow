@@ -1,10 +1,11 @@
 """
-Service — domaine "auth".
+Service — "auth" domain.
 
-Contient toute la logique métier de l'authentification : vérification des
-identifiants, émission et validation des JWT. Le router ne fait que router
-les requêtes HTTP vers ces fonctions et empaqueter le résultat.
+Holds all authentication business logic: credential checks, JWT issuing
+and validation. The router only routes HTTP requests to these functions
+and wraps the result.
 """
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import (
@@ -26,12 +27,12 @@ from app.domains.users.model import User
 
 def login(db: Session, email: str, password: str) -> TokenResponse:
     """
-    Vérifie les identifiants et retourne un JWT.
+    Verify credentials and return a JWT.
 
-    Le même message d'erreur est utilisé que l'email soit inconnu ou que le
-    mot de passe soit faux (anti-énumération des comptes).
+    The same error message is used whether the email is unknown or the
+    password is wrong (account anti-enumeration).
     """
-    user = db.query(User).filter(User.email == email).first()
+    user = db.scalars(select(User).where(User.email == email)).first()
     if user is None or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsException()
 
@@ -44,7 +45,7 @@ def login(db: Session, email: str, password: str) -> TokenResponse:
 
 def get_current_user_from_token(db: Session, token: str) -> User:
     """
-    Décode le JWT, valide son contenu, et retourne l'utilisateur correspondant.
+    Decode the JWT, validate its content, and return the matching user.
     """
     try:
         payload = decode_token(token)

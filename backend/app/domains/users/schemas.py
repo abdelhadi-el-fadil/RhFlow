@@ -1,5 +1,5 @@
 """
-Schémas Pydantic — domaine "users".
+Pydantic schemas — "users" domain.
 """
 from pydantic import BaseModel, ConfigDict
 
@@ -7,7 +7,7 @@ from app.core.enums import UserRole
 
 
 class UserResponse(BaseModel):
-    """Représentation publique d'un utilisateur (jamais hashed_password)."""
+    """Public representation of a user (never hashed_password)."""
 
     model_config = ConfigDict(from_attributes=True)
 

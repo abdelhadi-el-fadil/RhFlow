@@ -1,10 +1,10 @@
 """
-Codes d'erreur génériques — source unique de vérité (DRY) pour les
-exceptions de base (app/core/exceptions.py), réutilisées par tous les domaines.
+Generic error codes — single source of truth (DRY) for the base
+exceptions (app/core/exceptions.py), reused by every domain.
 
-Les codes spécifiques à un domaine (ex: AUTH_INVALID_CREDENTIALS,
-USERS_EMAIL_ALREADY_EXISTS) ne vont PAS ici — ils sont définis directement
-dans app/domains/<domaine>/exceptions.py, préfixés par le nom du domaine.
+Domain-specific codes (e.g. AUTH_INVALID_CREDENTIALS,
+USERS_EMAIL_ALREADY_EXISTS) do NOT belong here — they are defined directly
+in app/domains/<domain>/exceptions.py, prefixed with the domain name.
 """
 
 
