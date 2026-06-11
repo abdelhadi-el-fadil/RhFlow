@@ -1,0 +1,22 @@
+# Root ignores
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+*.md
+*.env
+
+# Backend
+backend/venv
+backend/__pycache__
+backend/*.pyc
+backend/**/*.pyc
+backend/.pytest_cache
+backend/__init__.py
+
+# Frontend
+frontend/node_modules
+frontend/.next
+frontend/.turbo
+frontend/dist
+frontend/out
