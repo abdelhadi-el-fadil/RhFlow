@@ -22,12 +22,16 @@ app/
 - Generic error codes (`NOT_FOUND`, `FORBIDDEN`, ...) live in `core/codes.py`; domain-specific codes live in the domain, prefixed with the domain name.
 - Shared enums (e.g. `UserRole`) live in `core/enums.py` — never redefine them locally.
 - Cross-domain imports: a domain may import another domain's `model`/`exceptions`, never its `router`.
+- Cross-domain DATA access goes through the owning domain's `service.py` — never query another domain's tables directly (e.g. `ia` tools call `recrutement` services). This keeps business rules (soft-delete filter, permissions) in one place.
+- Domain-specific enums (statuses like `FicheStatus`) live in the domain (`domains/<domain>/enums.py`); `core/enums.py` holds cross-domain enums only (e.g. `UserRole`).
 
 ## API responses
 
 - Every endpoint returns `ApiResponse[T]` or `PaginatedResponse[T]` from `core/schemas.py`. Only exceptions: `/` and `/health`.
 - Error responses are always `{"detail", "code", "status"}` — produced by the global handlers in `main.py`. Never craft error JSON manually.
 - Never expose `hashed_password` or any secret in a response schema.
+- Status codes: invalid business state transition (e.g. validating an already-validated fiche) → **409 CONFLICT** with a domain code (`FICHES_INVALID_TRANSITION`). **422 is strictly reserved** for Pydantic validation errors (handled globally). 404 = resource missing, 403 = role/ownership denied.
+- Public (unauthenticated) endpoints use a dedicated public DTO (`XxxPublicResponse`) exposing only what an anonymous visitor needs — never internal FKs, audit fields, or soft-delete flags.
 
 ## Schemas (DTOs) & validation
 
@@ -40,10 +44,12 @@ app/
 ## Database
 
 - Schema changes go through Alembic ONLY: `python -m alembic revision --autogenerate`, then **manually review** the generated `upgrade()`/`downgrade()` before committing.
-- `Base.metadata.create_all()` is FORBIDDEN everywhere, including `seed.py`. The seeder assumes migrations have been applied (`alembic upgrade head` first).
+- `Base.metadata.create_all()` is FORBIDDEN everywhere, including `seed.py` — with ONE exception: test fixtures (`tests/conftest.py`), where the throwaway test DB is built from the models. The seeder assumes migrations have been applied (`alembic upgrade head` first).
 - SQLAlchemy 2.0 style is mandatory: `select(User).where(...)` with `db.scalars()`/`db.execute()` — do not write new `db.query()` code; migrate old usages when touching them.
 - Sessions come from `Depends(get_db)` only — never instantiate `SessionLocal` in domain code (seeder excepted).
 - New models inherit `Base, TimestampMixin, SoftDeleteMixin` and must be imported in `alembic/env.py` for autogenerate to see them.
+- Business models (Direction, FicheDePoste, Besoin, ...) additionally inherit `AuditMixin` (`created_by_id`/`updated_by_id`); services fill these from `current_user` on create/update.
+- Soft delete: EVERY read query filters `is_deleted == False`. A soft-deleted row appearing in a list or logging in is a bug. `DELETE` endpoints set `is_deleted=True` + `deleted_at`, never `db.delete()`.
 
 ## Config & secrets
 
@@ -57,6 +63,13 @@ app/
 - Passwords: only via `hash_password`/`verify_password` from `core/security.py` (bcrypt).
 - Auth in routes: `Depends(get_current_user)`; RBAC: `Depends(require_role(UserRole.X))`.
 - Login errors stay vague (anti account-enumeration). Never log tokens, passwords, or secrets.
+
+## Tests
+
+- Every backend ticket ships its tests: `tests/test_<domain>.py`. A ticket's Definition of Done includes `python -m pytest` green — "tested on Swagger" is not done.
+- Infrastructure lives in `tests/conftest.py`: in-memory SQLite engine, `get_db` swapped via `app.dependency_overrides`, shared fixtures (`client`, `db`, user factories). Tests run without Postgres or Docker.
+- Minimum coverage per endpoint: the happy path, each domain exception (assert the `code`), and the role/permission denials (403).
+- Tests never hit external services (MinIO, LlamaParse, ...) — mock them at the service boundary.
 
 ## Engineering principles
 
