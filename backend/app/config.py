@@ -7,13 +7,13 @@ ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "RH Flow v2"
-    DEBUG: bool = False
-    DATABASE_URL: str  # mandatory — no default, app fails fast if missing
-    SECRET_KEY: str    # mandatory — no default
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    MINIO_ENDPOINT: str = "localhost:9000"  # compose overrides with minio:9000
+    APP_NAME: str
+    DEBUG: bool
+    DATABASE_URL: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    MINIO_ENDPOINT: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
