@@ -135,7 +135,14 @@ C'est le premier vrai CRUD — il devient le **gabarit** de tous les modules sui
 3. `domains/users/service.py` (fonctions, pas de classe) : `create_user`, `get_user`, `list_users(params: PaginationParams)`, `update_user`, `soft_delete_user`. TOUTES les lectures filtrent `is_deleted == False` (règle R5). `soft_delete_user` : `is_deleted=True` + `deleted_at=now()` — jamais `db.delete()`.
 4. `domains/users/router.py` : les 4 endpoints, tous derrière `require_role(UserRole.ADMIN)` sauf `GET /users` (ADMIN + DRH). `GET /users` retourne `PaginatedResponse[UserResponse]` — premier consommateur réel de `PaginationParams` (`?page=1&page_size=20`).
 5. Enregistrer le router dans `main.py`.
-6. `tests/test_users.py` : CRUD complet + email dupliqué → 409 + non-ADMIN → 403 + pagination (créer 25 users, vérifier `meta.total_pages`) + user soft-deleted absent de la liste + login refusé après DELETE.
+6. `tests/test_users.py` — **scénarios exigés** :
+   - **Happy paths** : POST crée (201/200, `data.id` présent, pas de `hashed_password`) ; GET liste paginée ; PUT modifie ; DELETE → `ApiResponse[None]`
+   - **Validation (422 Pydantic)** : email invalide ; password < 8 caractères ; rôle inexistant
+   - **Conflits (409)** : POST avec email existant → `USERS_EMAIL_ALREADY_EXISTS` ; PUT qui change l'email vers un email déjà pris → idem
+   - **404** : PUT et DELETE sur id inexistant → `USERS_NOT_FOUND`
+   - **RBAC (403)** : DRH sur POST/PUT/DELETE ; DIRECTEUR sur GET /users
+   - **Pagination** : 25 users → `page_size=10` donne `total_pages=3`, page 3 contient 5 éléments
+   - **Soft delete** : user supprimé absent de GET /users ; login refusé ; re-DELETE du même user → 404 (déjà invisible)
 
 **Références :**
 - Validation Pydantic (Field, EmailStr) : https://docs.pydantic.dev/latest/concepts/fields/
@@ -207,10 +214,16 @@ class Direction(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
 3. `exceptions.py` : `DIRECTIONS_NOT_FOUND` (404), `DIRECTIONS_CODE_ALREADY_EXISTS` (409).
 4. `service.py` : fonctions CRUD, filtre `is_deleted`, audit renseigné depuis `current_user`.
 5. `router.py` : `GET` (tous rôles authentifiés, paginé) / `POST` / `PUT` / `DELETE` soft (ADMIN).
-6. `tests/test_directions.py`.
+6. `tests/test_directions.py` — **scénarios exigés** :
+   - Happy paths : CRUD complet, audit renseigné (`created_by_id` = l'admin qui a créé)
+   - 409 : code dupliqué (`DIRECTIONS_CODE_ALREADY_EXISTS`), à la création ET à la modification
+   - 404 : GET/PUT/DELETE sur id inexistant ou soft-deleted (`DIRECTIONS_NOT_FOUND`)
+   - 403 : DIRECTEUR/DRH/DG sur POST, PUT, DELETE
+   - 401 : GET /directions sans token
+   - Soft delete : direction supprimée invisible en liste et en GET /{id}
 
 **Définition of Done :**
-pytest vert : CRUD + 403 pour un DIRECTEUR sur POST + code dupliqué 409 + direction supprimée invisible en liste.
+pytest vert sur tous les scénarios ci-dessus.
 
 ---
 
@@ -233,7 +246,13 @@ Le workflow d'états est LE pattern central de l'app (besoins et offres l'utilis
    - `archive_fiche()` : seulement depuis VALIDATED.
    - `update_fiche()` : seulement par le créateur (`created_by_id == current_user.id`) et seulement en DRAFT — sinon 403.
 4. Endpoints : `GET` (filtres `?status=&direction_id=`, paginé), `POST` (DIRECTEUR/DRH), `GET /{id}`, `PUT /{id}`, `PATCH /{id}/valider` (DRH), `PATCH /{id}/archiver` (DRH/ADMIN).
-5. Tests : le scénario complet du DoD + chaque transition interdite.
+5. `tests/test_fiches.py` — **scénarios exigés** :
+   - Workflow nominal : DIRECTEUR crée (status DRAFT) → DRH valide (VALIDATED, `validated_by_id` renseigné) → ADMIN archive (ARCHIVED)
+   - **Matrice des transitions interdites (chacune → 409 `FICHES_INVALID_TRANSITION`)** : valider une VALIDATED, valider une ARCHIVED, archiver une DRAFT
+   - RBAC transitions (403) : DIRECTEUR tente de valider ; DIRECTEUR tente d'archiver
+   - Propriété : PUT par un autre user que le créateur → 403 ; PUT sur une fiche VALIDATED (même par le créateur) → 409
+   - Filtres : `?status=VALIDATED` ne retourne que les validées ; `?direction_id=X` filtre correctement ; combinaison des deux
+   - 404 : fiche inexistante ; FK invalide : POST avec `direction_id` inexistant → 404 `DIRECTIONS_NOT_FOUND`
 
 **Références :**
 - Pourquoi 409 et pas 422 : https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
@@ -260,10 +279,15 @@ Deuxième workflow — tu consolides le pattern du 006 avec deux nouveautés : u
 2. Modèle (anglais) : `title`, `description`, `positions_count`, `desired_date`, `justification`, `status`, `rejection_reason: Mapped[str | None]`, FKs `fiche_de_poste_id`, `submitted_by_id`, `processed_by_id` + mixins. Migration relue.
 3. Transitions (service) : `submit` (DIRECTEUR, DRAFT→SUBMITTED), `approve` (DRH, SUBMITTED→APPROVED), `reject` (DRH, SUBMITTED→REJECTED, motif obligatoire **validé par le DTO** `RejectBesoinRequest(reason: str = Field(min_length=10))` — la validation vit dans le schema). Transition invalide → 409 `RECRUTEMENT_INVALID_TRANSITION`.
 4. Endpoints : CRUD + `POST /besoins/{id}/soumettre|approuver|rejeter`.
-5. Tests : workflow complet + DRAFT→APPROVED direct → 409 + rejet sans motif → 422 (Pydantic, cette fois à juste titre — compare les deux dans tes tests pour bien sentir la différence).
+5. `tests/test_besoins.py` — **scénarios exigés** :
+   - Workflow nominal : DIRECTEUR crée → soumet (SUBMITTED, `submitted_by_id`) → DRH approuve (APPROVED, `processed_by_id`) ; variante rejet avec motif (REJECTED + `rejection_reason` stocké)
+   - **Matrice transitions interdites (409 `RECRUTEMENT_INVALID_TRANSITION`)** : DRAFT→APPROVED direct, approuver un APPROVED, rejeter un DRAFT, soumettre un SUBMITTED, toute transition depuis REJECTED
+   - **409 vs 422 — les deux côte à côte** : rejet sans motif → 422 (Pydantic) ; rejet d'un besoin DRAFT avec motif valide → 409 (état). Comprendre cette paire = comprendre la règle R2
+   - RBAC (403) : DRH tente de soumettre ; DIRECTEUR tente d'approuver/rejeter
+   - 404 : besoin inexistant ; POST avec `fiche_de_poste_id` inexistant
 
 **Définition of Done :**
-pytest vert sur tout le lifecycle, y compris les deux types d'erreur (409 vs 422).
+pytest vert sur tous les scénarios ci-dessus.
 
 ---
 
@@ -283,10 +307,15 @@ Première **relation entre agrégats** : un projet référence des besoins, avec
 2. Lien : ajouter `projet_id: Mapped[int | None] = mapped_column(ForeignKey("projets_recrutement.id"))` sur `BesoinRecrutement` (1 besoin = 1 projet max — le plus simple). Migration relue (elle modifie une table existante : vérifie le `op.add_column`).
 3. `attach_besoin(projet_id, besoin_id)` dans le service : refuse si `besoin.status != APPROVED` → 409 `RECRUTEMENT_BESOIN_NOT_APPROVED`.
 4. Endpoints : `POST /projets` (DRH), `POST /projets/{id}/besoins/{besoin_id}`, `GET /projets/{id}` (détail avec besoins).
-5. Tests.
+5. `tests/test_projets.py` — **scénarios exigés** :
+   - Happy path : créer un projet, rattacher un besoin APPROVED, le voir dans `GET /projets/{id}`
+   - 409 `RECRUTEMENT_BESOIN_NOT_APPROVED` : rattacher un besoin DRAFT, SUBMITTED et REJECTED (les 3)
+   - Besoin déjà rattaché à un autre projet → 409 (décide du code avec l'encadrant, ex: `RECRUTEMENT_BESOIN_ALREADY_ATTACHED`)
+   - 404 : projet ou besoin inexistant
+   - 403 : DIRECTEUR tente de créer un projet ou de rattacher
 
 **Définition of Done :**
-pytest vert : besoin non approuvé refusé (409 uniforme), besoin approuvé rattaché et visible dans `GET /projets/{id}`.
+pytest vert sur tous les scénarios ci-dessus.
 
 ---
 
@@ -306,10 +335,15 @@ Premier endpoint sans authentification : tu appliques la règle R4 (DTO public d
 2. **Deux DTOs de réponse** : `OffreResponse` (interne, complet) et `OffrePublicResponse` (`title`, `description`, `requirements`, `published_at`, `deadline` — RIEN d'autre : pas de FKs, pas d'audit).
 3. `GET /offres` → public, ne liste QUE les `status == PUBLISHED` (+ filtre soft delete), retourne `PaginatedResponse[OffrePublicResponse]`.
 4. `POST /offres` (DRH), `PATCH /offres/{id}/publier` (DRAFT→PUBLISHED, set `published_at`), `PATCH /offres/{id}/cloturer` (PUBLISHED→CLOSED). Transitions invalides → 409.
-5. Tests : accès sans token → 200 ; une offre DRAFT n'apparaît PAS dans la liste publique ; le JSON public ne contient aucun champ interne (teste les clés exactes).
+5. `tests/test_offres.py` — **scénarios exigés** :
+   - Cycle nominal : DRH crée (DRAFT) → publie (PUBLISHED, `published_at` non null) → clôture (CLOSED)
+   - **Liste publique** : accessible sans token (200) ; ne contient QUE les PUBLISHED (ni DRAFT, ni CLOSED, ni soft-deleted) ; `set(response_keys) == {"title", "description", "requirements", "published_at", "deadline"}` — teste les clés EXACTES, c'est le test de la règle R4
+   - Transitions interdites (409) : publier une PUBLISHED, clôturer une DRAFT, publier une CLOSED
+   - 403 : DIRECTEUR sur POST/publier/clôturer
+   - 404 : offre inexistante ; POST avec `besoin_id` inexistant ou non APPROVED → 409
 
 **Définition of Done :**
-pytest vert. Cycle complet besoin approuvé → offre créée → publiée → visible publiquement → clôturée.
+pytest vert sur tous les scénarios ci-dessus.
 
 ---
 
@@ -331,7 +365,11 @@ Premier upload de fichier et premier service externe (MinIO = stockage objet com
 2. `app/core/storage.py` : `upload_file(file: BinaryIO, key: str, content_type: str) -> str` et `get_presigned_url(key: str) -> str` — entièrement typés. Tout MinIO passe par là.
 3. Modèle `Candidature` (anglais) : `candidate_name`, `candidate_email`, `cv_url`, `cv_key`, `status: CandidatureStatus` (RECEIVED, ...), `matching_score: Mapped[float | None]`, `cv_data: Mapped[dict[str, Any] | None] = mapped_column(JSON)` (typé — jamais `dict` nu), FK `offre_id` + mixins. Migration relue.
 4. `POST /candidatures` : `UploadFile` + `offre_id` en form-data. Validations AVANT stockage : content-type `application/pdf` + extension `.pdf` + taille ≤ 5 Mo → sinon erreur uniforme. L'offre doit être PUBLISHED → 409 sinon.
-5. Tests avec `core/storage` **mocké** (`monkeypatch` ou `unittest.mock`) — les tests ne touchent jamais le vrai MinIO (règle CLAUDE.md).
+5. `tests/test_candidatures.py` (storage **mocké** via `monkeypatch` — les tests ne touchent jamais le vrai MinIO, règle CLAUDE.md) — **scénarios exigés** :
+   - Happy path : upload PDF valide sur offre PUBLISHED → 200, candidature RECEIVED en base, `upload_file` appelé avec le bon bucket/key
+   - Validations fichier : content-type non-PDF → erreur uniforme ; extension `.docx` → idem ; fichier > 5 Mo → idem (génère un faux fichier de 6 Mo en mémoire)
+   - Offre non éligible : candidature sur offre DRAFT → 409 ; sur offre CLOSED → 409 ; sur offre inexistante → 404
+   - Le mock storage qui lève une exception → 500 uniforme (`INTERNAL_ERROR`), pas de candidature orpheline en base (vérifie le rollback — c'est ton test ACID)
 
 **Références :**
 - FastAPI UploadFile : https://fastapi.tiangolo.com/tutorial/request-files/
