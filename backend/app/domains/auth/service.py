@@ -32,8 +32,14 @@ def login(db: Session, email: str, password: str) -> TokenResponse:
     The same error message is used whether the email is unknown or the
     password is wrong (account anti-enumeration).
     """
-    user = db.scalars(select(User).where(User.email == email)).first()
-    if user is None or not verify_password(password, user.hashed_password):
+    # Exclude soft-deleted users from authentication lookups
+    user = db.scalars(
+        select(User).where(User.email == email, User.is_deleted == False)
+    ).first()
+    # Do not reveal whether the account exists, is disabled, or the password is wrong
+    if user is None:
+        raise InvalidCredentialsException()
+    if not user.enabled or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsException()
 
     token = create_access_token(
@@ -58,8 +64,15 @@ def get_current_user_from_token(db: Session, token: str) -> User:
     if user_id is None:
         raise InvalidTokenException()
 
-    user = db.get(User, int(user_id))
+    # Use a select to honour soft-delete and only return active rows
+    user = db.scalars(
+        select(User).where(User.id == int(user_id), User.is_deleted == False)
+    ).first()
     if user is None:
         raise UserNotFoundException()
+
+    # Disabled accounts should not be considered valid tokens
+    if not user.enabled:
+        raise InvalidTokenException()
 
     return user
