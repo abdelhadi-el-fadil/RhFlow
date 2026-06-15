@@ -10,17 +10,15 @@ le vrai router.py.
 from datetime import timedelta
 
 import jwt
-import pytest
 from fastapi import APIRouter, Depends
 
 from app.config import settings
 from app.core.codes import ErrorCode
-from app.core.dependencies import get_current_user, require_role
+from app.core.dependencies import require_role
 from app.core.enums import UserRole
 from app.core.security import create_access_token
 from app.domains.users.model import User
 from app.main import app
-
 
 # ── Route temporaire pour tester require_role ──────────────────────────────
 # On ajoute une route ADMIN-only directement ici, sans toucher à router.py.
@@ -36,39 +34,68 @@ app.include_router(_test_router)
 
 # ── POST /auth/login ───────────────────────────────────────────────────────
 
-def test_login_valid_credentials_returns_200_and_token(client, make_user):
+def test_login_valid_credentials_returns_200_and_token(
+    client,
+    make_user,
+):
     make_user("alice@test.com", "Secret123!")
-    r = client.post("/auth/login", data={"username": "alice@test.com", "password": "Secret123!"})
+    r = client.post(
+        "/auth/login",
+        data={"username": "alice@test.com", "password": "Secret123!"},
+    )
     assert r.status_code == 200
     assert "access_token" in r.json()["data"]
 
 
-def test_login_wrong_password_returns_401_with_code(client, make_user):
+def test_login_wrong_password_returns_401_with_code(
+    client,
+    make_user,
+):
     make_user("bob@test.com", "Secret123!")
-    r = client.post("/auth/login", data={"username": "bob@test.com", "password": "MAUVAIS"})
+    r = client.post(
+        "/auth/login",
+        data={"username": "bob@test.com", "password": "MAUVAIS"},
+    )
     assert r.status_code == 401
     assert r.json()["code"] == "AUTH_INVALID_CREDENTIALS"
 
 
-def test_login_unknown_email_returns_401_same_code_as_wrong_password(client):
+def test_login_unknown_email_returns_401_same_code_as_wrong_password(
+    client,
+):
     """Anti-énumération : email inconnu → même code qu'un mauvais mot de passe."""
-    r = client.post("/auth/login", data={"username": "ghost@test.com", "password": "Secret123!"})
+    r = client.post(
+        "/auth/login",
+        data={"username": "ghost@test.com", "password": "Secret123!"},
+    )
     assert r.status_code == 401
     assert r.json()["code"] == "AUTH_INVALID_CREDENTIALS"
 
 
-def test_login_deleted_user_returns_401(client, make_user):
+def test_login_deleted_user_returns_401(
+    client,
+    make_user,
+):
     """Prouve TICKET-026 : soft-delete exclut l'utilisateur de l'auth."""
     make_user("deleted@test.com", "Secret123!", is_deleted=True)
-    r = client.post("/auth/login", data={"username": "deleted@test.com", "password": "Secret123!"})
+    r = client.post(
+        "/auth/login",
+        data={"username": "deleted@test.com", "password": "Secret123!"},
+    )
     assert r.status_code == 401
     assert r.json()["code"] == "AUTH_INVALID_CREDENTIALS"
 
 
-def test_login_disabled_user_returns_401(client, make_user):
+def test_login_disabled_user_returns_401(
+    client,
+    make_user,
+):
     """Prouve TICKET-026 : compte désactivé → même erreur vague (anti-énumération)."""
     make_user("disabled@test.com", "Secret123!", enabled=False)
-    r = client.post("/auth/login", data={"username": "disabled@test.com", "password": "Secret123!"})
+    r = client.post(
+        "/auth/login",
+        data={"username": "disabled@test.com", "password": "Secret123!"},
+    )
     assert r.status_code == 401
     assert r.json()["code"] == "AUTH_INVALID_CREDENTIALS"
 
@@ -80,10 +107,16 @@ def test_me_without_token_returns_401(client):
     assert r.status_code == 401
 
 
-def test_me_with_valid_token_returns_200_email_correct_and_no_hashed_password(client, make_user):
+def test_me_with_valid_token_returns_200_email_correct_and_no_hashed_password(
+    client,
+    make_user,
+):
     """hashed_password ne doit JAMAIS apparaître dans la réponse."""
     make_user("eve@test.com", "Secret123!")
-    login = client.post("/auth/login", data={"username": "eve@test.com", "password": "Secret123!"})
+    login = client.post(
+        "/auth/login",
+        data={"username": "eve@test.com", "password": "Secret123!"},
+    )
     token = login.json()["data"]["access_token"]
 
     r = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -121,10 +154,16 @@ def test_me_with_wrong_signature_returns_401_with_code(client, make_user):
 
 # ── require_role ───────────────────────────────────────────────────────────
 
-def test_require_role_wrong_role_returns_403_with_code(client, make_user):
+def test_require_role_wrong_role_returns_403_with_code(
+    client,
+    make_user,
+):
     """User DRH tente d'accéder à une route ADMIN-only → 403 FORBIDDEN."""
     make_user("henry@test.com", "Secret123!", role=UserRole.DRH)
-    login = client.post("/auth/login", data={"username": "henry@test.com", "password": "Secret123!"})
+    login = client.post(
+        "/auth/login",
+        data={"username": "henry@test.com", "password": "Secret123!"},
+    )
     token = login.json()["data"]["access_token"]
 
     r = client.get("/test-admin-only", headers={"Authorization": f"Bearer {token}"})

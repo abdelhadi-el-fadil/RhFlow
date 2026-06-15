@@ -11,13 +11,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.database import get_db
-from app.models.base import Base
-from app.domains.users.model import User
 from app.core.enums import UserRole
 from app.core.security import hash_password
-
+from app.database import get_db
+from app.domains.users.model import User
+from app.main import app
+from app.models.base import Base
 
 # ── SQLite in-memory ───────────────────────────────────────────────────────
 # StaticPool = une seule connexion partagée → TestClient (thread séparé)
