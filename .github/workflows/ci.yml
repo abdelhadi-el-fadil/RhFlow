@@ -46,4 +46,12 @@ jobs:
         run: python -m mypy backend/app
 
       - name: Run tests
+        env:
+          APP_NAME: "RhFlow-Test"
+          DEBUG: "true"
+          DATABASE_URL: "sqlite:///./test.db"
+          SECRET_KEY: "ci-test-secret-key-not-real"
+          ALGORITHM: "HS256"
+          ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+          MINIO_ENDPOINT: "localhost:9000"
         run: python -m pytest backend/tests
