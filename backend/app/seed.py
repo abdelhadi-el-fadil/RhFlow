@@ -16,13 +16,14 @@ Default credentials (change before any real deployment):
     dg@example.com         / Dg123           -> DG
 """
 from sqlalchemy import select
+from typing import Any
 
 from app.core.enums import UserRole
 from app.core.security import hash_password
 from app.database import SessionLocal
 from app.domains.users.model import User
 
-SEED_USERS: list[dict] = [
+SEED_USERS: list[dict[str, Any]] = [
     {
         "email": "admin@example.com",
         "full_name": "System Admin",

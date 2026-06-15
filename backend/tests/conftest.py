@@ -5,10 +5,12 @@ Test infrastructure — SQLite in-memory DB + FastAPI TestClient.
 - app.dependency_overrides[get_db] échange Postgres par SQLite sans
   toucher au code métier — c'est la dependency inversion en action.
 """
+from typing import Callable, Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.enums import UserRole
@@ -32,7 +34,7 @@ Base.metadata.create_all(engine)  # UNIQUE endroit autorisé (voir CLAUDE.md)
 
 
 # ── Override FastAPI ───────────────────────────────────────────────────────
-def override_get_db():
+def override_get_db() -> Generator[Session, None, None]:
     db = TestingSessionLocal()
     try:
         yield db
@@ -48,7 +50,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 # ── Fixtures ───────────────────────────────────────────────────────────────
 @pytest.fixture()
-def db():
+def db() -> Generator[Session, None, None]:
     db = TestingSessionLocal()
     yield db
     db.rollback()
@@ -56,13 +58,13 @@ def db():
 
 
 @pytest.fixture()
-def client():
+def client() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
 
 
 @pytest.fixture()
-def make_user(db):
+def make_user(db: Session) -> Callable[..., User]:
     """
     Factory — crée et persiste un User en base.
 

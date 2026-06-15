@@ -6,12 +6,22 @@ Why these two libraries?
 - PyJWT    : lightweight, no hidden magic — encode/decode are explicit calls.
 """
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 
 import jwt
+from jwt import ExpiredSignatureError, InvalidTokenError
 from passlib.context import CryptContext
 
 from app.config import settings
+
+__all__ = [
+    "ExpiredSignatureError",
+    "InvalidTokenError",
+    "hash_password",
+    "verify_password",
+    "create_access_token",
+    "decode_token",
+]
 
 # ---------------------------------------------------------------------------
 # Password hashing — bcrypt
@@ -23,12 +33,12 @@ _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(plain: str) -> str:
     """Return the bcrypt hash of *plain*. Store this, never the plain text."""
-    return _pwd_context.hash(plain)
+    return cast(str, _pwd_context.hash(plain))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Re-hash *plain* with the salt from *hashed* and compare. Constant-time."""
-    return _pwd_context.verify(plain, hashed)
+    return cast(bool, _pwd_context.verify(plain, hashed))
 
 
 # ---------------------------------------------------------------------------

@@ -34,7 +34,7 @@ def login(db: Session, email: str, password: str) -> TokenResponse:
     """
     # Exclude soft-deleted users from authentication lookups
     user = db.scalars(
-        select(User).where(User.email == email, not User.is_deleted)
+        select(User).where(User.email == email, User.is_deleted.is_(False))
     ).first()
     # Do not reveal whether the account exists, is disabled, or the password is wrong
     if user is None:
@@ -66,7 +66,7 @@ def get_current_user_from_token(db: Session, token: str) -> User:
 
     # Use a select to honour soft-delete and only return active rows
     user = db.scalars(
-        select(User).where(User.id == int(user_id), not User.is_deleted)
+        select(User).where(User.id == int(user_id), User.is_deleted.is_(False))
     ).first()
     if user is None:
         raise UserNotFoundException()
