@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "UP"]
+exclude = ["venv", ".venv", "__pycache__", "build", "dist", "alembic/versions"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+warn_unused_configs = true
+show_error_codes = true
