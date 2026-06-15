@@ -6,14 +6,13 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
 from app.core.codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.logging import logger
 from app.domains.auth.router import router as auth_router
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -63,7 +62,10 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={
@@ -79,14 +81,25 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     logger.error("Unhandled exception: %s", exc, exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "code": ErrorCode.INTERNAL_ERROR, "status": 500},
+        content={
+            "detail": "Internal server error",
+            "code": ErrorCode.INTERNAL_ERROR,
+            "status": 500,
+        },
     )
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "code": f"HTTP_{exc.status_code}", "status": exc.status_code},
+        content={
+            "detail": exc.detail,
+            "code": f"HTTP_{exc.status_code}",
+            "status": exc.status_code,
+        },
     )
 # ---------------------------------------------------------------------------
 # Routers — add here as domains are implemented

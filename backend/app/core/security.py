@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError  # re-exported for callers
 from passlib.context import CryptContext
 
 from app.config import settings

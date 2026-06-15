@@ -1,6 +1,6 @@
 from pathlib import Path
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Repo root: config.py -> app -> backend -> RhFlow
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"

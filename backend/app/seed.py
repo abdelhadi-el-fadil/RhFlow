@@ -57,7 +57,9 @@ def seed() -> None:
     db = SessionLocal()
     try:
         for data in SEED_USERS:
-            existing = db.scalars(select(User).where(User.email == data["email"])).first()
+            existing = db.scalars(
+                select(User).where(User.email == data["email"])
+            ).first()
             if existing:
                 print(f"  [skip]    {data['email']} already exists")
                 skipped += 1

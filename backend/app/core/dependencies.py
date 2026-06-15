@@ -18,7 +18,8 @@ Usage
     def delete_user(user_id: int, _: User = Depends(require_role(UserRole.ADMIN))):
         ...
 """
-from typing import Annotated, Callable
+from collections.abc import Callable
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer

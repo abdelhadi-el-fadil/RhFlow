@@ -1,7 +1,9 @@
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I", "UP"]
 exclude = ["venv", ".venv", "__pycache__", "build", "dist", "alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
 
 [tool.mypy]
 python_version = "3.11"

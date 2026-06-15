@@ -4,7 +4,7 @@ Database engine + session factory + FastAPI dependency.
 All other modules import ``get_db`` from here — never create sessions
 directly so connection management stays in one place.
 """
-from typing import Generator
+from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -13,7 +13,9 @@ from app.config import settings
 
 # create_engine is cheap to call once at module load.
 # check_same_thread=False is only needed for SQLite (FastAPI uses threads).
-_connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+_connect_args = {}
+if "sqlite" in settings.DATABASE_URL:
+    _connect_args = {"check_same_thread": False}
 
 engine = create_engine(settings.DATABASE_URL, connect_args=_connect_args)
 
