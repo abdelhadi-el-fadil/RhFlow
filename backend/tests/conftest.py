@@ -5,7 +5,7 @@ Test infrastructure — SQLite in-memory DB + FastAPI TestClient.
 - app.dependency_overrides[get_db] échange Postgres par SQLite sans
   toucher au code métier — c'est la dependency inversion en action.
 """
-from typing import Callable, Generator
+from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient

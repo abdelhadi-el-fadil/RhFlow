@@ -7,8 +7,8 @@ Note sur require_role : on teste via une route protégée créée inline
 dans le fichier de test avec app.include_router — pas besoin de modifier
 le vrai router.py.
 """
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Callable
 
 import jwt
 from fastapi import APIRouter, Depends
@@ -128,7 +128,10 @@ def test_me_with_valid_token_returns_200_email_correct_and_no_hashed_password(
     assert "hashed_password" not in body          # sécurité : ne jamais exposer le hash
 
 
-def test_me_with_expired_token_returns_401_with_code(client: TestClient, make_user: Callable[..., User]) -> None:
+def test_me_with_expired_token_returns_401_with_code(
+    client: TestClient,
+    make_user: Callable[..., User],
+) -> None:
     """Token expiré depuis 1 seconde → AUTH_TOKEN_EXPIRED."""
     user = make_user("frank@test.com", "Secret123!")
     expired_token = create_access_token(
@@ -141,7 +144,10 @@ def test_me_with_expired_token_returns_401_with_code(client: TestClient, make_us
     assert r.json()["code"] == "AUTH_TOKEN_EXPIRED"
 
 
-def test_me_with_wrong_signature_returns_401_with_code(client: TestClient, make_user: Callable[..., User]) -> None:
+def test_me_with_wrong_signature_returns_401_with_code(
+    client: TestClient,
+    make_user: Callable[..., User],
+) -> None:
     """Token signé avec une autre clé → AUTH_INVALID_TOKEN."""
     user = make_user("grace@test.com", "Secret123!")
     bad_token = jwt.encode(

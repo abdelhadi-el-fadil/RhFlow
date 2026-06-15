@@ -15,8 +15,9 @@ Default credentials (change before any real deployment):
     directeur@example.com  / Directeur123    -> DIRECTEUR
     dg@example.com         / Dg123           -> DG
 """
-from sqlalchemy import select
 from typing import Any
+
+from sqlalchemy import select
 
 from app.core.enums import UserRole
 from app.core.security import hash_password
