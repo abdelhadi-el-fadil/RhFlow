@@ -9,8 +9,8 @@ Usage:
 """
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, ForeignKey, text
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from sqlalchemy.sql import func
 
 
@@ -44,3 +44,15 @@ class SoftDeleteMixin:
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class AuditMixin:
+    """Adds created_by_id / updated_by_id FK columns to user-owned models."""
+
+    @declared_attr
+    def created_by_id(cls) -> Mapped[int | None]:
+        return mapped_column(ForeignKey("users.id"), nullable=True)
+
+    @declared_attr
+    def updated_by_id(cls) -> Mapped[int | None]:
+        return mapped_column(ForeignKey("users.id"), nullable=True)

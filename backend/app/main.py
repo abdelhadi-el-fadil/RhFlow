@@ -13,6 +13,8 @@ from app.core.codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.logging import logger
 from app.domains.auth.router import router as auth_router
+from app.domains.directions.router import router as directions_router
+from app.domains.users.router import router as users_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -93,11 +95,14 @@ async def http_exception_handler(
     request: Request,
     exc: StarletteHTTPException,
 ) -> JSONResponse:
+    code = f"HTTP_{exc.status_code}"
+    if exc.status_code == 401:
+        code = ErrorCode.UNAUTHORIZED
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "detail": exc.detail,
-            "code": f"HTTP_{exc.status_code}",
+            "code": code,
             "status": exc.status_code,
         },
     )
@@ -105,6 +110,8 @@ async def http_exception_handler(
 # Routers — add here as domains are implemented
 # ---------------------------------------------------------------------------
 app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(directions_router)
 
 # ---------------------------------------------------------------------------
 # Base routes

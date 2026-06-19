@@ -43,7 +43,7 @@ jobs:
         run: python -m ruff check backend/app backend/tests
 
       - name: Run Mypy
-        run: python -m mypy backend/app
+        run: python -m mypy backend/app backend/tests
 
       - name: Run tests
         env:
