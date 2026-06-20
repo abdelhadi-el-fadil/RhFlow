@@ -14,6 +14,13 @@ from app.core.exceptions import AppException
 from app.core.logging import logger
 from app.domains.auth.router import router as auth_router
 from app.domains.directions.router import router as directions_router
+from app.domains.fiches_de_poste.router import router as fiches_de_poste_router
+from app.domains.recruitment.router import (
+    besoins_router as recruitment_besoins_router,
+)
+from app.domains.recruitment.router import (
+    router as recruitment_router,
+)
 from app.domains.users.router import router as users_router
 
 app = FastAPI(
@@ -112,6 +119,9 @@ async def http_exception_handler(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(directions_router)
+app.include_router(fiches_de_poste_router)
+app.include_router(recruitment_router)
+app.include_router(recruitment_besoins_router)
 
 # ---------------------------------------------------------------------------
 # Base routes

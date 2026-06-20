@@ -4,9 +4,10 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.config import settings
+from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
+from app.domains.directions.model import Direction
 from app.models.base import Base
 from app.domains.users.model import User
-from app.domains.directions.model import Direction
 # Get database URL from settings
 DATABASE_URL = settings.DATABASE_URL
 
