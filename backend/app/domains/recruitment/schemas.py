@@ -23,7 +23,6 @@ class BesoinRecrutementResponse(BaseModel):
     projet_id: int | None
     created_by_id: int | None
     updated_by_id: int | None
-    is_deleted: bool
 
 
 class BesoinRecrutementCreate(BaseModel):

@@ -28,7 +28,6 @@ class OffreResponse(BaseModel):
     published_by_id: int | None
     created_by_id: int | None
     updated_by_id: int | None
-    is_deleted: bool
 
 
 class OffrePublicResponse(BaseModel):

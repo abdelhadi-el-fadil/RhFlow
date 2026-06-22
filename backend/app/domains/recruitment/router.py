@@ -35,9 +35,8 @@ besoins_router = APIRouter(prefix="/besoins", tags=["Recruitment needs"])
 )
 def create_project(
     payload: ProjetRecrutementCreate,
-    _: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[ProjetRecrutementResponse]:
     project = recruitment_service.create_project(db, payload, current_user)
     return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
@@ -50,9 +49,8 @@ def create_project(
 def attach_need(
     projet_id: int,
     besoin_id: int,
-    _: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[ProjetRecrutementResponse]:
     project = recruitment_service.attach_besoin(
         db, projet_id, besoin_id, current_user
@@ -98,9 +96,8 @@ def list_besoins(
 )
 def create_besoin(
     payload: BesoinRecrutementCreate,
-    _: User = Depends(require_role(UserRole.DIRECTEUR)),
+    current_user: User = Depends(require_role(UserRole.DIRECTEUR)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.create_besoin(db, payload, current_user)
     return ApiResponse(data=BesoinRecrutementResponse.model_validate(besoin))
@@ -149,9 +146,8 @@ def delete_besoin(
 )
 def submit_besoin(
     besoin_id: int,
-    _: User = Depends(require_role(UserRole.DIRECTEUR)),
+    current_user: User = Depends(require_role(UserRole.DIRECTEUR)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.submit_besoin(db, besoin_id, current_user)
     return ApiResponse(data=BesoinRecrutementResponse.model_validate(besoin))
@@ -163,9 +159,8 @@ def submit_besoin(
 )
 def approve_besoin(
     besoin_id: int,
-    _: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.approve_besoin(db, besoin_id, current_user)
     return ApiResponse(data=BesoinRecrutementResponse.model_validate(besoin))
@@ -178,9 +173,8 @@ def approve_besoin(
 def reject_besoin(
     besoin_id: int,
     payload: RejectBesoinRequest,
-    _: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.reject_besoin(db, besoin_id, payload, current_user)
     return ApiResponse(data=BesoinRecrutementResponse.model_validate(besoin))

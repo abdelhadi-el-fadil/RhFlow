@@ -15,11 +15,11 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    email: str | None = None
+    email: EmailStr
     password: str | None = Field(default=None, min_length=8)
     full_name: str | None = None
     gsm: str | None = None
-    role: UserRole | None = None
+    role: UserRole
     enabled: bool | None = None
 
 

@@ -52,9 +52,8 @@ def list_fiches(
 )
 def create_fiche(
     payload: FicheDePosteCreate,
-    _: User = Depends(require_role(UserRole.DIRECTEUR, UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DIRECTEUR, UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[FicheDePosteResponse]:
     fiche = fiche_service.create_fiche(db, payload, current_user)
     return ApiResponse(data=FicheDePosteResponse.model_validate(fiche))

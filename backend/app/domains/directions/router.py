@@ -58,28 +58,23 @@ def get_direction(
 )
 def create_direction(
     payload: DirectionCreate,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[DirectionResponse]:
-    direction = directions_service.create_direction(
-        db, payload.model_dump(), current_user
-    )
+    direction = directions_service.create_direction(db, payload, current_user)
     return ApiResponse(data=DirectionResponse.model_validate(direction))
-
 
 @router.put("/{direction_id}", response_model=ApiResponse[DirectionResponse])
 def update_direction(
     direction_id: int,
     payload: DirectionUpdate,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[DirectionResponse]:
     direction = directions_service.update_direction(
         db,
         direction_id,
-        payload.model_dump(exclude_none=False),
+        payload,
         current_user,
     )
     return ApiResponse(data=DirectionResponse.model_validate(direction))
