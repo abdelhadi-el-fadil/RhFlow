@@ -126,15 +126,10 @@ def test_admin_can_update_user(
     token = login.json()["data"]["access_token"]
 
     r = client.put(
-    f"/users/{target.id}",
-    json={
-        "email": "target@test.com",
-        "role": "DRH",
-        "full_name": "Updated Name",
-        "enabled": False,
-    },
-    headers={"Authorization": f"Bearer {token}"},
-)
+        f"/users/{target.id}",
+        json={"full_name": "Updated Name", "enabled": False},
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert r.status_code == 200
     body = r.json()["data"]

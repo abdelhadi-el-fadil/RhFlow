@@ -27,15 +27,13 @@ def create_user(
     gsm: str | None,
     role: UserRole,
 ) -> User:
-    existing = (
-    db.scalars(
+    existing = db.scalars(
         select(User).where(
             User.email == email,
             User.is_deleted.is_(False),
         )
     ).first()
-)
-    if existing is not None :
+    if existing is not None:
         raise EmailAlreadyExistsException()
 
     user = User(
@@ -74,11 +72,11 @@ def list_users(db: Session, params: PaginationParams) -> tuple[list[User], int]:
 def update_user(
     db: Session,
     user_id: int,
-    role: UserRole,
     email: str | None = None,
     password: str | None = None,
     full_name: str | None = None,
     gsm: str | None = None,
+    role: UserRole | None = None,
     enabled: bool | None = None,
 ) -> User:
     user = get_user(db, user_id)

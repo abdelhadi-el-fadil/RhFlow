@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, require_role
+from app.core.dependencies import require_role
 from app.core.enums import UserRole
 from app.core.schemas import (
     ApiResponse,
@@ -44,9 +44,8 @@ def list_offres(
 )
 def create_offre(
     payload: OffreCreate,
-    _: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH)),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> ApiResponse[OffreResponse]:
     offre = offres_service.create_offre(db, payload, current_user)
     return ApiResponse(data=OffreResponse.model_validate(offre))

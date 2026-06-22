@@ -1,9 +1,9 @@
 """
 Test infrastructure — SQLite in-memory DB + FastAPI TestClient.
 
-- Base.metadata.create_all(...) ne doit exister QUE ici (voir CLAUDE.md).
-- app.dependency_overrides[get_db] échange Postgres par SQLite sans
-  toucher au code métier — c'est la dependency inversion en action.
+- Base.metadata.create_all(...) must exist HERE ONLY (see CLAUDE.md).
+- app.dependency_overrides[get_db] swaps Postgres for SQLite without
+  touching any business logic — dependency inversion in action.
 """
 from collections.abc import Callable, Generator
 
@@ -21,8 +21,8 @@ from app.main import app
 from app.models.base import Base
 
 # ── SQLite in-memory ───────────────────────────────────────────────────────
-# StaticPool = une seule connexion partagée → TestClient (thread séparé)
-# voit la même DB que les fixtures. Sans ça, la DB paraît vide.
+# StaticPool = single shared connection → TestClient (separate thread)
+# sees the same DB as fixtures. Without it the DB appears empty.
 engine = create_engine(
     "sqlite://",
     connect_args={"check_same_thread": False},
@@ -30,7 +30,7 @@ engine = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base.metadata.create_all(engine)  # UNIQUE endroit autorisé (voir CLAUDE.md)
+Base.metadata.create_all(engine)  # ONLY place this is allowed (see CLAUDE.md)
 
 
 # ── Override FastAPI ───────────────────────────────────────────────────────
@@ -66,9 +66,9 @@ def client() -> Generator[TestClient, None, None]:
 @pytest.fixture()
 def make_user(db: Session) -> Callable[..., User]:
     """
-    Factory — crée et persiste un User en base.
+    Factory — create and persist a User in the database.
 
-    Exemples :
+    Examples:
         make_user("alice@test.com", "Secret123!")
         make_user("bob@test.com",   "Secret123!", role=UserRole.ADMIN)
         make_user("eve@test.com",   "Secret123!", enabled=False)
