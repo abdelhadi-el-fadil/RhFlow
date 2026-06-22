@@ -50,6 +50,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image : elfadilabdelhadi/rhflow-backend:latest
     depends_on:
       postgres:
         condition: service_healthy
