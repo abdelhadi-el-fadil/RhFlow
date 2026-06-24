@@ -134,3 +134,10 @@ jobs:
             # Pull latest images and restart
             docker compose pull
             docker compose up -d
+
+            # Wait for postgres to be healthy
+            echo "Waiting for postgres to be ready..."
+            sleep 10
+
+            # Run alembic migrations
+            docker compose exec -T backend alembic upgrade head
