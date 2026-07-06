@@ -179,7 +179,7 @@ SEED_BESOINS: list[dict[str, object]] = [
         "processed_by_email": None,
         "project_title": None,
         "owner_email": "directeur@example.com",
-    },
+    }, 
     {
         "title": "Recruter 1 Chef de Projet RH",
         "description": "Pilotage de plusieurs chantiers structurants.",
