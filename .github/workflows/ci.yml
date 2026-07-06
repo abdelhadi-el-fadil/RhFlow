@@ -186,6 +186,7 @@ jobs:
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             APP_NAME=RhFlow
             DEBUG=false
+            CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
             ALGORITHM=${{ secrets.ALGORITHM }}
             ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
             EOF
