@@ -160,24 +160,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose to droplet
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: docker-compose.yml
-          target: /home/${{ secrets.DROPLET_USER }}/rhflow
-
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
+          command_timeout: 20m
           script: |
             mkdir -p /home/${{ secrets.DROPLET_USER }}/rhflow
             cd /home/${{ secrets.DROPLET_USER }}/rhflow
+
+            # Avoid SCP flakiness by pulling compose file directly from the current commit branch.
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/docker-compose.yml -o docker-compose.yml
 
             cat > .env << EOF
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
