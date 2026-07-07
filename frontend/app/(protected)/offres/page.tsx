@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { HandCoins, ListChecks, WandSparkles } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -65,7 +66,7 @@ function Content() {
     <div className="space-y-6">
       {user?.role === "DRH" && (
         <Card>
-          <CardHeader><CardTitle>Créer une offre</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><WandSparkles className="size-5 text-indigo-700" />Créer une offre</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-2" onSubmit={create}>
               <Field label="Besoin ID"><Input value={form.besoin_id} onChange={(event) => setForm((current) => ({ ...current, besoin_id: event.target.value }))} /></Field>
@@ -80,7 +81,7 @@ function Content() {
       )}
 
       <Card>
-        <CardHeader><CardTitle>Actions par ID</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ListChecks className="size-5 text-indigo-700" />Actions par ID</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <div className="space-y-2">
             <Label>Offre ID</Label>
@@ -96,7 +97,7 @@ function Content() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Offres publiées</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><HandCoins className="size-5 text-indigo-700" />Offres publiées</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { Activity, Building2, ClipboardList, FileText, Gauge, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -88,10 +89,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-sky-200/70 bg-sky-50/90">
         <CardHeader>
           <CardDescription>Bonjour {firstName}</CardDescription>
-          <CardTitle>Tableau de bord RH</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Gauge className="size-5 text-indigo-700" />Tableau de bord RH</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Badge variant="secondary">Rôle {user?.role}</Badge>
@@ -100,33 +101,33 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Utilisateurs" value={counts.users} href="/users" loading={loading} />
-        <StatCard title="Directions" value={counts.directions} href="/directions" loading={loading} />
-        <StatCard title="Fiches de poste" value={counts.fiches} href="/fiches-de-poste" loading={loading} />
-        <StatCard title="Besoins" value={counts.besoins} href="/besoins" loading={loading} />
+        <StatCard title="Utilisateurs" value={counts.users} href="/users" loading={loading} tone="from-blue-500/10 to-indigo-500/10" />
+        <StatCard title="Directions" value={counts.directions} href="/directions" loading={loading} tone="from-indigo-500/10 to-violet-500/10" />
+        <StatCard title="Fiches de poste" value={counts.fiches} href="/fiches-de-poste" loading={loading} tone="from-sky-500/10 to-blue-500/10" />
+        <StatCard title="Besoins" value={counts.besoins} href="/besoins" loading={loading} tone="from-violet-500/10 to-fuchsia-500/10" />
       </div>
 
       <Card>
         <CardHeader>
           <CardDescription>Raccourcis</CardDescription>
-          <CardTitle>Navigation rapide</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Activity className="size-5 text-indigo-700" />Navigation rapide</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3 text-sm">
-          <Link className="rounded-lg border px-3 py-2 hover:bg-muted" href="/fiches-de-poste">Voir les fiches de poste</Link>
-          {user?.role !== "DG" && <Link className="rounded-lg border px-3 py-2 hover:bg-muted" href="/besoins">Voir les besoins</Link>}
-          {(user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR") && <Link className="rounded-lg border px-3 py-2 hover:bg-muted" href="/projets">Voir les projets</Link>}
-          {(user?.role === "ADMIN" || user?.role === "DRH") && <Link className="rounded-lg border px-3 py-2 hover:bg-muted" href="/offres">Voir les offres</Link>}
+          <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/fiches-de-poste">Voir les fiches de poste</Link>
+          {user?.role !== "DG" && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/besoins">Voir les besoins</Link>}
+          {(user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR") && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/projets">Voir les projets</Link>}
+          {(user?.role === "ADMIN" || user?.role === "DRH") && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/offres">Voir les offres</Link>}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardDescription>Derniers besoins</CardDescription>
-          <CardTitle>Éléments récents depuis le backend</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-indigo-700" />Éléments récents depuis le backend</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {recentBesoins.map((need) => (
-            <Link key={need.id} href={`/besoins/${need.id}`} className="flex items-center justify-between rounded-lg border px-3 py-2 hover:bg-muted/50">
+            <Link key={need.id} href={`/besoins/${need.id}`} className="flex items-center justify-between rounded-lg border border-indigo-200/70 px-3 py-2 transition-colors duration-200 hover:bg-muted/50">
               <div>
                 <p className="font-medium">{need.title}</p>
                 <p className="text-xs text-muted-foreground">Fiche {need.fiche_de_poste_id} · {need.status}</p>
@@ -134,22 +135,23 @@ export default function DashboardPage() {
               <Badge variant="outline">#{need.id}</Badge>
             </Link>
           ))}
-          {!recentBesoins.length && <p className="text-sm text-muted-foreground">Aucune donnée chargée.</p>}
+          {!recentBesoins.length && <p className="animate-pulse text-sm text-muted-foreground motion-reduce:animate-none">Aucune donnée chargée.</p>}
         </CardContent>
       </Card>
     </div>
   )
 }
 
-function StatCard({ title, value, href, loading }: { title: string; value: number; href: string; loading: boolean }) {
+function StatCard({ title, value, href, loading, tone }: { title: string; value: number; href: string; loading: boolean; tone: string }) {
+  const icon = title === "Utilisateurs" ? <Users className="size-4 text-indigo-700" /> : title === "Directions" ? <Building2 className="size-4 text-indigo-700" /> : title === "Fiches de poste" ? <FileText className="size-4 text-indigo-700" /> : <ClipboardList className="size-4 text-indigo-700" />
   return (
-    <Card>
+    <Card className={`border-indigo-200/70 bg-linear-to-br ${tone}`}>
       <CardHeader>
-        <CardDescription>{title}</CardDescription>
-        <CardTitle>{loading ? "…" : value}</CardTitle>
+        <CardDescription className="flex items-center gap-2">{icon}{title}</CardDescription>
+        <CardTitle className="text-indigo-950">{loading ? "…" : value}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Link href={href} className="text-sm text-primary hover:underline">Ouvrir</Link>
+        <Link href={href} className="text-sm text-indigo-700 hover:text-indigo-900 hover:underline">Ouvrir</Link>
       </CardContent>
     </Card>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { List, ShieldCheck, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -100,7 +101,7 @@ function UsersContent() {
       <Card>
         <CardHeader>
           <CardDescription>Administration</CardDescription>
-          <CardTitle>Utilisateurs</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Users className="size-5 text-indigo-700" />Utilisateurs</CardTitle>
         </CardHeader>
         <CardContent>
           {user?.role === "ADMIN" && (
@@ -122,7 +123,7 @@ function UsersContent() {
       <Card>
         <CardHeader>
           <CardDescription>{loading ? "Chargement…" : `${items.length} résultats`}</CardDescription>
-          <CardTitle>Liste</CardTitle>
+          <CardTitle className="flex items-center gap-2"><List className="size-5 text-indigo-700" />Liste</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

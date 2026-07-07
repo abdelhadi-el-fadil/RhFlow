@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, ShieldCheck } from "lucide-react"
@@ -49,61 +48,68 @@ export function LoginForm({
 
   return (
     <div className={className} {...props}>
-      <Card className="overflow-hidden border-border/70 bg-white/95 shadow-2xl shadow-slate-200/60 backdrop-blur">
-        <CardHeader className="space-y-2 border-b border-border/60 bg-gradient-to-br from-slate-950 to-slate-800 text-white">
-          <div className="flex items-center gap-2 text-sm text-slate-200">
-            <ShieldCheck className="size-4" />
-            FastAPI connecté
-          </div>
-          <CardTitle className="text-2xl text-white">Connexion RhFlow</CardTitle>
-          <p className="text-sm text-slate-200">
-            Accédez au tableau de bord RH avec votre compte backend.
-          </p>
-        </CardHeader>
-        <CardContent className="p-6 md:p-8">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="prenom.nom@entreprise.com"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </div>
+      <Card className="mx-auto w-full max-w-xl overflow-hidden border border-blue-300/80 bg-blue-100/95 shadow-2xl shadow-blue-300/30 backdrop-blur-sm">
+        <CardContent className="p-0">
+          <div className="grid">
+            <section className="flex items-center justify-center p-6 sm:p-8">
+              <div className="w-full max-w-md space-y-5">
+                <CardHeader className="space-y-2 rounded-xl border border-indigo-100/80 brand-gradient-soft px-4 py-4">
+                  <div className="flex items-center gap-2 text-sm text-indigo-700">
+                    <ShieldCheck className="size-4" />
+                    FastAPI connecte
+                  </div>
+                  <CardTitle className="text-2xl text-indigo-950">Connexion RhFlow</CardTitle>
+                  <p className="text-sm text-indigo-700">
+                    Accedez au tableau de bord RH avec votre compte backend.
+                  </p>
+                </CardHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </div>
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="prenom.nom@entreprise.com"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                    />
+                  </div>
 
-            {error && (
-              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Connexion en cours
+                      </>
+                    ) : (
+                      "Se connecter"
+                    )}
+                  </Button>
+                </form>
               </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Connexion en cours
-                </>
-              ) : (
-                "Se connecter"
-              )}
-            </Button>
-          </form>
+            </section>
+          </div>
         </CardContent>
       </Card>
     </div>

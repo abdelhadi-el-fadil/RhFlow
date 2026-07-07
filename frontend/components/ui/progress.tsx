@@ -12,7 +12,7 @@ function Progress({ className, value = 0, ...props }: React.ComponentProps<"div"
       {...props}
     >
       <div
-        className="h-full rounded-full bg-primary transition-all"
+        className="brand-gradient h-full rounded-full transition-all duration-200"
         style={{ width: `${safeValue}%` }}
       />
     </div>

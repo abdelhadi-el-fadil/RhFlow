@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { ClipboardList } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -39,7 +40,7 @@ function BesoinsContent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Besoins de recrutement</CardTitle>
+        <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-indigo-700" />Besoins de recrutement</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {(user?.role === "DIRECTEUR" || user?.role === "DRH") && (

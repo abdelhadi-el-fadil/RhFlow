@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { FileText, ListPlus } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -79,7 +80,7 @@ function FichesContent() {
     <div className="space-y-6">
       {(user?.role === "DIRECTEUR" || user?.role === "DRH") && (
         <Card>
-          <CardHeader><CardDescription>Créer</CardDescription><CardTitle>Fiche de poste</CardTitle></CardHeader>
+          <CardHeader><CardDescription>Créer</CardDescription><CardTitle className="flex items-center gap-2"><ListPlus className="size-5 text-indigo-700" />Fiche de poste</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-2" onSubmit={createFiche}>
               <Field label="Intitulé"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>
@@ -95,7 +96,7 @@ function FichesContent() {
       )}
 
       <Card>
-        <CardHeader><CardDescription>{loading ? "Chargement…" : `${items.length} fiches`}</CardDescription><CardTitle>Liste</CardTitle></CardHeader>
+        <CardHeader><CardDescription>{loading ? "Chargement…" : `${items.length} fiches`}</CardDescription><CardTitle className="flex items-center gap-2"><FileText className="size-5 text-indigo-700" />Liste</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>

@@ -11,6 +11,8 @@ import {
   HandCoins,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Users,
 } from "lucide-react"
@@ -40,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const roleLabel = user?.role ?? "-"
   const userLabel = user?.full_name ?? user?.email ?? "Utilisateur"
   const greetingName = user?.full_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "utilisateur"
@@ -52,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/login")
   }
 
-  const nav = (
+  const nav = (expanded: boolean, onNavigate: () => void = () => undefined) => (
     <nav className="space-y-1">
       {navigation.primary.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -61,18 +64,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             key={item.href}
             href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            onClick={onNavigate}
+            className={`group flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 motion-reduce:transition-none ${expanded ? "justify-start gap-3" : "justify-center"} ${active ? "bg-linear-to-r from-sky-100 to-blue-100 text-indigo-900 ring-1 ring-sky-300 shadow-sm" : "text-indigo-900 hover:bg-linear-to-r hover:from-sky-100 hover:to-blue-100 hover:ring-1 hover:ring-sky-200"}`}
+            title={!expanded ? item.label : undefined}
           >
-            <Icon className="size-4 text-sky-300" />
-            {item.label}
+            <Icon className="size-4 shrink-0 text-indigo-700" />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-200 motion-reduce:transition-none ${expanded ? "max-w-48 opacity-100" : "max-w-0 opacity-0"}`}
+            >
+              {item.label}
+            </span>
           </Link>
         )
       })}
     </nav>
   )
 
-  const footerNav = (
+  const footerNav = (expanded: boolean, onNavigate: () => void = () => undefined) => (
     <nav className="space-y-1">
       {navigation.footer.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -81,11 +89,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             key={item.href}
             href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            onClick={onNavigate}
+            className={`group flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200 motion-reduce:transition-none ${expanded ? "justify-start gap-3" : "justify-center"} ${active ? "bg-linear-to-r from-sky-100 to-blue-100 text-indigo-900 ring-1 ring-sky-300 shadow-sm" : "text-indigo-900 hover:bg-linear-to-r hover:from-sky-100 hover:to-blue-100 hover:ring-1 hover:ring-sky-200"}`}
+            title={!expanded ? item.label : undefined}
           >
-            <Icon className="size-4 text-sky-300" />
-            {item.label}
+            <Icon className="size-4 shrink-0 text-indigo-700" />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-200 motion-reduce:transition-none ${expanded ? "max-w-48 opacity-100" : "max-w-0 opacity-0"}`}
+            >
+              {item.label}
+            </span>
           </Link>
         )
       })}
@@ -93,66 +106,82 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="min-h-svh bg-muted/20 lg:grid lg:grid-cols-[280px_1fr]">
-      <aside className="hidden border-r bg-background p-4 lg:flex lg:flex-col">
-        <div className="space-y-4">
-          <div>
-            <p className="text-lg font-semibold">RhFlow</p>
-            <p className="text-sm text-muted-foreground">Interface RH connectée</p>
+    <div className="min-h-svh bg-transparent lg:flex">
+      <aside
+        className={`sticky top-0 hidden h-svh shrink-0 border-r border-indigo-200/80 bg-linear-to-b from-sky-100 via-indigo-100 to-violet-100 p-4 shadow-sm lg:flex lg:flex-col lg:rounded-none lg:transition-[width] lg:duration-300 lg:ease-out lg:motion-reduce:transition-none ${sidebarExpanded ? "lg:w-72" : "lg:w-20"}`}
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className={`min-w-0 transition-opacity duration-200 ${sidebarExpanded ? "opacity-100" : "opacity-0"}`}>
+            <p className="truncate text-lg font-semibold text-indigo-950">RhFlow</p>
+            <p className="truncate text-sm text-indigo-700">Interface RH connectee</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{roleLabel}</Badge>
-            <span className="text-sm text-muted-foreground">{userLabel}</span>
-          </div>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-label={sidebarExpanded ? "Reduire la barre laterale" : "Etendre la barre laterale"}
+            onClick={() => setSidebarExpanded((value) => !value)}
+            className="text-indigo-700 hover:bg-white/80"
+          >
+            {sidebarExpanded ? <PanelLeftClose className="text-violet-600" /> : <PanelLeftOpen className="text-violet-600" />}
+          </Button>
         </div>
+
+        <div className={`mb-2 flex items-center gap-2 overflow-hidden transition-all duration-200 ${sidebarExpanded ? "max-h-16 opacity-100" : "max-h-0 opacity-0"}`}>
+          <Badge variant="secondary">{roleLabel}</Badge>
+          <span className="truncate text-sm text-indigo-700">{userLabel}</span>
+        </div>
+
         <Separator className="my-4" />
-        {nav}
+        {nav(sidebarExpanded)}
         <div className="mt-auto pt-4">
-          {footerNav}
+          {footerNav(sidebarExpanded)}
           <Separator className="my-4" />
-          <Button variant="destructive" className="w-full justify-start" onClick={logout}>
-            <LogOut className="text-sky-300" />
-            Déconnexion
+          <Button variant="destructive" className={`w-full ${sidebarExpanded ? "justify-start" : "justify-center"}`} onClick={logout} title={!sidebarExpanded ? "Deconnexion" : undefined}>
+            <LogOut className="text-white" />
+            <span className={`overflow-hidden whitespace-nowrap transition-all duration-200 ${sidebarExpanded ? "max-w-28 opacity-100" : "max-w-0 opacity-0"}`}>
+              Deconnexion
+            </span>
           </Button>
         </div>
       </aside>
 
-      <div className="flex min-h-svh flex-col">
-        <header className="flex items-center justify-between border-b bg-background px-4 py-3 lg:px-6">
+      <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-sky-100/55">
+        <header className="z-10 flex items-center justify-between border-b border-blue-300/60 bg-linear-to-r from-sky-200/80 to-blue-200/80 px-4 py-3 backdrop-blur-sm lg:rounded-none lg:px-6">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen((value) => !value)}>
-              <Menu className="text-sky-300" />
+              <Menu className="text-violet-600" />
             </Button>
             <div>
-              <p className="text-sm font-medium">Bonjour {greetingName}</p>
-              <p className="text-xs text-muted-foreground">{emailLabel}</p>
+              <p className="text-sm font-semibold text-blue-950">Bonjour {greetingName}</p>
+              <p className="text-xs text-blue-800">{emailLabel}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline">{roleLabel}</Badge>
             <Button variant="outline" onClick={logout} className="hidden sm:inline-flex">
-              <LogOut className="text-sky-300" />
+              <LogOut className="text-violet-600" />
               Sortir
             </Button>
           </div>
         </header>
 
         {mobileOpen && (
-          <div className="border-b bg-background p-4 lg:hidden">
+          <div className="border-b border-indigo-300/40 bg-sky-100/90 p-4 lg:hidden">
             <Card className="p-4">
-              {nav}
+              {nav(true, () => setMobileOpen(false))}
               <Separator className="my-4" />
-              {footerNav}
+              {footerNav(true, () => setMobileOpen(false))}
               <Separator className="my-4" />
               <Button variant="destructive" className="w-full justify-start" onClick={logout}>
-                <LogOut className="text-sky-300" />
-                Déconnexion
+                <LogOut className="text-violet-600" />
+                Deconnexion
               </Button>
             </Card>
           </div>
         )}
 
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="page-enter flex-1 p-4 lg:p-6">{children}</main>
       </div>
     </div>
   )

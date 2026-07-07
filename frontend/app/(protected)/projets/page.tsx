@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { BriefcaseBusiness, Info } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -118,7 +119,7 @@ function Content() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent>Chargement des projets de recrutement…</CardContent>
+        <CardContent className="animate-pulse motion-reduce:animate-none">Chargement des projets de recrutement…</CardContent>
       </Card>
     )
   }
@@ -135,7 +136,7 @@ function Content() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Projets de recrutement ouverts</CardTitle>
+          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-indigo-700" />Projets de recrutement ouverts</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <Field label="Filtrer par direction">
@@ -196,10 +197,10 @@ function Content() {
       </div>
 
       {(isDetailLoading || detailError || detailProject) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+          <Card className="w-full max-w-2xl motion-safe:animate-in motion-safe:zoom-in-95 motion-safe:duration-200">
             <CardHeader>
-              <CardTitle>Détail projet</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Info className="size-5 text-indigo-700" />Détail projet</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               {isDetailLoading && <p>Chargement du détail…</p>}

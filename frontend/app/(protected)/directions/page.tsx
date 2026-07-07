@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Building2, List } from "lucide-react";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGate } from "@/components/role-gate";
@@ -90,7 +91,7 @@ function DirectionsContent() {
       <Card>
         <CardHeader>
           <CardDescription>Référentiel RH</CardDescription>
-          <CardTitle>Directions</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Building2 className="size-5 text-indigo-700" />Directions</CardTitle>
         </CardHeader>
         <CardContent>
           {user?.role === "ADMIN" && (
@@ -160,7 +161,7 @@ function DirectionsContent() {
           <CardDescription>
             {loading ? "Chargement…" : `${items.length} résultats`}
           </CardDescription>
-          <CardTitle>Liste des directions</CardTitle>
+          <CardTitle className="flex items-center gap-2"><List className="size-5 text-indigo-700" />Liste des directions</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
