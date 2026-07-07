@@ -14,13 +14,14 @@ on:
 
 jobs:
   detect-changes:
-    name: Detect Backend/Frontend Changes
+    name: Detect Backend/Frontend/Infra Changes
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      infra: ${{ steps.changes.outputs.infra }}
 
     steps:
       - name: Checkout repository
@@ -35,6 +36,9 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/**'
+            infra:
+              - 'docker-compose.yml'
+              - '.github/workflows/**'
 
   build-backend:
     name: Build and Push Backend Image
@@ -48,7 +52,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Backend checks run only when backend/** changes.
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -145,6 +148,7 @@ jobs:
     runs-on: ubuntu-latest
 
     needs:
+      - detect-changes
       - build-backend
       - build-frontend
 
@@ -153,7 +157,8 @@ jobs:
       github.event_name == 'push' &&
       (
         needs.build-backend.result == 'success' ||
-        needs.build-frontend.result == 'success'
+        needs.build-frontend.result == 'success' ||
+        needs.detect-changes.outputs.infra == 'true'
       )
 
     steps:
@@ -189,6 +194,7 @@ jobs:
             CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
             ALGORITHM=${{ secrets.ALGORITHM }}
             ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
             EOF
 
             docker compose pull
