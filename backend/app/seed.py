@@ -36,7 +36,7 @@ from app.domains.recruitment.enums import BesoinStatus, ProjetStatus
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.users.model import User
 
-
+ 
 @dataclass(frozen=True)
 class SeedCounters:
     created: int = 0
