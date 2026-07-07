@@ -67,7 +67,7 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
       - PYTHONUNBUFFERED=1
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
   frontend:
@@ -82,8 +82,8 @@ services:
         condition: service_started
     environment:
       - NODE_ENV=production
-    ports:
-      - "3000:3000"
+    ports:  
+      - "127.0.0.1:3000:3000"
     restart: unless-stopped
 volumes:
   db_data:
