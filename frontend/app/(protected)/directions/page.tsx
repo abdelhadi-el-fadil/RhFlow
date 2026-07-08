@@ -88,10 +88,13 @@ function DirectionsContent() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>Référentiel RH</CardDescription>
-          <CardTitle className="flex items-center gap-2"><Building2 className="size-5 text-indigo-700" />Directions</CardTitle>
+          <CardDescription className="text-sky-800">Référentiel RH</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <Building2 className="size-5 text-sky-800" />
+            Directions
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {user?.role === "ADMIN" && (
@@ -149,19 +152,22 @@ function DirectionsContent() {
             </form>
           )}
           {user?.role !== "ADMIN" && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-sky-800/80">
               Consultation uniquement pour ce rôle.
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>
+          <CardDescription className="text-sky-800">
             {loading ? "Chargement…" : `${items.length} résultats`}
           </CardDescription>
-          <CardTitle className="flex items-center gap-2"><List className="size-5 text-indigo-700" />Liste des directions</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <List className="size-5 text-sky-800" />
+            Liste des directions
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

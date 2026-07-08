@@ -98,10 +98,13 @@ function UsersContent() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>Administration</CardDescription>
-          <CardTitle className="flex items-center gap-2"><Users className="size-5 text-indigo-700" />Utilisateurs</CardTitle>
+          <CardDescription className="text-sky-800">Administration</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <Users className="size-5 text-sky-800" />
+            Utilisateurs
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {user?.role === "ADMIN" && (
@@ -116,14 +119,17 @@ function UsersContent() {
               </div>
             </form>
           )}
-          {user?.role !== "ADMIN" && <p className="text-sm text-muted-foreground">Consultation uniquement pour ce rôle.</p>}
+          {user?.role !== "ADMIN" && <p className="text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>{loading ? "Chargement…" : `${items.length} résultats`}</CardDescription>
-          <CardTitle className="flex items-center gap-2"><List className="size-5 text-indigo-700" />Liste</CardTitle>
+          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${items.length} résultats`}</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <List className="size-5 text-sky-800" />
+            Liste
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

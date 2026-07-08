@@ -79,8 +79,14 @@ function FichesContent() {
   return (
     <div className="space-y-6">
       {(user?.role === "DIRECTEUR" || user?.role === "DRH") && (
-        <Card>
-          <CardHeader><CardDescription>Créer</CardDescription><CardTitle className="flex items-center gap-2"><ListPlus className="size-5 text-indigo-700" />Fiche de poste</CardTitle></CardHeader>
+        <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+          <CardHeader>
+            <CardDescription className="text-sky-800">Créer</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-sky-950">
+              <ListPlus className="size-5 text-sky-800" />
+              Fiche de poste
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-2" onSubmit={createFiche}>
               <Field label="Intitulé"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>
@@ -95,8 +101,14 @@ function FichesContent() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader><CardDescription>{loading ? "Chargement…" : `${items.length} fiches`}</CardDescription><CardTitle className="flex items-center gap-2"><FileText className="size-5 text-indigo-700" />Liste</CardTitle></CardHeader>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+        <CardHeader>
+          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${items.length} fiches`}</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <FileText className="size-5 text-sky-800" />
+            Liste
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>

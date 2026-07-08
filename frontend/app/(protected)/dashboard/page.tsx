@@ -89,10 +89,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-sky-200/70 bg-sky-50/90">
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>Bonjour {firstName}</CardDescription>
-          <CardTitle className="flex items-center gap-2"><Gauge className="size-5 text-indigo-700" />Tableau de bord RH</CardTitle>
+          <CardDescription className="text-sky-700">Bonjour {firstName}</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <Gauge className="size-5 text-sky-600" />
+            Tableau de bord RH
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Badge variant="secondary">Rôle {user?.role}</Badge>
@@ -101,57 +104,132 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Utilisateurs" value={counts.users} href="/users" loading={loading} tone="from-blue-500/10 to-indigo-500/10" />
-        <StatCard title="Directions" value={counts.directions} href="/directions" loading={loading} tone="from-indigo-500/10 to-violet-500/10" />
-        <StatCard title="Fiches de poste" value={counts.fiches} href="/fiches-de-poste" loading={loading} tone="from-sky-500/10 to-blue-500/10" />
-        <StatCard title="Besoins" value={counts.besoins} href="/besoins" loading={loading} tone="from-violet-500/10 to-fuchsia-500/10" />
+        <StatCard
+          title="Utilisateurs"
+          value={counts.users}
+          href="/users"
+          loading={loading}
+          tone="from-sky-50 via-sky-100 to-blue-100"
+          border="border-sky-200/70"
+          textColor="text-sky-950"
+          accentColor="text-sky-600"
+          linkColor="text-sky-700 hover:text-sky-900"
+        />
+        <StatCard
+          title="Directions"
+          value={counts.directions}
+          href="/directions"
+          loading={loading}
+          tone="from-violet-50 via-purple-100 to-fuchsia-100"
+          border="border-violet-200/70"
+          textColor="text-violet-950"
+          accentColor="text-violet-600"
+          linkColor="text-violet-700 hover:text-violet-900"
+        />
+        <StatCard
+          title="Fiches de poste"
+          value={counts.fiches}
+          href="/fiches-de-poste"
+          loading={loading}
+          tone="from-emerald-50 via-teal-100 to-cyan-100"
+          border="border-emerald-200/70"
+          textColor="text-emerald-950"
+          accentColor="text-emerald-600"
+          linkColor="text-emerald-700 hover:text-emerald-900"
+        />
+        <StatCard
+          title="Besoins"
+          value={counts.besoins}
+          href="/besoins"
+          loading={loading}
+          tone="from-amber-50 via-orange-100 to-yellow-100"
+          border="border-amber-200/70"
+          textColor="text-amber-950"
+          accentColor="text-amber-600"
+          linkColor="text-amber-700 hover:text-amber-900"
+        />
       </div>
 
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>Raccourcis</CardDescription>
-          <CardTitle className="flex items-center gap-2"><Activity className="size-5 text-indigo-700" />Navigation rapide</CardTitle>
+          <CardDescription className="text-sky-700">Raccourcis</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <Activity className="size-5 text-sky-600" />
+            Navigation rapide
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3 text-sm">
-          <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/fiches-de-poste">Voir les fiches de poste</Link>
-          {user?.role !== "DG" && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/besoins">Voir les besoins</Link>}
-          {(user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR") && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/projets">Voir les projets</Link>}
-          {(user?.role === "ADMIN" || user?.role === "DRH") && <Link className="rounded-lg border border-indigo-200/70 bg-background/80 px-3 py-2 transition-colors duration-200 hover:bg-muted" href="/offres">Voir les offres</Link>}
+          <Link className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100" href="/fiches-de-poste">Voir les fiches de poste</Link>
+          {user?.role !== "DG" && <Link className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100" href="/besoins">Voir les besoins</Link>}
+          {(user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR") && <Link className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100" href="/projets">Voir les projets</Link>}
+          {(user?.role === "ADMIN" || user?.role === "DRH") && <Link className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100" href="/offres">Voir les offres</Link>}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription>Derniers besoins</CardDescription>
-          <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-indigo-700" />Éléments récents depuis le backend</CardTitle>
+          <CardDescription className="text-sky-700">Derniers besoins</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <ClipboardList className="size-5 text-sky-600" />
+            Éléments récents depuis le backend
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {recentBesoins.map((need) => (
-            <Link key={need.id} href={`/besoins/${need.id}`} className="flex items-center justify-between rounded-lg border border-indigo-200/70 px-3 py-2 transition-colors duration-200 hover:bg-muted/50">
+            <Link key={need.id} href={`/besoins/${need.id}`} className="flex items-center justify-between rounded-lg border border-sky-200/70 bg-white/70 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100/70">
               <div>
-                <p className="font-medium">{need.title}</p>
-                <p className="text-xs text-muted-foreground">Fiche {need.fiche_de_poste_id} · {need.status}</p>
+                <p className="font-medium text-sky-950">{need.title}</p>
+                <p className="text-xs text-sky-700/80">Fiche {need.fiche_de_poste_id} · {need.status}</p>
               </div>
               <Badge variant="outline">#{need.id}</Badge>
             </Link>
           ))}
-          {!recentBesoins.length && <p className="animate-pulse text-sm text-muted-foreground motion-reduce:animate-none">Aucune donnée chargée.</p>}
+          {!recentBesoins.length && <p className="animate-pulse text-sm text-sky-700/70 motion-reduce:animate-none">Aucune donnée chargée.</p>}
         </CardContent>
       </Card>
     </div>
   )
 }
 
-function StatCard({ title, value, href, loading, tone }: { title: string; value: number; href: string; loading: boolean; tone: string }) {
-  const icon = title === "Utilisateurs" ? <Users className="size-4 text-indigo-700" /> : title === "Directions" ? <Building2 className="size-4 text-indigo-700" /> : title === "Fiches de poste" ? <FileText className="size-4 text-indigo-700" /> : <ClipboardList className="size-4 text-indigo-700" />
+function StatCard({
+  title,
+  value,
+  href,
+  loading,
+  tone,
+  border,
+  textColor,
+  accentColor,
+  linkColor,
+}: {
+  title: string
+  value: number
+  href: string
+  loading: boolean
+  tone: string
+  border: string
+  textColor: string
+  accentColor: string
+  linkColor: string
+}) {
+  const icon =
+    title === "Utilisateurs" ? (
+      <Users className={`size-4 ${accentColor}`} />
+    ) : title === "Directions" ? (
+      <Building2 className={`size-4 ${accentColor}`} />
+    ) : title === "Fiches de poste" ? (
+      <FileText className={`size-4 ${accentColor}`} />
+    ) : (
+      <ClipboardList className={`size-4 ${accentColor}`} />
+    )
   return (
-    <Card className={`border-indigo-200/70 bg-linear-to-br ${tone}`}>
+    <Card className={`${border} bg-gradient-to-br ${tone}`}>
       <CardHeader>
-        <CardDescription className="flex items-center gap-2">{icon}{title}</CardDescription>
-        <CardTitle className="text-indigo-950">{loading ? "…" : value}</CardTitle>
+        <CardDescription className={`flex items-center gap-2 ${accentColor}`}>{icon}{title}</CardDescription>
+        <CardTitle className={textColor}>{loading ? "…" : value}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Link href={href} className="text-sm text-indigo-700 hover:text-indigo-900 hover:underline">Ouvrir</Link>
+        <Link href={href} className={`text-sm ${linkColor} hover:underline`}>Ouvrir</Link>
       </CardContent>
     </Card>
   )

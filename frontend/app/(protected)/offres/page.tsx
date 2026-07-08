@@ -65,8 +65,13 @@ function Content() {
   return (
     <div className="space-y-6">
       {user?.role === "DRH" && (
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><WandSparkles className="size-5 text-indigo-700" />Créer une offre</CardTitle></CardHeader>
+        <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sky-950">
+              <WandSparkles className="size-5 text-sky-800" />
+              Créer une offre
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-2" onSubmit={create}>
               <Field label="Besoin ID"><Input value={form.besoin_id} onChange={(event) => setForm((current) => ({ ...current, besoin_id: event.target.value }))} /></Field>
@@ -80,8 +85,13 @@ function Content() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><ListChecks className="size-5 text-indigo-700" />Actions par ID</CardTitle></CardHeader>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <ListChecks className="size-5 text-sky-800" />
+            Actions par ID
+          </CardTitle>
+        </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <div className="space-y-2">
             <Label>Offre ID</Label>
@@ -96,8 +106,13 @@ function Content() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><HandCoins className="size-5 text-indigo-700" />Offres publiées</CardTitle></CardHeader>
+      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sky-950">
+            <HandCoins className="size-5 text-sky-800" />
+            Offres publiées
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>

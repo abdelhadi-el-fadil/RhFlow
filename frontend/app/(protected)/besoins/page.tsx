@@ -38,7 +38,7 @@ function BesoinsContent() {
   }, [])
 
   return (
-    <Card>
+    <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-indigo-700" />Besoins de recrutement</CardTitle>
       </CardHeader>

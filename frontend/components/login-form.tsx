@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, ShieldCheck } from "lucide-react"
@@ -48,25 +49,32 @@ export function LoginForm({
 
   return (
     <div className={className} {...props}>
-      <Card className="mx-auto w-full max-w-xl overflow-hidden border border-blue-300/80 bg-blue-100/95 shadow-2xl shadow-blue-300/30 backdrop-blur-sm">
+      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-300  via-sky-300 to-blue-300 shadow-2xl shadow-slate-950/20 backdrop-blur-md">
         <CardContent className="p-0">
           <div className="grid">
             <section className="flex items-center justify-center p-6 sm:p-8">
-              <div className="w-full max-w-md space-y-5">
-                <CardHeader className="space-y-2 rounded-xl border border-indigo-100/80 brand-gradient-soft px-4 py-4">
-                  <div className="flex items-center gap-2 text-sm text-indigo-700">
+              <div className="w-full max-w-md space-y-6">
+                <CardHeader className="space-y-3 rounded-xl bg-gradient-to-r from-slate-600  to-sky-500 px-5 py-5">
+                  <div className="flex items-center gap-2 text-sm text-sky-200">
                     <ShieldCheck className="size-4" />
-                    FastAPI connecte
+                    FastAPI connecté
                   </div>
-                  <CardTitle className="text-2xl text-indigo-950">Connexion RhFlow</CardTitle>
-                  <p className="text-sm text-indigo-700">
-                    Accedez au tableau de bord RH avec votre compte backend.
+
+                  <CardTitle className="text-3xl font-bold tracking-tight text-white">
+                    Connexion RhFlow
+                  </CardTitle>
+
+                  <p className="text-sm leading-relaxed text-slate-300">
+                    Accédez au tableau de bord RH avec votre compte backend.
                   </p>
                 </CardHeader>
 
                 <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-slate-700">
+                      Email
+                    </Label>
+
                     <Input
                       id="email"
                       type="email"
@@ -75,11 +83,15 @@ export function LoginForm({
                       required
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
+                      className="border-slate-300 focus:border-blue-600 focus:ring-blue-600"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Mot de passe</Label>
+                    <Label htmlFor="password" className="text-slate-700">
+                      Mot de passe
+                    </Label>
+
                     <Input
                       id="password"
                       type="password"
@@ -87,20 +99,25 @@ export function LoginForm({
                       required
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
+                      className="border-slate-300 focus:border-blue-600 focus:ring-blue-600"
                     />
                   </div>
 
                   {error && (
-                    <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                       {error}
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="w-full bg-blue-700 text-white transition-all duration-200 hover:bg-blue-800"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
-                        <Loader2 className="size-4 animate-spin" />
-                        Connexion en cours
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        Connexion en cours...
                       </>
                     ) : (
                       "Se connecter"
