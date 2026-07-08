@@ -56,8 +56,7 @@ export function LoginForm({
               <div className="w-full max-w-md space-y-6">
                 <CardHeader className="space-y-3 rounded-xl bg-gradient-to-r from-slate-500  to-sky-400 px-5 py-5">
                   <div className="flex items-center gap-2 text-sm text-sky-200">
-                    <ShieldCheck className="size-4" />
-                    FastAPI connecté
+                    <ShieldCheck className="size-6" />
                   </div>
 
                   <CardTitle className="text-3xl font-bold tracking-tight text-white">
