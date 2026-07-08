@@ -162,7 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-sky-200/50">
-        <header className="z-10 flex items-center justify-between border-b border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100 px-4 py-3 backdrop-blur-sm lg:rounded-none lg:px-6">
+        <header className="z-10 flex items-center justify-between border-b border-sky-300/70 bg-gradient-to-r from-sky-100 to-teal-100 px-4 py-3 backdrop-blur-sm lg:rounded-none lg:px-6">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen((value) => !value)}>
               <Menu className="text-teal-600" />
