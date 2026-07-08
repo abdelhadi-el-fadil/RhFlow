@@ -49,12 +49,12 @@ export function LoginForm({
 
   return (
     <div className={className} {...props}>
-      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-300  via-sky-300 to-blue-300 shadow-2xl shadow-slate-950/20 backdrop-blur-md">
+      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-100  via-sky-100 to-blue-100 shadow-2xl shadow-slate-950/20 backdrop-blur-md">
         <CardContent className="p-0">
           <div className="grid">
             <section className="flex items-center justify-center p-6 sm:p-8">
               <div className="w-full max-w-md space-y-6">
-                <CardHeader className="space-y-3 rounded-xl bg-gradient-to-r from-slate-600  to-sky-500 px-5 py-5">
+                <CardHeader className="space-y-3 rounded-xl bg-gradient-to-r from-slate-500  to-sky-400 px-5 py-5">
                   <div className="flex items-center gap-2 text-sm text-sky-200">
                     <ShieldCheck className="size-4" />
                     FastAPI connecté
