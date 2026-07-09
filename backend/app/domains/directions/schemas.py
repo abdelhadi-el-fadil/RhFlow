@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class DirectionCreate(BaseModel):
     name: str = Field(max_length=150)
-    code: str = Field(max_length=20)
+    code: str | None = Field(default=None, max_length=20)
     description: str | None = None
     director_id: int | None = None
 
@@ -26,5 +26,7 @@ class DirectionResponse(BaseModel):
     code: str
     description: str | None
     director_id: int | None
+    director_name: str | None
+    fiche_count: int
     created_by_id: int | None
     updated_by_id: int | None

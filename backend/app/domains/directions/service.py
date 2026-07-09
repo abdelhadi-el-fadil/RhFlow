@@ -3,10 +3,11 @@ Service — "directions" domain.
 
 Contains CRUD operations with soft-delete filtering and audit population.
 """
+import re
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.schemas import PaginationParams
 from app.domains.directions.exceptions import (
@@ -18,18 +19,38 @@ from app.domains.directions.schemas import DirectionCreate, DirectionUpdate
 from app.domains.users.model import User
 
 
+def _normalize_direction_code(name: str) -> str:
+    collapsed = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").upper()
+    return (collapsed or "DIRECTION")[:20]
+
+
+def _generate_direction_code(db: Session, name: str) -> str:
+    base_code = _normalize_direction_code(name)
+    candidate = base_code
+    suffix = 1
+
+    while db.scalars(
+        select(Direction).where(Direction.code == candidate)).first() is not None:
+        suffix_str = f"-{suffix}"
+        candidate = f"{base_code[: max(1, 20 - len(suffix_str))]}{suffix_str}"
+        suffix += 1
+
+    return candidate
+
+
 def create_direction(
     db: Session, payload: DirectionCreate, current_user: User
 ) -> Direction:
+    code = payload.code or _generate_direction_code(db, payload.name)
     existing = db.scalars(
-        select(Direction).where(Direction.code == payload.code)
+        select(Direction).where(Direction.code == code)
     ).first()
     if existing is not None:
         raise DirectionCodeAlreadyExistsException()
 
     direction = Direction(
         name=payload.name,
-        code=payload.code,
+        code=code,
         description=payload.description,
         director_id=payload.director_id,
         created_by_id=current_user.id,
@@ -43,7 +64,9 @@ def create_direction(
 
 def get_direction(db: Session, direction_id: int) -> Direction:
     direction = db.scalars(
-        select(Direction).where(
+        select(Direction)
+        .options(selectinload(Direction.director), selectinload(Direction.fiches))
+        .where(
             Direction.id == direction_id,
             Direction.is_deleted.is_(False),
         )
@@ -58,6 +81,7 @@ def list_directions(
 ) -> tuple[list[Direction], int]:
     base_query = (
         select(Direction)
+        .options(selectinload(Direction.director), selectinload(Direction.fiches))
         .where(Direction.is_deleted.is_(False))
         .order_by(Direction.id)
     )

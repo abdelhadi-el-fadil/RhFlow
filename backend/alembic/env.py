@@ -7,6 +7,7 @@ from app.config import settings
 from app.domains.offres.model import Offre
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.directions.model import Direction
+from app.domains.fiches_de_poste.model import FicheDePoste
 from app.models.base import Base
 from app.domains.users.model import User
 # Get database URL from settings

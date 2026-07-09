@@ -18,6 +18,10 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     missions: Mapped[str] = mapped_column(Text, nullable=False)
     required_skills: Mapped[str] = mapped_column(Text, nullable=False)
     experience_level: Mapped[str] = mapped_column(String(100), nullable=False)
+    formation_domain: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    education_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    technical_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    managerial_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[FicheStatus] = mapped_column(
         SQLEnum(FicheStatus, name="fichestatus"),
         default=FicheStatus.DRAFT,
@@ -33,5 +37,11 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
         nullable=True,
     )
 
-    direction: Mapped[Direction] = relationship()
+    direction: Mapped[Direction] = relationship(back_populates="fiches")
     validated_by: Mapped[User | None] = relationship(foreign_keys=[validated_by_id])
+    recruitment_projects = relationship("ProjetRecrutement",
+                                         foreign_keys="ProjetRecrutement.fiche_de_poste_id")
+
+    @property
+    def direction_name(self) -> str | None:
+        return self.direction.name if self.direction else None

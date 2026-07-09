@@ -52,7 +52,9 @@ def list_fiches(
 )
 def create_fiche(
     payload: FicheDePosteCreate,
-    current_user: User = Depends(require_role(UserRole.DIRECTEUR, UserRole.DRH)),
+    current_user: User = Depends(
+        require_role(UserRole.ADMIN, UserRole.DRH, UserRole.DIRECTEUR)
+    ),
     db: Session = Depends(get_db),
 ) -> ApiResponse[FicheDePosteResponse]:
     fiche = fiche_service.create_fiche(db, payload, current_user)
@@ -80,10 +82,22 @@ def update_fiche(
     return ApiResponse(data=FicheDePosteResponse.model_validate(fiche))
 
 
+@router.delete("/{fiche_id}", response_model=ApiResponse[None])
+def delete_fiche(
+    fiche_id: int,
+    current_user: User = Depends(
+        require_role(UserRole.ADMIN, UserRole.DRH, UserRole.DIRECTEUR)
+        ),
+    db: Session = Depends(get_db),
+) -> ApiResponse[None]:
+    fiche_service.delete_fiche(db, fiche_id, current_user)
+    return ApiResponse(data=None)
+
+
 @router.patch("/{fiche_id}/valider", response_model=ApiResponse[FicheDePosteResponse])
 def validate_fiche(
     fiche_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[FicheDePosteResponse]:
     fiche = fiche_service.validate_fiche(db, fiche_id, current_user)

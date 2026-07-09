@@ -3,7 +3,6 @@ from typing import Any, cast
 
 from fastapi.testclient import TestClient
 
-from app.core.codes import ErrorCode
 from app.core.enums import UserRole
 from app.domains.offres.model import Offre
 from app.domains.users.model import User
@@ -18,10 +17,20 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _create_direction(client: TestClient, token: str, code: str, name: str) -> int:
+def _create_direction(
+    client: TestClient,
+    token: str,
+    code: str,
+    name: str,
+    director_id: int | None = None,
+) -> int:
+    payload: dict[str, Any] = {"name": name, "code": code}
+    if director_id is not None:
+        payload["director_id"] = director_id
+
     r = client.post(
         "/directions/",
-        json={"name": name, "code": code},
+        json=payload,
         headers=_auth(token),
     )
     assert r.status_code == 201
@@ -50,10 +59,11 @@ def _create_besoin(client: TestClient, token: str, fiche_id: int, title: str) ->
         "/besoins/",
         json={
             "title": title,
-            "description": f"{title} description",
+            "location": f"{title} description",
+            "recruitment_reason": f"{title} justification",
+            "priority": "NORMALE",
             "positions_count": 1,
             "desired_date": "2026-08-01",
-            "justification": f"{title} justification",
             "fiche_de_poste_id": fiche_id,
         },
         headers=_auth(token),
@@ -118,7 +128,13 @@ def test_nominal_cycle_create_publish_close(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client, admin_token, "DIR-OFFRE-1", "Direction 1")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-OFFRE-1",
+        "Direction 1",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     approved_besoin_id = _create_approved_besoin(
         client,
@@ -163,7 +179,13 @@ def test_public_list_is_accessible_and_r4_strict(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client, admin_token, "DIR-OFFRE-2", "Direction 2")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-OFFRE-2",
+        "Direction 2",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     besoin_published = _create_approved_besoin(
@@ -246,7 +268,13 @@ def test_invalid_transitions_return_409(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client, admin_token, "DIR-OFFRE-3", "Direction 3")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-OFFRE-3",
+        "Direction 3",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     besoin_a = _create_approved_besoin(client,
@@ -296,7 +324,7 @@ def test_invalid_transitions_return_409(
     assert publish_closed.json()["code"] == "OFFRES_INVALID_TRANSITION"
 
 
-def test_rbac_returns_403_for_directeur(
+def test_directeur_can_create_publish_and_close_offre(
     client: TestClient,
     make_user: Callable[..., User],
 ) -> None:
@@ -308,7 +336,13 @@ def test_rbac_returns_403_for_directeur(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client, admin_token, "DIR-OFFRE-4", "Direction 4")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-OFFRE-4",
+        "Direction 4",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     approved_besoin_id = _create_approved_besoin(
         client,
@@ -318,7 +352,7 @@ def test_rbac_returns_403_for_directeur(
         "Besoin RBAC",
     )
 
-    create_forbidden = client.post(
+    create_allowed = client.post(
         "/offres/",
         json={
             "title": "Forbidden create",
@@ -329,26 +363,21 @@ def test_rbac_returns_403_for_directeur(
         },
         headers=_auth(directeur_token),
     )
-    assert create_forbidden.status_code == 403
-    assert create_forbidden.json()["code"] == ErrorCode.FORBIDDEN
+    assert create_allowed.status_code == 201
 
     offre = _create_offre(client, drh_token, approved_besoin_id, "Allowed")
 
-    publish_forbidden = client.patch(
+    publish_allowed = client.patch(
         f"/offres/{offre['id']}/publier",
         headers=_auth(directeur_token),
     )
-    assert publish_forbidden.status_code == 403
-    assert publish_forbidden.json()["code"] == ErrorCode.FORBIDDEN
+    assert publish_allowed.status_code == 200
 
-    client.patch(f"/offres/{offre['id']}/publier", headers=_auth(drh_token))
-
-    close_forbidden = client.patch(
+    close_allowed = client.patch(
         f"/offres/{offre['id']}/cloturer",
         headers=_auth(directeur_token),
     )
-    assert close_forbidden.status_code == 403
-    assert close_forbidden.json()["code"] == ErrorCode.FORBIDDEN
+    assert close_allowed.status_code == 200
 
 
 def test_404_and_409_on_create_constraints(
@@ -367,7 +396,13 @@ def test_404_and_409_on_create_constraints(
     assert missing_offre.status_code == 404
     assert missing_offre.json()["code"] == "OFFRES_NOT_FOUND"
 
-    direction_id = _create_direction(client, admin_token, "DIR-OFFRE-5", "Direction 5")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-OFFRE-5",
+        "Direction 5",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     non_approved_besoin_id = _create_besoin(

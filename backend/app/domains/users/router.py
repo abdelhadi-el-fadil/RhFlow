@@ -42,7 +42,7 @@ def list_users(
 )
 def create_user(
     payload: UserCreate,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    _: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[UserResponse]:
     user = user_service.create_user(
@@ -60,7 +60,7 @@ def create_user(
 def update_user(
     user_id: int,
     payload: UserUpdate,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    _: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[UserResponse]:
     user = user_service.update_user(
@@ -79,7 +79,7 @@ def update_user(
 @router.delete("/{user_id}", response_model=ApiResponse[None])
 def delete_user(
     user_id: int,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    _: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[None]:
     user_service.soft_delete_user(db, user_id)

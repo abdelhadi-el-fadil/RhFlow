@@ -58,7 +58,7 @@ def get_direction(
 )
 def create_direction(
     payload: DirectionCreate,
-    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[DirectionResponse]:
     direction = directions_service.create_direction(db, payload, current_user)
@@ -68,7 +68,7 @@ def create_direction(
 def update_direction(
     direction_id: int,
     payload: DirectionUpdate,
-    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[DirectionResponse]:
     direction = directions_service.update_direction(
@@ -83,7 +83,7 @@ def update_direction(
 @router.delete("/{direction_id}", response_model=ApiResponse[None])
 def delete_direction(
     direction_id: int,
-    _: User = Depends(require_role(UserRole.ADMIN)),
+    _: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[None]:
     directions_service.soft_delete_direction(db, direction_id)

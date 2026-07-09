@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { BriefcaseBusiness, Info } from "lucide-react"
+import { BriefcaseBusiness, Copy, Mail, Pencil } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -12,18 +12,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import type {
-  ApiResponse,
   DirectionResponse,
   PaginatedResponse,
   ProjetRecrutementCardResponse,
-  ProjetRecrutementResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
 
 export default function ProjetsPage() {
   return (
-    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR"]}>
+    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
       <Content />
     </RoleGate>
   )
@@ -34,13 +32,14 @@ function Content() {
   const [projects, setProjects] = useState<ProjetRecrutementCardResponse[]>([])
   const [directions, setDirections] = useState<DirectionResponse[]>([])
   const [selectedDirectionId, setSelectedDirectionId] = useState("")
-  const [detailProject, setDetailProject] = useState<ProjetRecrutementResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isDetailLoading, setIsDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null)
+  const [emailDraft, setEmailDraft] = useState("")
 
-  const canCloseProject = user?.role === "ADMIN" || user?.role === "DRH"
+  const canManageProjects = user?.role === "ADMIN" || user?.role === "DRH"
+  const canEditEmailSubject = user?.role === "DRH"
 
   const directionParam = useMemo(() => {
     if (!selectedDirectionId) {
@@ -93,27 +92,53 @@ function Content() {
     }
   }, [loadDirections, loadProjects])
 
-  const openDetails = async (projectId: number) => {
-    setIsDetailLoading(true)
-    setDetailError(null)
-    setDetailProject(null)
-    try {
-      const response = await apiClient.get<ApiResponse<ProjetRecrutementResponse>>(`/projets/${projectId}`)
-      setDetailProject(response.data.data)
-    } catch (err) {
-      setDetailError(err instanceof ApiHttpError ? err.message : "Impossible de charger le détail du projet.")
-    } finally {
-      setIsDetailLoading(false)
-    }
-  }
-
   const closeProject = async (projectId: number) => {
     if (!confirm("Clôturer ce projet ? Cette action est irréversible.")) {
       return
     }
 
-    await apiClient.patch(`/projets/${projectId}/cloturer`)
-    await loadProjects()
+    setActionError(null)
+    try {
+      await apiClient.patch(`/projets/${projectId}/cloturer`)
+      await loadProjects()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de clôturer ce projet.")
+    }
+  }
+
+  const deleteProject = async (projectId: number) => {
+    if (!confirm("Supprimer ce projet ?")) {
+      return
+    }
+
+    setActionError(null)
+    try {
+      await apiClient.delete(`/projets/${projectId}`)
+      await loadProjects()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce projet.")
+    }
+  }
+
+  const copyEmailSubject = async (value: string) => {
+    setActionError(null)
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      setActionError("Impossible de copier l'objet d'email.")
+    }
+  }
+
+  const saveEmailSubject = async (projectId: number) => {
+    setActionError(null)
+    try {
+      await apiClient.put(`/projets/${projectId}`, { email_subject: emailDraft })
+      setEditingProjectId(null)
+      setEmailDraft("")
+      await loadProjects()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de modifier l'objet d'email.")
+    }
   }
 
   if (isLoading) {
@@ -136,9 +161,10 @@ function Content() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-indigo-700" />Projets de recrutement ouverts</CardTitle>
+          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-indigo-700" />Projets de recrutement</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
+          {actionError && <p className="md:col-span-3 text-sm text-destructive">{actionError}</p>}
           <Field label="Filtrer par direction">
             <Select value={selectedDirectionId} onChange={(event) => setSelectedDirectionId(event.target.value)}>
               <option value="">Toutes les directions</option>
@@ -154,7 +180,7 @@ function Content() {
 
       {projects.length === 0 && (
         <Card>
-          <CardContent>Aucun projet ouvert ne correspond au filtre sélectionné.</CardContent>
+          <CardContent>Aucun projet ne correspond au filtre sélectionné.</CardContent>
         </Card>
       )}
 
@@ -164,20 +190,61 @@ function Content() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{project.title}</span>
-                <Badge variant={badgeVariantFromProjetStatus(project.status)}>{project.status}</Badge>
+                <Badge variant={badgeVariantFromProjetStatus(project.status)}>{project.status === "ACTIVE" ? "OUVERT" : project.status}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="grid gap-2 text-muted-foreground">
                 <p>Direction: {project.direction_name ?? "-"}</p>
                 <p>Directeur: {project.director_name ?? "-"}</p>
+                <p>Manager: {project.manager_name ?? "-"}</p>
+                <p>Fiche de poste: {project.fiche_title ?? "-"}</p>
+                <p>Besoin principal: {project.besoin_title ?? "-"}</p>
                 <p>Date d&apos;ouverture: {project.start_date}</p>
-                <p>Nombre de postes: {project.positions_count}</p>
+                <p>Nombre de postes: {project.nombre_postes ?? "-"}</p>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Mail className="size-4" />Objet d&apos;email</p>
+                {editingProjectId === project.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      className="w-full rounded-md border p-2 text-sm"
+                      value={emailDraft}
+                      onChange={(event) => setEmailDraft(event.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => void saveEmailSubject(project.id)}>Enregistrer</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditingProjectId(null); setEmailDraft("") }}>Annuler</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm">{project.email_subject ?? "-"}</p>
+                    <div className="flex gap-2">
+                      <Button size="icon-sm" variant="outline" onClick={() => void copyEmailSubject(project.email_subject ?? "")}> 
+                        <Copy className="size-4" />
+                      </Button>
+                      {canEditEmailSubject && (
+                        <Button
+                          size="icon-sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingProjectId(project.id)
+                            setEmailDraft(project.email_subject ?? "")
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => void openDetails(project.id)}>
-                  Voir le détail
+                <Button asChild variant="outline">
+                  <Link href={`/projets/${project.id}`}>Gérer</Link>
                 </Button>
                 <Button asChild variant="outline">
                   <Link href={`/offres?projectId=${project.id}`}>Voir / générer l&apos;offre</Link>
@@ -185,9 +252,14 @@ function Content() {
                 <Button asChild variant="outline">
                   <Link href={`/projets/${project.id}/candidatures`}>Voir les candidatures</Link>
                 </Button>
-                {canCloseProject && (
-                  <Button variant="destructive" onClick={() => void closeProject(project.id)}>
+                {canManageProjects && project.status !== "CLOSED" && (
+                  <Button variant="secondary" onClick={() => void closeProject(project.id)}>
                     Fermer le projet
+                  </Button>
+                )}
+                {canManageProjects && (
+                  <Button variant="destructive" onClick={() => void deleteProject(project.id)}>
+                    Supprimer
                   </Button>
                 )}
               </div>
@@ -195,34 +267,6 @@ function Content() {
           </Card>
         ))}
       </div>
-
-      {(isDetailLoading || detailError || detailProject) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-          <Card className="w-full max-w-2xl motion-safe:animate-in motion-safe:zoom-in-95 motion-safe:duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Info className="size-5 text-indigo-700" />Détail projet</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {isDetailLoading && <p>Chargement du détail…</p>}
-              {detailError && <p>{detailError}</p>}
-              {detailProject && (
-                <div className="space-y-2 text-muted-foreground">
-                  <p>Intitulé: {detailProject.title}</p>
-                  <p>Période: {detailProject.start_date} → {detailProject.expected_end_date}</p>
-                  <p>Manager ID: {detailProject.manager_id}</p>
-                  <p>Description: {detailProject.description ?? "-"}</p>
-                  <p>Besoins rattachés: {detailProject.besoins.length}</p>
-                </div>
-              )}
-              <div className="flex justify-end">
-                <Button variant="outline" onClick={() => { setDetailProject(null); setDetailError(null) }}>
-                  Fermer
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

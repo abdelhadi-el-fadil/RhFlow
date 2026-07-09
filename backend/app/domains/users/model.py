@@ -5,7 +5,7 @@ Represents an application user account.
 """
 from sqlalchemy import Boolean, String, text
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import UserRole
 from app.models.base import Base, SoftDeleteMixin, TimestampMixin
@@ -34,3 +34,6 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         server_default=text("true"),
         nullable=False,
     )
+
+    managed_projects = relationship("ProjetRecrutement",
+                                    foreign_keys="ProjetRecrutement.manager_id")

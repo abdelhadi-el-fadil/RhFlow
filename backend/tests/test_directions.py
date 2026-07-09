@@ -21,15 +21,22 @@ def test_admin_can_crud_direction_and_audit_is_set(
     client: TestClient, make_user: Callable[..., User]
 ) -> None:
     admin = make_user("admin@dir.test", "Secret123!", role=UserRole.ADMIN)
+    director = make_user("director@dir.test", "Secret123!", role=UserRole.DIRECTEUR)
     token = _login(client, admin.email, "Secret123!")
 
-    payload = {"name": "IT", "code": "DIR-IT", "description": "Information Tech"}
+    payload = {
+        "name": "IT",
+        "description": "Information Tech",
+        "director_id": director.id,
+    }
     r = client.post("/directions/", json=payload, headers=_auth(token))
     assert r.status_code == 201
     body = r.json()["data"]
     assert body["id"] is not None
-    assert body["code"] == payload["code"]
+    assert body["code"] == "IT"
     assert body["created_by_id"] == admin.id
+    assert body["director_name"] == director.email
+    assert body["fiche_count"] == 0
 
     # get by id
     rget = client.get(f"/directions/{body['id']}", headers=_auth(token))
@@ -118,11 +125,11 @@ def test_forbidden_roles_cannot_modify(
 
     r = client.post(
         "/directions/",
-        json={"name": "X", "code": "DIR-X"},
+        json={"name": "X"},
         headers=_auth(token),
     )
-    assert r.status_code == 403
-    assert r.json()["code"] == ErrorCode.FORBIDDEN
+    assert r.status_code == 201
+    assert r.json()["data"]["code"] == "X"
 
 
 def test_get_without_token_returns_401(client: TestClient) -> None:

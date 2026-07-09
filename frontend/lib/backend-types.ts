@@ -32,6 +32,8 @@ export type DirectionResponse = {
   code: string
   description: string | null
   director_id: number | null
+  director_name: string | null
+  fiche_count: number
   created_by_id: number | null
   updated_by_id: number | null
 }
@@ -45,14 +47,20 @@ export type FicheDePosteResponse = {
   missions: string
   required_skills: string
   experience_level: string
+  formation_domain: string | null
+  education_level: string | null
+  technical_skills: string | null
+  managerial_skills: string | null
   status: FicheStatus
   direction_id: number
+  direction_name: string | null
   validated_by_id: number | null
   created_by_id: number | null
   updated_by_id: number | null
 }
 
 export type BesoinStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED"
+export type BesoinPriority = "HAUTE" | "NORMALE" | "BASSE"
 
 export type BesoinRecrutementResponse = {
   id: number
@@ -61,9 +69,16 @@ export type BesoinRecrutementResponse = {
   positions_count: number | null
   desired_date: string | null
   justification: string | null
+  location: string | null
+  recruitment_reason: string | null
+  priority: BesoinPriority
   status: BesoinStatus
   rejection_reason: string | null
   fiche_de_poste_id: number
+  fiche_title: string | null
+  direction_name: string | null
+  director_name: string | null
+  requester_name: string | null
   submitted_by_id: number | null
   processed_by_id: number | null
   projet_id: number | null
@@ -79,9 +94,17 @@ export type ProjetRecrutementResponse = {
   description: string | null
   start_date: string
   expected_end_date: string
-  email_subject: string
-  status: ProjetStatus
   manager_id: number
+  manager_name: string | null
+  status: ProjetStatus
+  besoin_recrutement_id: number | null
+  besoin_title: string | null
+  fiche_de_poste_id: number | null
+  fiche_title: string | null
+  nombre_postes: number | null
+  email_subject: string | null
+  direction_name: string | null
+  director_name: string | null
   created_by_id: number | null
   updated_by_id: number | null
   besoins: BesoinRecrutementResponse[]
@@ -92,10 +115,13 @@ export type ProjetRecrutementCardResponse = {
   title: string
   start_date: string
   status: ProjetStatus
-  positions_count: number
+  nombre_postes: number | null
   direction_name: string | null
   director_name: string | null
-  email_subject: string
+  manager_name: string | null
+  fiche_title: string | null
+  besoin_title: string | null
+  email_subject: string | null
 }
 
 export type OffreStatus = "DRAFT" | "PUBLISHED" | "CLOSED"

@@ -30,3 +30,15 @@ class BesoinRecrutementInvalidTransitionException(ConflictException):
     def __init__(self) -> None:
         super().__init__("Invalid recruitment need transition")
         self.code = "RECRUTEMENT_INVALID_TRANSITION"
+
+
+class ProjetRecrutementInvalidTransitionException(ConflictException):
+    def __init__(self) -> None:
+        super().__init__("Invalid recruitment project transition")
+        self.code = "RECRUTEMENT_PROJET_INVALID_TRANSITION"
+
+
+class ProjetRecrutementLinkMismatchException(ConflictException):
+    def __init__(self) -> None:
+        super().__init__("Recruitment project links are inconsistent")
+        self.code = "RECRUTEMENT_PROJET_LINK_MISMATCH"

@@ -4,11 +4,12 @@ import { use, useEffect, useState } from "react";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ApiHttpError, apiClient } from "@/lib/http";
-import type { ApiResponse, DirectionResponse } from "@/lib/backend-types";
+import type { ApiResponse, DirectionResponse, PaginatedResponse, UserResponse } from "@/lib/backend-types";
 import { useAuth } from "@/components/auth-provider";
 
 export default function DirectionDetailPage({
@@ -21,7 +22,7 @@ export default function DirectionDetailPage({
 
   if (Number.isNaN(directionId)) {
     return (
-      <RoleGate roles={["ADMIN", "DRH"]}>
+      <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
         <Card>
           <CardContent>Identifiant direction invalide.</CardContent>
         </Card>
@@ -30,7 +31,7 @@ export default function DirectionDetailPage({
   }
 
   return (
-    <RoleGate roles={["ADMIN", "DRH"]}>
+    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
       <DirectionDetail id={directionId} />
     </RoleGate>
   );
@@ -39,6 +40,7 @@ export default function DirectionDetailPage({
 function DirectionDetail({ id }: { id: number }) {
   const { user } = useAuth();
   const [item, setItem] = useState<DirectionResponse | null>(null);
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -46,7 +48,6 @@ function DirectionDetail({ id }: { id: number }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
-    code: "",
     description: "",
     director_id: "",
   });
@@ -58,19 +59,20 @@ function DirectionDetail({ id }: { id: number }) {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await apiClient.get<ApiResponse<DirectionResponse>>(
-          `/directions/${id}`,
-        );
+        const [directionResponse, usersResponse] = await Promise.all([
+          apiClient.get<ApiResponse<DirectionResponse>>(`/directions/${id}`),
+          apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 100 } }),
+        ]);
         if (cancelled) {
           return;
         }
 
-        setItem(response.data.data);
+        setItem(directionResponse.data.data);
+        setUsers(usersResponse.data.data);
         setForm({
-          name: response.data.data.name,
-          code: response.data.data.code,
-          description: response.data.data.description ?? "",
-          director_id: response.data.data.director_id?.toString() ?? "",
+          name: directionResponse.data.data.name,
+          description: directionResponse.data.data.description ?? "",
+          director_id: directionResponse.data.data.director_id?.toString() ?? "",
         });
       } catch (err) {
         if (!cancelled) {
@@ -104,7 +106,6 @@ function DirectionDetail({ id }: { id: number }) {
         `/directions/${id}`,
         {
           name: form.name,
-          code: form.code,
           description: form.description || null,
           director_id: form.director_id ? Number(form.director_id) : null,
         },
@@ -145,12 +146,14 @@ function DirectionDetail({ id }: { id: number }) {
     );
   }
 
-  const canEdit = user?.role === "ADMIN";
+  const canEdit = user?.role === "ADMIN" || user?.role === "DRH";
+  const directorOptions = users.filter((entry) => entry.role === "DIRECTEUR" || entry.role === "DG");
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Direction #{id}</CardTitle>
+        <CardDescription>{item.director_name ? `Directeur: ${item.director_name}` : "Aucun directeur assigné"}</CardDescription>
+        <CardTitle>{item.name}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
@@ -160,15 +163,6 @@ function DirectionDetail({ id }: { id: number }) {
               value={form.name}
               onChange={(event) =>
                 setForm((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="Code">
-            <Input
-              disabled={!canEdit}
-              value={form.code}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, code: event.target.value }))
               }
             />
           </Field>
@@ -184,8 +178,8 @@ function DirectionDetail({ id }: { id: number }) {
               }
             />
           </Field>
-          <Field label="Director ID">
-            <Input
+          <Field label="Directeur">
+            <Select
               disabled={!canEdit}
               value={form.director_id}
               onChange={(event) =>
@@ -194,8 +188,14 @@ function DirectionDetail({ id }: { id: number }) {
                   director_id: event.target.value,
                 }))
               }
-            />
+            >
+              <option value="">Aucun</option>
+              {directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}
+            </Select>
           </Field>
+          <div className="md:col-span-2 rounded-lg border border-sky-300/70 bg-white/50 p-4 text-sm text-sky-950">
+            Nombre de fiches de poste liées: <span className="font-semibold">{item.fiche_count}</span>
+          </div>
           {saveError && (
             <p className="md:col-span-2 text-sm text-destructive">
               {saveError}

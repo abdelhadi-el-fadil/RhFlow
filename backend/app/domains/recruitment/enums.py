@@ -13,3 +13,9 @@ class BesoinStatus(str, Enum):
     SUBMITTED = "SUBMITTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class BesoinPriority(str, Enum):
+    HAUTE = "HAUTE"
+    NORMALE = "NORMALE"
+    BASSE = "BASSE"

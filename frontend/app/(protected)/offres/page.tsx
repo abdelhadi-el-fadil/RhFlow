@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
-import { apiClient } from "@/lib/http"
+import { ApiHttpError, apiClient } from "@/lib/http"
 import type { OffrePublicResponse, PaginatedResponse } from "@/lib/backend-types"
 import { useAuth } from "@/components/auth-provider"
 
@@ -26,6 +26,8 @@ export default function OffresPage() {
 function Content() {
   const { user } = useAuth()
   const [items, setItems] = useState<OffrePublicResponse[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [form, setForm] = useState({ title: "", description: "", requirements: "", deadline: "", besoin_id: "" })
   const [actionId, setActionId] = useState("")
 
@@ -35,37 +37,60 @@ function Content() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load()
+    const run = async () => {
+      try {
+        setError(null)
+        await load()
+      } catch (err) {
+        setError(err instanceof ApiHttpError ? err.message : "Impossible de charger les offres.")
+      }
+    }
+
+    void run()
   }, [])
 
   const create = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await apiClient.post("/offres/", {
-      title: form.title,
-      description: form.description || null,
-      requirements: form.requirements || null,
-      deadline: form.deadline || null,
-      besoin_id: Number(form.besoin_id),
-    })
-    setForm({ title: "", description: "", requirements: "", deadline: "", besoin_id: "" })
-    await load()
+    setActionError(null)
+    try {
+      await apiClient.post("/offres/", {
+        title: form.title,
+        description: form.description || null,
+        requirements: form.requirements || null,
+        deadline: form.deadline || null,
+        besoin_id: Number(form.besoin_id),
+      })
+      setForm({ title: "", description: "", requirements: "", deadline: "", besoin_id: "" })
+      await load()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de créer l'offre.")
+    }
   }
 
   const publish = async () => {
-    await apiClient.patch(`/offres/${actionId}/publier`)
-    await load()
+    setActionError(null)
+    try {
+      await apiClient.patch(`/offres/${actionId}/publier`)
+      await load()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de publier l'offre.")
+    }
   }
 
   const close = async () => {
-    await apiClient.patch(`/offres/${actionId}/cloturer`)
-    await load()
+    setActionError(null)
+    try {
+      await apiClient.patch(`/offres/${actionId}/cloturer`)
+      await load()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de clôturer l'offre.")
+    }
   }
 
   return (
     <div className="space-y-6">
-      {user?.role === "DRH" && (
-        <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      {(user?.role === "DRH" || user?.role === "ADMIN" || user?.role === "DIRECTEUR" || user?.role === "DG") && (
+        <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sky-950">
               <WandSparkles className="size-5 text-sky-800" />
@@ -73,6 +98,7 @@ function Content() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
             <form className="grid gap-4 md:grid-cols-2" onSubmit={create}>
               <Field label="Besoin ID"><Input value={form.besoin_id} onChange={(event) => setForm((current) => ({ ...current, besoin_id: event.target.value }))} /></Field>
               <Field label="Deadline"><Input type="date" value={form.deadline} onChange={(event) => setForm((current) => ({ ...current, deadline: event.target.value }))} /></Field>
@@ -85,7 +111,7 @@ function Content() {
         </Card>
       )}
 
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sky-950">
             <ListChecks className="size-5 text-sky-800" />
@@ -93,11 +119,12 @@ function Content() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
+          {actionError && <p className="w-full text-sm text-destructive">{actionError}</p>}
           <div className="space-y-2">
             <Label>Offre ID</Label>
             <Input value={actionId} onChange={(event) => setActionId(event.target.value)} />
           </div>
-          {user?.role === "DRH" && (
+          {(user?.role === "DRH" || user?.role === "ADMIN" || user?.role === "DIRECTEUR" || user?.role === "DG") && (
             <div className="flex items-end gap-2">
               <Button onClick={publish}>Publier</Button>
               <Button variant="secondary" onClick={close}>Clôturer</Button>
@@ -106,7 +133,7 @@ function Content() {
         </CardContent>
       </Card>
 
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sky-950">
             <HandCoins className="size-5 text-sky-800" />
@@ -114,6 +141,7 @@ function Content() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           <Table>
             <TableHeader>
               <TableRow><TableHead>Titre</TableHead><TableHead>Deadline</TableHead><TableHead /></TableRow>

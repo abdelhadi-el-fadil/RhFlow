@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { List, ShieldCheck, Users } from "lucide-react"
+import { List, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { apiClient } from "@/lib/http"
+import { ApiHttpError, apiClient } from "@/lib/http"
 import { type PaginatedResponse, type UserResponse } from "@/lib/backend-types"
 
 type UserCreate = {
@@ -24,6 +24,7 @@ type UserCreate = {
 }
 
 const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "DG" }
+const ROLE_FILTERS: Array<UserResponse["role"] | "ALL"> = ["ALL", "ADMIN", "DRH", "DIRECTEUR", "DG"]
 
 export default function UsersPage() {
   return (
@@ -41,6 +42,11 @@ function UsersContent() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<UserResponse | null>(null)
+  const [search, setSearch] = useState("")
+  const [roleFilter, setRoleFilter] = useState<(typeof ROLE_FILTERS)[number]>("ALL")
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL")
+  const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const loadUsers = async () => {
     const response = await apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 50 } })
@@ -48,17 +54,30 @@ function UsersContent() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadUsers().finally(() => setLoading(false))
+    const run = async () => {
+      try {
+        setError(null)
+        await loadUsers()
+      } catch (err) {
+        setError(err instanceof ApiHttpError ? err.message : "Impossible de charger les utilisateurs.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void run()
   }, [])
 
   const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSaving(true)
+    setActionError(null)
     try {
       await apiClient.post("/users/", form)
       setForm(EMPTY_CREATE)
       await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de créer l'utilisateur.")
     } finally {
       setSaving(false)
     }
@@ -69,8 +88,13 @@ function UsersContent() {
       return
     }
 
-    await apiClient.delete(`/users/${userId}`)
-    await loadUsers()
+    setActionError(null)
+    try {
+      await apiClient.delete(`/users/${userId}`)
+      await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cet utilisateur.")
+    }
   }
 
   const startEdit = (item: UserResponse) => {
@@ -83,22 +107,45 @@ function UsersContent() {
       return
     }
 
-    await apiClient.put(`/users/${draft.id}`, {
-      email: draft.email,
-      password: undefined,
-      full_name: draft.full_name,
-      gsm: draft.gsm,
-      role: draft.role,
-      enabled: draft.enabled,
-    })
-    setEditingId(null)
-    setDraft(null)
-    await loadUsers()
+    setActionError(null)
+    try {
+      await apiClient.put(`/users/${draft.id}`, {
+        email: draft.email,
+        password: undefined,
+        full_name: draft.full_name,
+        gsm: draft.gsm,
+        role: draft.role,
+        enabled: draft.enabled,
+      })
+      setEditingId(null)
+      setDraft(null)
+      await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de modifier cet utilisateur.")
+    }
   }
+
+  const toggleUserEnabled = async (item: UserResponse) => {
+    setActionError(null)
+    try {
+      await apiClient.put(`/users/${item.id}`, { enabled: !item.enabled })
+      await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour le statut de cet utilisateur.")
+    }
+  }
+
+  const filteredItems = items.filter((item) => {
+    const haystack = `${item.email} ${item.full_name ?? ""} ${item.gsm ?? ""}`.toLowerCase()
+    const matchesSearch = search.trim() === "" || haystack.includes(search.trim().toLowerCase())
+    const matchesRole = roleFilter === "ALL" || item.role === roleFilter
+    const matchesStatus = statusFilter === "ALL" || (statusFilter === "ENABLED" ? item.enabled : !item.enabled)
+    return matchesSearch && matchesRole && matchesStatus
+  })
 
   return (
     <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
           <CardDescription className="text-sky-800">Administration</CardDescription>
           <CardTitle className="flex items-center gap-2 text-sky-950">
@@ -107,7 +154,8 @@ function UsersContent() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {user?.role === "ADMIN" && (
+          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
+          {(user?.role === "ADMIN" || user?.role === "DRH") && (
             <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={createUser}>
               <Field label="Email"><Input value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></Field>
               <Field label="Mot de passe"><Input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} /></Field>
@@ -119,19 +167,26 @@ function UsersContent() {
               </div>
             </form>
           )}
-          {user?.role !== "ADMIN" && <p className="text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
+          {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
         </CardContent>
       </Card>
 
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${items.length} résultats`}</CardDescription>
+          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
           <CardTitle className="flex items-center gap-2 text-sky-950">
             <List className="size-5 text-sky-800" />
             Liste
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
+          <div className="mb-4 grid gap-4 md:grid-cols-3">
+            <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Email, nom, téléphone" /></Field>
+            <Field label="Rôle"><Select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as (typeof ROLE_FILTERS)[number])}>{ROLE_FILTERS.map((role) => <option key={role} value={role}>{role === "ALL" ? "Tous" : role}</option>)}</Select></Field>
+            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "ALL" | "ENABLED" | "DISABLED")}><option value="ALL">Tous</option><option value="ENABLED">Actifs</option><option value="DISABLED">Désactivés</option></Select></Field>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -144,7 +199,7 @@ function UsersContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{editingId === item.id && draft ? <Input value={draft.email} onChange={(event) => setDraft((current) => current ? { ...current, email: event.target.value } : current)} /> : item.email}</TableCell>
                   <TableCell>{editingId === item.id && draft ? <Input value={draft.full_name ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, full_name: event.target.value } : current)} /> : (item.full_name ?? "-")}</TableCell>
@@ -160,19 +215,25 @@ function UsersContent() {
                   </TableCell>
                   <TableCell>{editingId === item.id && draft ? <Select value={String(draft.enabled)} onChange={(event) => setDraft((current) => current ? { ...current, enabled: event.target.value === "true" } : current)}><option value="true">Actif</option><option value="false">Désactivé</option></Select> : <Badge variant={item.enabled ? "default" : "destructive"}>{item.enabled ? "Actif" : "Désactivé"}</Badge>}</TableCell>
                   <TableCell className="text-right">
-                    {user?.role === "ADMIN" && (
+                    {(user?.role === "ADMIN" || user?.role === "DRH") && (
                       <>
                         {editingId === item.id ? (
                           <Button size="sm" onClick={saveEdit}>Sauvegarder</Button>
                         ) : (
                           <Button variant="outline" size="sm" onClick={() => startEdit(item)}>Modifier</Button>
                         )}
+                        <Button variant={item.enabled ? "secondary" : "default"} size="sm" className="ml-2" onClick={() => toggleUserEnabled(item)}>{item.enabled ? "Désactiver" : "Réactiver"}</Button>
                         <Button variant="destructive" size="sm" className="ml-2" onClick={() => deleteUser(item.id)}>Supprimer</Button>
                       </>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredItems.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-sky-900/70">Aucun utilisateur ne correspond aux filtres.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

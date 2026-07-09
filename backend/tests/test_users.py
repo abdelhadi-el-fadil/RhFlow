@@ -167,7 +167,7 @@ def test_admin_can_soft_delete_user_and_user_disappears_from_list(
     assert login_deleted.status_code == 401
 
 
-def test_drh_cannot_create_user_returns_403(
+def test_drh_can_create_user_returns_201(
     client: TestClient,
     make_user: Callable[..., User],
 ) -> None:
@@ -183,5 +183,5 @@ def test_drh_cannot_create_user_returns_403(
         json={"email": "forbidden@test.com", "password": "Secret123!", "role": "DRH"},
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert r.status_code == 403
-    assert r.json()["code"] == ErrorCode.FORBIDDEN
+    assert r.status_code == 201
+    assert r.json()["data"]["email"] == "forbidden@test.com"

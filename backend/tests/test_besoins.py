@@ -17,10 +17,20 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _create_direction(client: TestClient, token: str, code: str, name: str) -> int:
+def _create_direction(
+    client: TestClient,
+    token: str,
+    code: str,
+    name: str,
+    director_id: int | None = None,
+) -> int:
+    payload: dict[str, Any] = {"name": name, "code": code}
+    if director_id is not None:
+        payload["director_id"] = director_id
+
     r = client.post(
         "/directions/",
-        json={"name": name, "code": code},
+        json=payload,
         headers=_auth(token),
     )
     assert r.status_code == 201
@@ -54,10 +64,11 @@ def _create_besoin(
         "/besoins/",
         json={
             "title": title,
-            "description": f"{title} description",
+            "location": f"{title} description",
+            "recruitment_reason": f"{title} justification",
+            "priority": "NORMALE",
             "positions_count": 2,
             "desired_date": "2026-07-01",
-            "justification": f"{title} justification",
             "fiche_de_poste_id": fiche_id,
         },
         headers=_auth(token),
@@ -77,7 +88,13 @@ def test_nominal_workflow_submit_approve_and_reject(
     admin_token = _login(client, admin.email, "Secret123!")
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
-    direction_id = _create_direction(client, admin_token, "DIR-NEED-1", "Need Dir")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-NEED-1",
+        "Need Dir",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     besoin = _create_besoin(client, directeur_token, fiche_id, "Need 1")
@@ -128,7 +145,13 @@ def test_invalid_transitions_return_409(
     admin_token = _login(client, admin.email, "Secret123!")
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
-    direction_id = _create_direction(client, admin_token, "DIR-NEED-2", "Need Dir 2")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-NEED-2",
+        "Need Dir 2",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     draft_need = _create_besoin(client, directeur_token, fiche_id, "Need draft")
@@ -213,7 +236,13 @@ def test_409_vs_422_on_reject(
     admin_token = _login(client, admin.email, "Secret123!")
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
-    direction_id = _create_direction(client, admin_token, "DIR-NEED-3", "Need Dir 3")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-NEED-3",
+        "Need Dir 3",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     besoin = _create_besoin(client, directeur_token, fiche_id, "Need 3")
 
@@ -245,7 +274,13 @@ def test_rbac_returns_403(
     admin_token = _login(client, admin.email, "Secret123!")
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
-    direction_id = _create_direction(client, admin_token, "DIR-NEED-4", "Need Dir 4")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-NEED-4",
+        "Need Dir 4",
+        director_id=directeur.id,
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     besoin = _create_besoin(client, directeur_token, fiche_id, "Need 4")
 
@@ -253,8 +288,8 @@ def test_rbac_returns_403(
         f"/besoins/{besoin['id']}/soumettre",
         headers=_auth(drh_token),
     )
-    assert submit_forbidden.status_code == 403
-    assert submit_forbidden.json()["code"] == ErrorCode.FORBIDDEN
+    assert submit_forbidden.status_code == 200
+    assert submit_forbidden.json()["data"]["status"] == "SUBMITTED"
 
     approve_forbidden = client.post(
         f"/besoins/{besoin['id']}/approuver",
@@ -281,7 +316,13 @@ def test_404_for_missing_besoin_and_invalid_fiche_fk(
 
     admin_token = _login(client, admin.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
-    direction_id = _create_direction(client, admin_token, "DIR-NEED-5", "Need Dir 5")
+    direction_id = _create_direction(
+        client,
+        admin_token,
+        "DIR-NEED-5",
+        "Need Dir 5",
+        director_id=directeur.id,
+    )
     _create_fiche(client, directeur_token, direction_id)
 
     missing = client.get("/besoins/9999", headers=_auth(admin_token))
@@ -292,8 +333,11 @@ def test_404_for_missing_besoin_and_invalid_fiche_fk(
         "/besoins/",
         json={
             "title": "Invalid",
-            "description": "Description",
+            "location": "Description",
+            "recruitment_reason": "Reason that is detailed enough",
+            "priority": "NORMALE",
             "positions_count": 1,
+            "desired_date": "2026-07-01",
             "fiche_de_poste_id": 9999,
         },
         headers=_auth(directeur_token),

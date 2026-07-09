@@ -36,7 +36,7 @@ from app.domains.recruitment.enums import BesoinStatus, ProjetStatus
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.users.model import User
 
- 
+
 @dataclass(frozen=True)
 class SeedCounters:
     created: int = 0
@@ -65,18 +65,33 @@ SEED_USERS: list[dict[str, object]] = [
         "gsm": "+212600000002",
     },
     {
-        "email": "directeur@example.com",
-        "full_name": "Directeur des Operations",
-        "password": "Directeur123",
-        "role": UserRole.DIRECTEUR,
-        "gsm": "+212600000003",
-    },
-    {
         "email": "dg@example.com",
         "full_name": "Directeur General",
         "password": "Dg123",
         "role": UserRole.DG,
+        "gsm": "+212600000003",
+    },
+    # One dedicated DIRECTEUR per direction below.
+    {
+        "email": "directeur.ops@example.com",
+        "full_name": "Directeur des Operations",
+        "password": "DirecteurOps123",
+        "role": UserRole.DIRECTEUR,
         "gsm": "+212600000004",
+    },
+    {
+        "email": "directeur.it@example.com",
+        "full_name": "Directeur Technologie",
+        "password": "DirecteurIt123",
+        "role": UserRole.DIRECTEUR,
+        "gsm": "+212600000005",
+    },
+    {
+        "email": "directeur.hr@example.com",
+        "full_name": "Directeur Ressources Humaines",
+        "password": "DirecteurHr123",
+        "role": UserRole.DIRECTEUR,
+        "gsm": "+212600000006",
     },
 ]
 
@@ -85,19 +100,19 @@ SEED_DIRECTIONS: list[dict[str, object]] = [
         "code": "OPS",
         "name": "Operations",
         "description": "Pilotage des operations et de la production.",
-        "director_email": "directeur@example.com",
+        "director_email": "directeur.ops@example.com",
     },
     {
         "code": "IT",
         "name": "Technologie",
         "description": "Systemes d'information et innovation.",
-        "director_email": "directeur@example.com",
+        "director_email": "directeur.it@example.com",
     },
     {
         "code": "HR",
         "name": "Ressources Humaines",
         "description": "Gestion RH et developpement des talents.",
-        "director_email": "drh@example.com",
+        "director_email": "directeur.hr@example.com",
     },
 ]
 
@@ -109,6 +124,10 @@ SEED_FICHES: list[dict[str, object]] = [
         " assurer livraison.",
         "required_skills": "Gestion de projet, communication, leadership.",
         "experience_level": "5+ years",
+        "formation_domain": "Ressources Humaines / Gestion",
+        "education_level": "Bac+5",
+        "technical_skills": "MS Project, Jira, reporting RH, SIRH.",
+        "managerial_skills": "Leadership, animation d'equipe, conduite du changement.",
         "status": FicheStatus.VALIDATED,
         "direction_code": "HR",
     },
@@ -118,6 +137,10 @@ SEED_FICHES: list[dict[str, object]] = [
         "missions": "Mettre en place CI/CD, observabilite, securite operationnelle.",
         "required_skills": "Docker, Kubernetes, CI/CD, Linux, scripting.",
         "experience_level": "3+ years",
+        "formation_domain": "Informatique / Systemes",
+        "education_level": "Bac+5",
+        "technical_skills": "Docker, Kubernetes, Terraform, GitOps, monitoring.",
+        "managerial_skills": "Coordination technique, mentorat junior.",
         "status": FicheStatus.VALIDATED,
         "direction_code": "IT",
     },
@@ -127,8 +150,26 @@ SEED_FICHES: list[dict[str, object]] = [
         "missions": "Sourcing, entretiens, coordination avec managers.",
         "required_skills": "Entretien, evaluation, communication.",
         "experience_level": "2+ years",
+        "formation_domain": "Ressources Humaines",
+        "education_level": "Bac+3",
+        "technical_skills": "ATS, LinkedIn Recruiter, sourcing boolean.",
+        "managerial_skills": "Organisation, gestion des priorites.",
         "status": FicheStatus.DRAFT,
         "direction_code": "HR",
+    },
+    {
+        "title": "Responsable Production",
+        "description": "Supervise les lignes de production et la qualite.",
+        "missions": "Planifier la production, garantir la qualite,"
+        " piloter les equipes terrain.",
+        "required_skills": "Lean management, gestion de production, QHSE.",
+        "experience_level": "4+ years",
+        "formation_domain": "Genie Industriel",
+        "education_level": "Bac+5",
+        "technical_skills": "Lean Six Sigma, ERP production, QHSE.",
+        "managerial_skills": "Gestion d'equipe terrain, resolution de conflits.",
+        "status": FicheStatus.VALIDATED,
+        "direction_code": "OPS",
     },
 ]
 
@@ -140,6 +181,8 @@ SEED_PROJECTS: list[dict[str, object]] = [
         "expected_end_date": date(2026, 12, 20),
         "status": ProjetStatus.ACTIVE,
         "manager_email": "drh@example.com",
+        "fiche_title": "Ingenieur DevOps",
+        "nombre_postes": 5,
     },
     {
         "title": "Expansion Equipe IT",
@@ -148,6 +191,18 @@ SEED_PROJECTS: list[dict[str, object]] = [
         "expected_end_date": date(2026, 10, 1),
         "status": ProjetStatus.DRAFT,
         "manager_email": "drh@example.com",
+        "fiche_title": "Ingenieur DevOps",
+        "nombre_postes": 3,
+    },
+    {
+        "title": "Renforcement RH 2026",
+        "description": "Structuration de l'equipe recrutement interne.",
+        "start_date": date(2026, 2, 1),
+        "expected_end_date": date(2026, 11, 30),
+        "status": ProjetStatus.ACTIVE,
+        "manager_email": "drh@example.com",
+        "fiche_title": "Charge de Recrutement",
+        "nombre_postes": 2,
     },
 ]
 
@@ -161,10 +216,10 @@ SEED_BESOINS: list[dict[str, object]] = [
         "status": BesoinStatus.APPROVED,
         "rejection_reason": None,
         "fiche_title": "Ingenieur DevOps",
-        "submitted_by_email": "directeur@example.com",
+        "submitted_by_email": "directeur.it@example.com",
         "processed_by_email": "drh@example.com",
         "project_title": "Programme Recrutement 2026",
-        "owner_email": "directeur@example.com",
+        "owner_email": "directeur.it@example.com",
     },
     {
         "title": "Recruter 1 Charge de Recrutement",
@@ -175,11 +230,11 @@ SEED_BESOINS: list[dict[str, object]] = [
         "status": BesoinStatus.SUBMITTED,
         "rejection_reason": None,
         "fiche_title": "Charge de Recrutement",
-        "submitted_by_email": "directeur@example.com",
+        "submitted_by_email": "directeur.hr@example.com",
         "processed_by_email": None,
         "project_title": None,
-        "owner_email": "directeur@example.com",
-    }, 
+        "owner_email": "directeur.hr@example.com",
+    },
     {
         "title": "Recruter 1 Chef de Projet RH",
         "description": "Pilotage de plusieurs chantiers structurants.",
@@ -189,10 +244,24 @@ SEED_BESOINS: list[dict[str, object]] = [
         "status": BesoinStatus.REJECTED,
         "rejection_reason": "Budget non valide pour ce trimestre.",
         "fiche_title": "Chef de Projet RH",
-        "submitted_by_email": "directeur@example.com",
+        "submitted_by_email": "directeur.hr@example.com",
         "processed_by_email": "drh@example.com",
         "project_title": None,
-        "owner_email": "directeur@example.com",
+        "owner_email": "directeur.hr@example.com",
+    },
+    {
+        "title": "Recruter 1 Responsable Production",
+        "description": "Renforcer l'encadrement de la ligne de production B.",
+        "positions_count": 1,
+        "desired_date": date(2026, 8, 15),
+        "justification": "Depart a la retraite du titulaire actuel.",
+        "status": BesoinStatus.APPROVED,
+        "rejection_reason": None,
+        "fiche_title": "Responsable Production",
+        "submitted_by_email": "directeur.ops@example.com",
+        "processed_by_email": "drh@example.com",
+        "project_title": None,
+        "owner_email": "directeur.ops@example.com",
     },
 ]
 
@@ -218,6 +287,17 @@ SEED_OFFRES: list[dict[str, object]] = [
         "besoin_title": "Recruter 1 Charge de Recrutement",
         "published_by_email": None,
         "owner_email": "drh@example.com",
+    },
+    {
+        "title": "Offre Responsable Production",
+        "description": "Encadrez une ligne de production a fort enjeu qualite.",
+        "requirements": "Lean Six Sigma, gestion d'equipe, QHSE.",
+        "deadline": date(2026, 9, 30),
+        "status": OffreStatus.PUBLISHED,
+        "published_at": datetime(2026, 7, 1, 9, 0, tzinfo=timezone.utc),
+        "besoin_title": "Recruter 1 Responsable Production",
+        "published_by_email": "drh@example.com",
+        "owner_email": "directeur.ops@example.com",
     },
 ]
 
@@ -289,7 +369,7 @@ def _seed_directions(
         db.add(direction)
         db.flush()
         directions_by_code[code] = direction
-        print(f"  [created] direction {code}")
+        print(f"  [created] direction {code} (directeur: {director_email})")
         counters = counters.add_created()
 
     return directions_by_code, counters
@@ -303,7 +383,6 @@ def _seed_fiches(
     counters = SeedCounters()
     fiches_by_title: dict[str, FicheDePoste] = {}
     drh = users_by_email["drh@example.com"]
-    directeur = users_by_email["directeur@example.com"]
 
     print("\nSeeding fiches de poste...")
     for data in SEED_FICHES:
@@ -318,17 +397,29 @@ def _seed_fiches(
             continue
 
         status = data["status"]
+        direction = directions_by_code[str(data["direction_code"])]
+        # Each fiche is authored by the directeur of its own direction.
+        direction_directeur_id = direction.director_id
+
         fiche = FicheDePoste(
             title=title,
             description=str(data["description"]),
             missions=str(data["missions"]),
             required_skills=str(data["required_skills"]),
             experience_level=str(data["experience_level"]),
+            formation_domain=str(data["formation_domain"]),
+            education_level=str(data["education_level"]),
+            technical_skills=str(data["technical_skills"]),
+            managerial_skills=str(data["managerial_skills"]),
             status=status,
-            direction_id=directions_by_code[str(data["direction_code"])].id,
+            direction_id=direction.id,
             validated_by_id=drh.id if status == FicheStatus.VALIDATED else None,
-            created_by_id=directeur.id,
-            updated_by_id=drh.id if status == FicheStatus.VALIDATED else directeur.id,
+            created_by_id=direction_directeur_id,
+            updated_by_id=(
+                drh.id 
+                if status == FicheStatus.VALIDATED 
+                else direction_directeur_id
+                ),
         )
         db.add(fiche)
         db.flush()
@@ -342,6 +433,7 @@ def _seed_fiches(
 def _seed_projects(
     db: Session,
     users_by_email: dict[str, User],
+    fiches_by_title: dict[str, FicheDePoste],
 ) -> tuple[dict[str, ProjetRecrutement], SeedCounters]:
     counters = SeedCounters()
     projects_by_title: dict[str, ProjetRecrutement] = {}
@@ -366,6 +458,8 @@ def _seed_projects(
             expected_end_date=data["expected_end_date"],
             status=data["status"],
             manager_id=users_by_email[str(data["manager_email"])].id,
+            fiche_de_poste_id=fiches_by_title[str(data["fiche_title"])].id,
+            nombre_postes=cast(int, data["nombre_postes"]),
             created_by_id=drh.id,
             updated_by_id=drh.id,
         )
@@ -495,7 +589,11 @@ def seed() -> None:
             users_by_email,
             directions_by_code,
         )
-        projects_by_title, projects_counts = _seed_projects(db, users_by_email)
+        projects_by_title, projects_counts = _seed_projects(
+            db,
+            users_by_email,
+            fiches_by_title,
+        )
         besoins_by_title, besoins_counts = _seed_besoins(
             db,
             users_by_email,

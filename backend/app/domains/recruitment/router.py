@@ -14,18 +14,40 @@ from app.core.schemas import (
 )
 from app.database import get_db
 from app.domains.recruitment import service as recruitment_service
+from app.domains.recruitment.enums import BesoinPriority
 from app.domains.recruitment.schemas import (
     BesoinRecrutementCreate,
     BesoinRecrutementResponse,
     BesoinRecrutementUpdate,
+    ProjetRecrutementCardResponse,
     ProjetRecrutementCreate,
     ProjetRecrutementResponse,
+    ProjetRecrutementUpdate,
     RejectBesoinRequest,
 )
 from app.domains.users.model import User
 
 router = APIRouter(prefix="/projets", tags=["Recruitment projects"])
 besoins_router = APIRouter(prefix="/besoins", tags=["Recruitment needs"])
+
+
+@router.get("/", response_model=PaginatedResponse[ProjetRecrutementCardResponse])
+def list_projects(
+    params: Annotated[PaginationParams, Depends()],
+    direction_id: int | None = None,
+    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[ProjetRecrutementCardResponse]:
+    items, total = recruitment_service.list_projects(db, params, direction_id)
+    return PaginatedResponse(
+        data=[ProjetRecrutementCardResponse.model_validate(item) for item in items],
+        meta=PaginationMeta(
+            page=params.page,
+            page_size=params.page_size,
+            total_items=total,
+            total_pages=(total + params.page_size - 1) // params.page_size,
+        ),
+    )
 
 
 @router.post(
@@ -35,10 +57,43 @@ besoins_router = APIRouter(prefix="/besoins", tags=["Recruitment needs"])
 )
 def create_project(
     payload: ProjetRecrutementCreate,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProjetRecrutementResponse]:
     project = recruitment_service.create_project(db, payload, current_user)
+    return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
+
+
+@router.put("/{projet_id}", response_model=ApiResponse[ProjetRecrutementResponse])
+def update_project(
+    projet_id: int,
+    payload: ProjetRecrutementUpdate,
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProjetRecrutementResponse]:
+    project = recruitment_service.update_project(db, projet_id, payload, current_user)
+    return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
+
+
+@router.delete("/{projet_id}", response_model=ApiResponse[None])
+def delete_project(
+    projet_id: int,
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> ApiResponse[None]:
+    recruitment_service.delete_project(db, projet_id, current_user)
+    return ApiResponse(data=None)
+
+
+@router.patch(
+        "/{projet_id}/cloturer", response_model=ApiResponse[ProjetRecrutementResponse]
+        )
+def close_project(
+    projet_id: int,
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProjetRecrutementResponse]:
+    project = recruitment_service.close_project(db, projet_id, current_user)
     return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
 
 
@@ -49,7 +104,7 @@ def create_project(
 def attach_need(
     projet_id: int,
     besoin_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProjetRecrutementResponse]:
     project = recruitment_service.attach_besoin(
@@ -74,10 +129,20 @@ def get_project(
 )
 def list_besoins(
     params: Annotated[PaginationParams, Depends()],
-    _: User = Depends(get_current_user),
+    direction_id: int | None = None,
+    priority: BesoinPriority | None = None,
+    archived: bool = False,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[BesoinRecrutementResponse]:
-    items, total = recruitment_service.list_besoins(db, params)
+    items, total = recruitment_service.list_besoins(
+        db,
+        params,
+        current_user,
+        direction_id=direction_id,
+        priority=priority,
+        archived=archived,
+    )
     return PaginatedResponse(
         data=[BesoinRecrutementResponse.model_validate(item) for item in items],
         meta=PaginationMeta(
@@ -96,7 +161,9 @@ def list_besoins(
 )
 def create_besoin(
     payload: BesoinRecrutementCreate,
-    current_user: User = Depends(require_role(UserRole.DIRECTEUR)),
+    current_user: User = Depends(require_role(UserRole.DIRECTEUR,
+                                              UserRole.DRH,
+                                              UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.create_besoin(db, payload, current_user)
@@ -146,7 +213,9 @@ def delete_besoin(
 )
 def submit_besoin(
     besoin_id: int,
-    current_user: User = Depends(require_role(UserRole.DIRECTEUR)),
+    current_user: User = Depends(require_role(UserRole.DIRECTEUR,
+                                              UserRole.DRH,
+                                              UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.submit_besoin(db, besoin_id, current_user)

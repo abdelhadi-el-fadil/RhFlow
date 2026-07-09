@@ -44,7 +44,10 @@ def list_offres(
 )
 def create_offre(
     payload: OffreCreate,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH,
+                                              UserRole.ADMIN,
+                                              UserRole.DIRECTEUR,
+                                              UserRole.DG)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OffreResponse]:
     offre = offres_service.create_offre(db, payload, current_user)
@@ -57,7 +60,10 @@ def create_offre(
 )
 def publish_offre(
     offre_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH,
+                                              UserRole.ADMIN,
+                                              UserRole.DIRECTEUR,
+                                              UserRole.DG)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OffreResponse]:
     offre = offres_service.publish_offre(db, offre_id, current_user)
@@ -70,7 +76,10 @@ def publish_offre(
 )
 def close_offre(
     offre_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH,
+                                              UserRole.ADMIN,
+                                              UserRole.DIRECTEUR,
+                                              UserRole.DG)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OffreResponse]:
     offre = offres_service.close_offre(db, offre_id, current_user)
