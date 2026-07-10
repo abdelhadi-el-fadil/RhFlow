@@ -86,4 +86,8 @@ class MinioStorageService:
 
         parts = urlsplit(url)
         new_path = f"/{self.public_path_prefix}{parts.path}"
-        return urlunsplit((parts.scheme, parts.netloc, new_path, parts.query, parts.fragment))
+        return urlunsplit((parts.scheme,
+                           parts.netloc,
+                           new_path,
+                           parts.query,
+                           parts.fragment))
