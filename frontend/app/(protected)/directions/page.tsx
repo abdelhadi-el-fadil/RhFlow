@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Building2, List } from "lucide-react";
+import { Building2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGate } from "@/components/role-gate";
@@ -28,18 +29,6 @@ import {
 import { ApiHttpError, apiClient } from "@/lib/http";
 import type { DirectionResponse, PaginatedResponse, UserResponse } from "@/lib/backend-types";
 
-type DirectionCreate = {
-  name: string;
-  description: string;
-  director_id: string;
-};
-
-const EMPTY: DirectionCreate = {
-  name: "",
-  description: "",
-  director_id: "",
-};
-
 export default function DirectionsPage() {
   return (
     <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
@@ -52,7 +41,6 @@ function DirectionsContent() {
   const { user } = useAuth();
   const [items, setItems] = useState<DirectionResponse[]>([]);
   const [users, setUsers] = useState<UserResponse[]>([]);
-  const [form, setForm] = useState<DirectionCreate>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -83,22 +71,6 @@ function DirectionsContent() {
     void run();
   }, []);
 
-  const createDirection = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setActionError(null);
-    try {
-      await apiClient.post("/directions/", {
-        name: form.name,
-        description: form.description || null,
-        director_id: form.director_id ? Number(form.director_id) : null,
-      });
-      setForm(EMPTY);
-      await loadDirections();
-    } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de créer la direction.");
-    }
-  };
-
   const deleteDirection = async (id: number) => {
     if (!confirm("Supprimer cette direction ?")) return;
     setActionError(null);
@@ -121,81 +93,30 @@ function DirectionsContent() {
   return (
     <div className="space-y-6">
       <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-        <CardHeader>
-          <CardDescription className="text-sky-800">Référentiel RH</CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <Building2 className="size-5 text-sky-800" />
-            Directions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
-          {canManageDirections && (
-            <form
-              className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-              onSubmit={createDirection}
-            >
-              <Field label="Nom">
-                <Input
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
-              <Field label="Description">
-                <Input
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
-              <Field label="Directeur">
-                <Select
-                  value={form.director_id}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      director_id: event.target.value,
-                    }))
-                  }
-                >
-                  <option value="">Aucun</option>
-                  {directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}
-                </Select>
-              </Field>
-              <div className="md:col-span-2 xl:col-span-3">
-                <Button type="submit">Créer</Button>
-              </div>
-            </form>
-          )}
-          {!canManageDirections && (
-            <p className="text-sm text-sky-800/80">
-              Consultation uniquement pour ce rôle.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
           <CardDescription className="text-sky-800">
             {loading ? "Chargement…" : `${filteredItems.length} résultats`}
           </CardDescription>
           <CardTitle className="flex items-center gap-2 text-sky-950">
-            <List className="size-5 text-sky-800" />
-            Liste des directions
+            <Building2 className="size-5 text-sky-800" />
+            Directions
           </CardTitle>
+          </div>
+          {canManageDirections && (
+            <Button asChild>
+              <Link href="/directions/nouveau">Créer une direction</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
+          {!canManageDirections && (
+            <p className="mb-4 text-sm text-sky-800/80">
+              Consultation uniquement pour ce rôle.
+            </p>
+          )}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-2">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>
             <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)}><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>

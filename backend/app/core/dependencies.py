@@ -19,14 +19,17 @@ Usage
         ...
 """
 from collections.abc import Callable
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.core.enums import UserRole
 from app.core.exceptions import ForbiddenException
+from app.core.minio_service import MinioStorageService
 from app.database import get_db
 from app.domains.auth.service import get_current_user_from_token
 from app.domains.users.model import User
@@ -62,3 +65,16 @@ def require_role(*roles: UserRole) -> Callable[..., User]:
         return current_user
 
     return _enforce
+
+
+@lru_cache
+def get_minio_storage_service() -> MinioStorageService:
+    return MinioStorageService(
+        endpoint=settings.MINIO_ENDPOINT,
+        access_key=settings.MINIO_ACCESS_KEY,
+        secret_key=settings.MINIO_SECRET_KEY,
+        bucket_name=settings.MINIO_BUCKET,
+        secure=settings.MINIO_SECURE,
+        public_endpoint=settings.MINIO_PUBLIC_ENDPOINT,
+        public_secure=settings.MINIO_PUBLIC_SECURE,
+    )

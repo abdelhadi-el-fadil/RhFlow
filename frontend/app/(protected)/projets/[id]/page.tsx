@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -15,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import type { ApiResponse, BesoinRecrutementResponse, FicheDePosteResponse, PaginatedResponse, ProjetRecrutementResponse, UserResponse } from "@/lib/backend-types"
 import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
+import { setFlashSuccess } from "@/lib/flash"
 
 export default function ProjetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -38,6 +40,7 @@ export default function ProjetDetailPage({ params }: { params: Promise<{ id: str
 }
 
 function DetailContent({ id }: { id: number }) {
+  const router = useRouter()
   const { user } = useAuth()
   const [item, setItem] = useState<ProjetRecrutementResponse | null>(null)
   const [approvedNeeds, setApprovedNeeds] = useState<BesoinRecrutementResponse[]>([])
@@ -125,7 +128,8 @@ function DetailContent({ id }: { id: number }) {
         fiche_de_poste_id: form.fiche_de_poste_id ? Number(form.fiche_de_poste_id) : null,
         nombre_postes: form.nombre_postes ? Number(form.nombre_postes) : null,
       })
-      await reload()
+      setFlashSuccess("Projet sauvegardé avec succès.")
+      router.push("/projets")
     } catch (err) {
       setActionError(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce projet.")
     }

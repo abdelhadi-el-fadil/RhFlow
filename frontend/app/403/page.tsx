@@ -7,7 +7,7 @@ export default function ForbiddenPage() {
   return (
     <div className="relative flex min-h-svh items-center justify-center p-6">
       <div className="pointer-events-none absolute inset-0 brand-gradient-soft opacity-60" />
-      <Card className="relative w-full max-w-md border-indigo-200/70 bg-white/90">
+      <Card className="relative w-full max-w-md border-emerald-200/70 bg-white/90">
         <CardHeader>
           <CardTitle>Accès refusé</CardTitle>
         </CardHeader>

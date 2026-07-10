@@ -22,8 +22,16 @@ export type UserResponse = {
   email: string
   full_name: string | null
   gsm: string | null
+  signature_key: string | null
+  signature_content_type: string | null
   role: UserRole
   enabled: boolean
+}
+
+export type UserSignatureResponse = {
+  signature_key: string
+  signature_content_type: string
+  url: string
 }
 
 export type DirectionResponse = {

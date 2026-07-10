@@ -185,6 +185,10 @@ apiClient.interceptors.request.use((config) => {
     ;(config.headers as Record<string, string>).Authorization = `Bearer ${token}`
   }
 
+  if (typeof FormData !== "undefined" && config.data instanceof FormData && config.headers) {
+    delete (config.headers as Record<string, string | undefined>)["Content-Type"]
+  }
+
   return config
 })
 

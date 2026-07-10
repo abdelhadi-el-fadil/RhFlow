@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { useAuth } from "@/components/auth-provider";
+import { FlashBanner } from "@/components/flash-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -170,6 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="page-enter flex-1 bg-[#0f455409] p-4 lg:p-6">
+        <FlashBanner key={pathname} />
         {children}
       </main>
     </div>

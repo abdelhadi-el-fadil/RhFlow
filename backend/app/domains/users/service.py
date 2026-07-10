@@ -115,3 +115,18 @@ def soft_delete_user(db: Session, user_id: int) -> User:
     db.add(user)
     db.flush()
     return user
+
+
+def set_signature(
+    db: Session,
+    user_id: int,
+    signature_key: str,
+    signature_content_type: str,
+) -> User:
+    user = get_user(db, user_id)
+    user.signature_key = signature_key
+    user.signature_content_type = signature_content_type
+    db.add(user)
+    db.flush()
+    db.refresh(user)
+    return user

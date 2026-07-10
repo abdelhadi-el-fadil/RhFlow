@@ -23,6 +23,10 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     )
     full_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gsm: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    signature_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    signature_content_type: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole, name="userrole"),

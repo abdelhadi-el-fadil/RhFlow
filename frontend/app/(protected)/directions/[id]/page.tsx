@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ApiHttpError, apiClient } from "@/lib/http";
+import { setFlashSuccess } from "@/lib/flash";
 import type { ApiResponse, DirectionResponse, PaginatedResponse, UserResponse } from "@/lib/backend-types";
 import { useAuth } from "@/components/auth-provider";
 
@@ -38,6 +40,7 @@ export default function DirectionDetailPage({
 }
 
 function DirectionDetail({ id }: { id: number }) {
+  const router = useRouter();
   const { user } = useAuth();
   const [item, setItem] = useState<DirectionResponse | null>(null);
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -111,6 +114,8 @@ function DirectionDetail({ id }: { id: number }) {
         },
       );
       setItem(response.data.data);
+      setFlashSuccess("Direction sauvegardée avec succès.");
+      router.push("/directions");
     } catch (err) {
       setSaveError(
         err instanceof ApiHttpError

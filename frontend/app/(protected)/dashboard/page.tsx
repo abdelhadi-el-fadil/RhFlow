@@ -163,7 +163,7 @@ export default function DashboardPage() {
           value={counts.directions}
           href="/directions"
           loading={loading}
-          tone="from-blue-50 via-blue-100 to-indigo-100"
+          tone="from-blue-50 via-cyan-100 to-emerald-100"
           border="border-blue-200/70"
           textColor="text-blue-950"
           accentColor="text-blue-600"
@@ -185,11 +185,11 @@ export default function DashboardPage() {
           value={counts.besoins}
           href="/besoins"
           loading={loading}
-          tone="from-indigo-50 via-indigo-100 to-blue-100"
-          border="border-indigo-200/70"
-          textColor="text-indigo-950"
-          accentColor="text-indigo-600"
-          linkColor="text-indigo-700 hover:text-indigo-900"
+          tone="from-emerald-50 via-emerald-100 to-cyan-100"
+          border="border-emerald-200/70"
+          textColor="text-emerald-950"
+          accentColor="text-emerald-600"
+          linkColor="text-emerald-700 hover:text-emerald-900"
         />
       </div>
 

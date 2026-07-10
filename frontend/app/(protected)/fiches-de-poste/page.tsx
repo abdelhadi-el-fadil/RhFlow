@@ -1,7 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
-import { FileText, ListPlus } from "lucide-react"
+import { FileText } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -10,14 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import type { DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
 import { badgeVariantFromFicheStatus } from "@/lib/status-labels"
 import { useAuth } from "@/components/auth-provider"
-
-const EXPERIENCE_LEVELS = ["Junior", "Confirmé", "Senior", "Expert"]
-const EDUCATION_LEVELS = ["Bac", "Bac+2", "Bac+3", "Bac+5", "Doctorat"]
 
 export default function FichesPage() {
   return (
@@ -34,16 +31,12 @@ function FichesContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [form, setForm] = useState({ title: "", description: "", missions: "", required_skills: "", experience_level: "Confirmé", direction_id: "", formation_domain: "", education_level: "", technical_skills: "", managerial_skills: "" })
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED">("ALL")
   const [directionFilter, setDirectionFilter] = useState("ALL")
 
   const canCreateFiche = user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR"
   const canValidateOrArchive = user?.role === "ADMIN" || user?.role === "DRH"
-  const availableDirections = user?.role === "DIRECTEUR"
-    ? directions.filter((direction) => direction.director_id === user.id)
-    : directions
 
   const load = async () => {
     const [fichesRes, directionsRes] = await Promise.all([
@@ -68,21 +61,6 @@ function FichesContent() {
 
     void run()
   }, [])
-
-  const createFiche = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setActionError(null)
-    try {
-      await apiClient.post("/fiches-de-poste/", {
-        ...form,
-        direction_id: Number(form.direction_id),
-      })
-      setForm({ title: "", description: "", missions: "", required_skills: "", experience_level: "Confirmé", direction_id: "", formation_domain: "", education_level: "", technical_skills: "", managerial_skills: "" })
-      await load()
-    } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de créer la fiche de poste.")
-    }
-  }
 
   const validateFiche = async (id: number) => {
     setActionError(null)
@@ -127,44 +105,24 @@ function FichesContent() {
 
   return (
     <div className="space-y-6">
-      {canCreateFiche && (
-        <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-          <CardHeader>
-            <CardDescription className="text-sky-800">Créer</CardDescription>
-            <CardTitle className="flex items-center gap-2 text-sky-950">
-              <ListPlus className="size-5 text-sky-800" />
-              Fiche de poste
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
-            <form className="grid gap-4 md:grid-cols-2" onSubmit={createFiche}>
-              <Field label="Intitulé"><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>
-              <Field label="Direction"><Select value={form.direction_id} onChange={(event) => setForm((current) => ({ ...current, direction_id: event.target.value }))}><option value="">Choisir</option>{availableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
-              <Field label="Description"><Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
-              <Field label="Missions"><Textarea value={form.missions} onChange={(event) => setForm((current) => ({ ...current, missions: event.target.value }))} /></Field>
-              <Field label="Compétences requises"><Textarea value={form.required_skills} onChange={(event) => setForm((current) => ({ ...current, required_skills: event.target.value }))} /></Field>
-              <Field label="Niveau d'expérience"><Select value={form.experience_level} onChange={(event) => setForm((current) => ({ ...current, experience_level: event.target.value }))}>{EXPERIENCE_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}</Select></Field>
-              <Field label="Domaine de formation"><Input value={form.formation_domain} onChange={(event) => setForm((current) => ({ ...current, formation_domain: event.target.value }))} /></Field>
-              <Field label="Niveau d'études"><Select value={form.education_level} onChange={(event) => setForm((current) => ({ ...current, education_level: event.target.value }))}><option value="">Choisir</option>{EDUCATION_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}</Select></Field>
-              <Field label="Compétences techniques"><Textarea value={form.technical_skills} onChange={(event) => setForm((current) => ({ ...current, technical_skills: event.target.value }))} /></Field>
-              <Field label="Compétences managériales"><Textarea value={form.managerial_skills} onChange={(event) => setForm((current) => ({ ...current, managerial_skills: event.target.value }))} /></Field>
-              <div className="md:col-span-2"><Button type="submit">Créer</Button></div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
           <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} fiches`}</CardDescription>
           <CardTitle className="flex items-center gap-2 text-sky-950">
             <FileText className="size-5 text-sky-800" />
             Fiches de poste
           </CardTitle>
+          </div>
+          {canCreateFiche && (
+            <Button asChild>
+              <Link href="/fiches-de-poste/nouveau">Créer une fiche</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-3">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>
             <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")}><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>

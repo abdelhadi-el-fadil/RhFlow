@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +15,7 @@ import { ApiHttpError, apiClient } from "@/lib/http"
 import type { ApiResponse, BesoinPriority, BesoinRecrutementResponse, DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
 import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
 import { useAuth } from "@/components/auth-provider"
+import { setFlashSuccess } from "@/lib/flash"
 
 export default function BesoinDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -37,6 +39,7 @@ export default function BesoinDetailPage({ params }: { params: Promise<{ id: str
 }
 
 function DetailContent({ id }: { id: number }) {
+  const router = useRouter()
   const { user } = useAuth()
   const [item, setItem] = useState<BesoinRecrutementResponse | null>(null)
   const [fiches, setFiches] = useState<FicheDePosteResponse[]>([])
@@ -137,6 +140,8 @@ function DetailContent({ id }: { id: number }) {
         fiche_de_poste_id: Number(form.fiche_de_poste_id),
       })
       setItem(response.data.data)
+      setFlashSuccess("Besoin sauvegardé avec succès.")
+      router.push("/besoins")
     } catch (err) {
       setActionError(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce besoin.")
     }

@@ -1,7 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
-import { List, Users } from "lucide-react"
+import { Eye, Users, X } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -13,17 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import { type PaginatedResponse, type UserResponse } from "@/lib/backend-types"
-
-type UserCreate = {
-  email: string
-  password: string
-  full_name: string
-  gsm: string
-  role: UserResponse["role"]
-}
-
-const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "DG" }
+import { type ApiResponse, type PaginatedResponse, type UserResponse, type UserSignatureResponse } from "@/lib/backend-types"
 const ROLE_FILTERS: Array<UserResponse["role"] | "ALL"> = ["ALL", "ADMIN", "DRH", "DIRECTEUR", "DG"]
 
 export default function UsersPage() {
@@ -37,9 +28,7 @@ export default function UsersPage() {
 function UsersContent() {
   const { user } = useAuth()
   const [items, setItems] = useState<UserResponse[]>([])
-  const [form, setForm] = useState<UserCreate>(EMPTY_CREATE)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<UserResponse | null>(null)
   const [search, setSearch] = useState("")
@@ -47,6 +36,16 @@ function UsersContent() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL")
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [signatureFiles, setSignatureFiles] = useState<Record<number, File | null>>({})
+  const [uploadingSignatureId, setUploadingSignatureId] = useState<number | null>(null)
+  const [signaturePreview, setSignaturePreview] = useState<{ userId: number; url: string } | null>(null)
+  const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null)
+
+  const uploadSignatureFile = async (userId: number, file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    await apiClient.post(`/users/${userId}/signature`, formData)
+  }
 
   const loadUsers = async () => {
     const response = await apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 50 } })
@@ -68,21 +67,6 @@ function UsersContent() {
     void run()
   }, [])
 
-  const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setSaving(true)
-    setActionError(null)
-    try {
-      await apiClient.post("/users/", form)
-      setForm(EMPTY_CREATE)
-      await loadUsers()
-    } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de créer l'utilisateur.")
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const deleteUser = async (userId: number) => {
     if (!confirm("Supprimer ce compte ?")) {
       return
@@ -100,6 +84,7 @@ function UsersContent() {
   const startEdit = (item: UserResponse) => {
     setEditingId(item.id)
     setDraft(item)
+    setSignatureFiles((current) => ({ ...current, [item.id]: null }))
   }
 
   const saveEdit = async () => {
@@ -117,11 +102,21 @@ function UsersContent() {
         role: draft.role,
         enabled: draft.enabled,
       })
+
+      const signatureFile = signatureFiles[draft.id]
+      if (signatureFile) {
+        setUploadingSignatureId(draft.id)
+        await uploadSignatureFile(draft.id, signatureFile)
+      }
+
       setEditingId(null)
       setDraft(null)
+      setSignatureFiles((current) => ({ ...current, [draft.id]: null }))
       await loadUsers()
     } catch (err) {
       setActionError(err instanceof ApiHttpError ? err.message : "Impossible de modifier cet utilisateur.")
+    } finally {
+      setUploadingSignatureId(null)
     }
   }
 
@@ -132,6 +127,41 @@ function UsersContent() {
       await loadUsers()
     } catch (err) {
       setActionError(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour le statut de cet utilisateur.")
+    }
+  }
+
+  const openSignature = async (userId: number) => {
+    setActionError(null)
+    setPreviewLoadingId(userId)
+    try {
+      const response = await apiClient.get<ApiResponse<UserSignatureResponse>>(`/users/${userId}/signature`)
+      setSignaturePreview({ userId, url: response.data.data.url })
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'afficher la signature.")
+    } finally {
+      setPreviewLoadingId(null)
+    }
+  }
+
+  const closeSignaturePreview = () => setSignaturePreview(null)
+
+  const uploadSignature = async (userId: number) => {
+    const file = signatureFiles[userId]
+    if (!file) {
+      setActionError("Choisissez une image PNG ou JPEG pour la signature.")
+      return
+    }
+
+    setUploadingSignatureId(userId)
+    setActionError(null)
+    try {
+      await uploadSignatureFile(userId, file)
+      setSignatureFiles((current) => ({ ...current, [userId]: null }))
+      await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour la signature.")
+    } finally {
+      setUploadingSignatureId(null)
     }
   }
 
@@ -146,40 +176,22 @@ function UsersContent() {
   return (
     <div className="space-y-6">
       <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-        <CardHeader>
-          <CardDescription className="text-sky-800">Administration</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
           <CardTitle className="flex items-center gap-2 text-sky-950">
             <Users className="size-5 text-sky-800" />
             Utilisateurs
           </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
+          </div>
           {(user?.role === "ADMIN" || user?.role === "DRH") && (
-            <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={createUser}>
-              <Field label="Email"><Input value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></Field>
-              <Field label="Mot de passe"><Input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} /></Field>
-              <Field label="Nom complet"><Input value={form.full_name} onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))} /></Field>
-              <Field label="Téléphone"><Input value={form.gsm} onChange={(event) => setForm((current) => ({ ...current, gsm: event.target.value }))} /></Field>
-              <Field label="Rôle"><Select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as UserCreate["role"] }))}><option value="ADMIN">ADMIN</option><option value="DRH">DRH</option><option value="DIRECTEUR">DIRECTEUR</option><option value="DG">DG</option></Select></Field>
-              <div className="md:col-span-2 xl:col-span-5">
-                <Button type="submit" disabled={saving}>{saving ? "Création…" : "Créer"}</Button>
-              </div>
-            </form>
+            <Button asChild>
+              <Link href="/users/nouveau">Créer un utilisateur</Link>
+            </Button>
           )}
-          {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
-        </CardContent>
-      </Card>
-
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
-        <CardHeader>
-          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <List className="size-5 text-sky-800" />
-            Liste
-          </CardTitle>
         </CardHeader>
         <CardContent>
+          {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="mb-4 text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-3">
@@ -195,6 +207,7 @@ function UsersContent() {
                 <TableHead>Téléphone</TableHead>
                 <TableHead>Rôle</TableHead>
                 <TableHead>Statut</TableHead>
+                <TableHead>Signature</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -214,24 +227,93 @@ function UsersContent() {
                     )}
                   </TableCell>
                   <TableCell>{editingId === item.id && draft ? <Select value={String(draft.enabled)} onChange={(event) => setDraft((current) => current ? { ...current, enabled: event.target.value === "true" } : current)}><option value="true">Actif</option><option value="false">Désactivé</option></Select> : <Badge variant={item.enabled ? "default" : "destructive"}>{item.enabled ? "Actif" : "Désactivé"}</Badge>}</TableCell>
+                  <TableCell>
+                    <div className="relative flex items-center gap-2">
+                      {item.signature_key ? (
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          onClick={() => openSignature(item.id)}
+                          aria-label="Voir la signature"
+                          disabled={previewLoadingId === item.id}
+                        >
+                          <Eye className="size-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-sky-900/70">Aucune</span>
+                      )}
+
+                      {signaturePreview?.userId === item.id && (
+                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-md border border-sky-300 bg-white p-2 shadow-lg">
+                          <div className="mb-1 flex items-center justify-between">
+                            <span className="text-xs font-medium text-sky-900">Signature</span>
+                            <button
+                              type="button"
+                              onClick={closeSignaturePreview}
+                              aria-label="Fermer"
+                              className="rounded-sm p-0.5 text-sky-700 hover:bg-sky-100"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={signaturePreview.url}
+                            alt="Signature utilisateur"
+                            className="h-24 w-full rounded border border-sky-200 bg-white object-contain"
+                          />
+                        </div>
+                      )}
+
+                      {editingId === item.id && (user?.role === "ADMIN" || user?.role === "DRH") && (
+                        <>
+                          <Input
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            className="h-8 w-44"
+                            onChange={(event) => {
+                              const selected = event.target.files?.[0] ?? null
+                              setSignatureFiles((current) => ({ ...current, [item.id]: selected }))
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={uploadingSignatureId === item.id}
+                            onClick={() => uploadSignature(item.id)}
+                          >
+                            {uploadingSignatureId === item.id ? "Upload..." : "Signature"}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     {(user?.role === "ADMIN" || user?.role === "DRH") && (
-                      <>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {editingId === item.id ? (
                           <Button size="sm" onClick={saveEdit}>Sauvegarder</Button>
                         ) : (
                           <Button variant="outline" size="sm" onClick={() => startEdit(item)}>Modifier</Button>
                         )}
-                        <Button variant={item.enabled ? "secondary" : "default"} size="sm" className="ml-2" onClick={() => toggleUserEnabled(item)}>{item.enabled ? "Désactiver" : "Réactiver"}</Button>
-                        <Button variant="destructive" size="sm" className="ml-2" onClick={() => deleteUser(item.id)}>Supprimer</Button>
-                      </>
+                        <Button
+                          variant={item.enabled ? "secondary" : "default"}
+                          size="sm"
+                          onClick={() => toggleUserEnabled(item)}
+                        >
+                          {item.enabled ? "Désactiver" : "Réactiver"}
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => deleteUser(item.id)}>
+                          Supprimer
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
               {filteredItems.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-sky-900/70">Aucun utilisateur ne correspond aux filtres.</TableCell>
+                  <TableCell colSpan={7} className="text-center text-sm text-sky-900/70">Aucun utilisateur ne correspond aux filtres.</TableCell>
                 </TableRow>
               )}
             </TableBody>

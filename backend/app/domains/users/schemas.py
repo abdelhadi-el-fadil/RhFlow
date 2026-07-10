@@ -32,5 +32,13 @@ class UserResponse(BaseModel):
     email: str
     full_name: str | None
     gsm: str | None
+    signature_key: str | None
+    signature_content_type: str | None
     role: UserRole
     enabled: bool
+
+
+class UserSignatureResponse(BaseModel):
+    signature_key: str
+    signature_content_type: str
+    url: str

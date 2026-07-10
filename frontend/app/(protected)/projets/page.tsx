@@ -161,7 +161,7 @@ function Content() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-indigo-700" />Projets de recrutement</CardTitle>
+          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-emerald-700" />Projets de recrutement</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           {actionError && <p className="md:col-span-3 text-sm text-destructive">{actionError}</p>}

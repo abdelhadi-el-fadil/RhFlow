@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     MINIO_ENDPOINT: str
+    MINIO_PUBLIC_ENDPOINT: str
+    MINIO_PUBLIC_SECURE: bool = False
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BUCKET: str
+    MINIO_SECURE: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(

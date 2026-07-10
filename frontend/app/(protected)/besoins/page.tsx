@@ -126,7 +126,7 @@ function BesoinsContent() {
     <div className="space-y-6">
       <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-indigo-700" />Besoins de recrutement</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-emerald-700" />Besoins de recrutement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
