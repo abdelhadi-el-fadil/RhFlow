@@ -10,7 +10,6 @@ from minio.error import S3Error
 class MinioStorageServiceError(Exception):
     pass
 
-
 class MinioStorageService:
     def __init__(
         self,
