@@ -85,6 +85,12 @@ jobs:
           ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: "30"
           MINIO_ENDPOINT: localhost:9000
+          MINIO_PUBLIC_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: ci-test-key
+          MINIO_SECRET_KEY: ci-test-secret
+          MINIO_BUCKET: rhflow-test
+          MINIO_SECURE: "false"
+          MINIO_PUBLIC_SECURE: "false"
         run: python -m pytest backend/tests
 
       - name: Set up Docker Buildx
@@ -188,6 +194,11 @@ jobs:
             PGADMIN_DEFAULT_PASSWORD=${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
             MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
             MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+            MINIO_ACCESS_KEY=${{ secrets.MINIO_ROOT_USER }}
+            MINIO_SECRET_KEY=${{ secrets.MINIO_ROOT_PASSWORD }}
+            MINIO_BUCKET=${{ secrets.MINIO_BUCKET }}
+            MINIO_PUBLIC_ENDPOINT=${{ secrets.MINIO_PUBLIC_ENDPOINT }}
+            MINIO_PUBLIC_SECURE=true
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             APP_NAME=RhFlow
             DEBUG=false
