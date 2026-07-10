@@ -164,6 +164,9 @@ function ComboboxContent({ className, children }: React.ComponentProps<"div">) {
   return createPortal(
     <div
       style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width }}
+      onMouseDown={(event) => {
+        event.stopPropagation()
+      }}
       className={cn(
         "z-50 max-h-64 overflow-auto rounded-lg border border-emerald-200 bg-white p-1 shadow-lg",
         className
@@ -207,7 +210,10 @@ function ComboboxItem({ value, disabled, className, children }: ComboboxItemProp
     <button
       type="button"
       disabled={disabled}
-      onMouseDown={(event) => event.preventDefault()}
+      onMouseDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      }}
       onClick={() => selectItem(value)}
       className={cn(
         "flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50",

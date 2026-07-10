@@ -45,7 +45,7 @@ function DirectionsContent() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [directorFilter, setDirectorFilter] = useState("ALL");
+  const [directorFilter, setDirectorFilter] = useState("");
 
   const loadDirections = async () => {
     const [directionsResponse, usersResponse] = await Promise.all([
@@ -86,7 +86,7 @@ function DirectionsContent() {
   const directorOptions = users.filter((item) => item.role === "DIRECTEUR" || item.role === "DG")
   const filteredItems = items.filter((item) => {
     const matchesSearch = search.trim() === "" || `${item.name} ${item.description ?? ""} ${item.director_name ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())
-    const matchesDirector = directorFilter === "ALL" || String(item.director_id ?? "") === directorFilter
+    const matchesDirector = directorFilter === "" || directorFilter === "ALL" || String(item.director_id ?? "") === directorFilter
     return matchesSearch && matchesDirector
   })
 
@@ -119,7 +119,7 @@ function DirectionsContent() {
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-2">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>
-            <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)}><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>
+            <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)} placeholder="Choisir un directeur"><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>
           </div>
           <Table>
             <TableHeader>

@@ -15,7 +15,7 @@ import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import { type ApiResponse, type PaginatedResponse, type UserResponse, type UserSignatureResponse } from "@/lib/backend-types"
-const ROLE_FILTERS: Array<UserResponse["role"] | "ALL"> = ["ALL", "ADMIN", "DRH", "DIRECTEUR", "DG"]
+const ROLE_FILTERS: UserResponse["role"][] = ["ADMIN", "DRH", "DIRECTEUR", "DG"]
 
 export default function UsersPage() {
   return (
@@ -32,8 +32,8 @@ function UsersContent() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<UserResponse | null>(null)
   const [search, setSearch] = useState("")
-  const [roleFilter, setRoleFilter] = useState<(typeof ROLE_FILTERS)[number]>("ALL")
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ENABLED" | "DISABLED">("ALL")
+  const [roleFilter, setRoleFilter] = useState<UserResponse["role"] | "" | "ALL">("")
+  const [statusFilter, setStatusFilter] = useState<"" | "ALL" | "ENABLED" | "DISABLED">("")
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [signatureFiles, setSignatureFiles] = useState<Record<number, File | null>>({})
@@ -165,11 +165,29 @@ function UsersContent() {
     }
   }
 
+  const deleteSignature = async (userId: number) => {
+    if (!confirm("Supprimer la signature de cet utilisateur ?")) {
+      return
+    }
+
+    setActionError(null)
+    setUploadingSignatureId(userId)
+    try {
+      await apiClient.delete(`/users/${userId}/signature`)
+      setSignaturePreview((current) => (current?.userId === userId ? null : current))
+      await loadUsers()
+    } catch (err) {
+      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer la signature.")
+    } finally {
+      setUploadingSignatureId(null)
+    }
+  }
+
   const filteredItems = items.filter((item) => {
     const haystack = `${item.email} ${item.full_name ?? ""} ${item.gsm ?? ""}`.toLowerCase()
     const matchesSearch = search.trim() === "" || haystack.includes(search.trim().toLowerCase())
-    const matchesRole = roleFilter === "ALL" || item.role === roleFilter
-    const matchesStatus = statusFilter === "ALL" || (statusFilter === "ENABLED" ? item.enabled : !item.enabled)
+    const matchesRole = roleFilter === "" || roleFilter === "ALL" || item.role === roleFilter
+    const matchesStatus = statusFilter === "" || statusFilter === "ALL" || (statusFilter === "ENABLED" ? item.enabled : !item.enabled)
     return matchesSearch && matchesRole && matchesStatus
   })
 
@@ -196,8 +214,8 @@ function UsersContent() {
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-3">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Email, nom, téléphone" /></Field>
-            <Field label="Rôle"><Select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as (typeof ROLE_FILTERS)[number])}>{ROLE_FILTERS.map((role) => <option key={role} value={role}>{role === "ALL" ? "Tous" : role}</option>)}</Select></Field>
-            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "ALL" | "ENABLED" | "DISABLED")}><option value="ALL">Tous</option><option value="ENABLED">Actifs</option><option value="DISABLED">Désactivés</option></Select></Field>
+            <Field label="Rôle"><Select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as UserResponse["role"] | "" | "ALL")} placeholder="Choisir un rôle"><option value="ALL">Tous</option>{ROLE_FILTERS.map((role) => <option key={role} value={role}>{role}</option>)}</Select></Field>
+            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "" | "ALL" | "ENABLED" | "DISABLED")} placeholder="Choisir un statut"><option value="ALL">Tous</option><option value="ENABLED">Actifs</option><option value="DISABLED">Désactivés</option></Select></Field>
           </div>
           <Table>
             <TableHeader>
@@ -284,6 +302,16 @@ function UsersContent() {
                           >
                             {uploadingSignatureId === item.id ? "Upload..." : "Signature"}
                           </Button>
+                          {item.signature_key && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={uploadingSignatureId === item.id}
+                              onClick={() => deleteSignature(item.id)}
+                            >
+                              Supprimer signature
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>

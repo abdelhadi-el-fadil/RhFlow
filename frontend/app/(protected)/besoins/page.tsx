@@ -16,8 +16,7 @@ import { apiClient, ApiHttpError } from "@/lib/http"
 import type { BesoinPriority, BesoinRecrutementResponse, DirectionResponse, PaginatedResponse } from "@/lib/backend-types"
 import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
 
-const PRIORITY_OPTIONS: Array<{ value: "ALL" | BesoinPriority; label: string }> = [
-  { value: "ALL", label: "Toutes" },
+const PRIORITY_OPTIONS: Array<{ value: BesoinPriority; label: string }> = [
   { value: "HAUTE", label: "Haute" },
   { value: "NORMALE", label: "Normale" },
   { value: "BASSE", label: "Basse" },
@@ -45,8 +44,8 @@ function BesoinsContent() {
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [directionFilter, setDirectionFilter] = useState("ALL")
-  const [priorityFilter, setPriorityFilter] = useState<"ALL" | BesoinPriority>("ALL")
+  const [directionFilter, setDirectionFilter] = useState("")
+  const [priorityFilter, setPriorityFilter] = useState<"" | "ALL" | BesoinPriority>("")
   const [showArchives, setShowArchives] = useState(false)
 
   const canCreateNeed = user?.role === "DIRECTEUR" || user?.role === "DRH" || user?.role === "ADMIN"
@@ -54,10 +53,10 @@ function BesoinsContent() {
 
   const load = async () => {
     const params: Record<string, string | number | boolean> = { page: 1, page_size: 100, archived: showArchives }
-    if (directionFilter !== "ALL") {
+    if (directionFilter !== "" && directionFilter !== "ALL") {
       params.direction_id = Number(directionFilter)
     }
-    if (priorityFilter !== "ALL") {
+    if (priorityFilter !== "" && priorityFilter !== "ALL") {
       params.priority = priorityFilter
     }
 
@@ -136,8 +135,8 @@ function BesoinsContent() {
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Poste, direction, demandeur, lieu" /></Field>
-            <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)}><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
-            <Field label="Priorité"><Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as "ALL" | BesoinPriority)}>{PRIORITY_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></Field>
+            <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} placeholder="Choisir une direction"><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
+            <Field label="Priorité"><Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as "" | "ALL" | BesoinPriority)} placeholder="Choisir une priorité"><option value="ALL">Toutes</option>{PRIORITY_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></Field>
           </div>
         </CardContent>
       </Card>

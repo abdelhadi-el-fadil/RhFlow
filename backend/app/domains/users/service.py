@@ -130,3 +130,13 @@ def set_signature(
     db.flush()
     db.refresh(user)
     return user
+
+
+def clear_signature(db: Session, user_id: int) -> User:
+    user = get_user(db, user_id)
+    user.signature_key = None
+    user.signature_content_type = None
+    db.add(user)
+    db.flush()
+    db.refresh(user)
+    return user

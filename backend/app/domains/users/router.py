@@ -72,6 +72,22 @@ def _upload_signature_for_user(
     )
 
 
+def _delete_signature_for_user(
+    db: Session,
+    storage: MinioStorageService,
+    target_user: User,
+) -> User:
+    if not target_user.signature_key or not target_user.signature_content_type:
+        raise SignatureNotFoundException()
+
+    try:
+        storage.delete_object(target_user.signature_key)
+    except MinioStorageServiceError as exc:
+        raise SignatureStorageException(str(exc)) from exc
+
+    return user_service.clear_signature(db, user_id=target_user.id)
+
+
 @router.get("/", response_model=PaginatedResponse[UserResponse])
 def list_users(
     params: Annotated[PaginationParams, Depends()],
@@ -178,6 +194,22 @@ async def upload_user_signature(
         target_user=target_user,
         payload=payload,
         content_type=content_type,
+    )
+    return ApiResponse(data=UserResponse.model_validate(updated_user))
+
+
+@router.delete("/{user_id}/signature", response_model=ApiResponse[UserResponse])
+def delete_user_signature(
+    user_id: int,
+    _: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
+    db: Session = Depends(get_db),
+    storage: MinioStorageService = Depends(get_minio_storage_service),
+) -> ApiResponse[UserResponse]:
+    target_user = user_service.get_user(db, user_id)
+    updated_user = _delete_signature_for_user(
+        db=db,
+        storage=storage,
+        target_user=target_user,
     )
     return ApiResponse(data=UserResponse.model_validate(updated_user))
 

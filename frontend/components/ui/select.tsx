@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 
 type SelectProps = Omit<React.ComponentProps<"select">, "ref"> & {
   searchable?: boolean
+  placeholder?: string
 }
 
 function Select({ className, children, searchable = true, onChange, value, defaultValue, multiple, ...props }: SelectProps) {

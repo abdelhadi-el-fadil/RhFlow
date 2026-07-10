@@ -32,8 +32,8 @@ function FichesContent() {
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED">("ALL")
-  const [directionFilter, setDirectionFilter] = useState("ALL")
+  const [statusFilter, setStatusFilter] = useState<"" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED">("")
+  const [directionFilter, setDirectionFilter] = useState("")
 
   const canCreateFiche = user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR"
   const canValidateOrArchive = user?.role === "ADMIN" || user?.role === "DRH"
@@ -98,8 +98,8 @@ function FichesContent() {
   const filteredItems = items.filter((item) => {
     const haystack = `${item.title} ${item.description} ${item.direction_name ?? ""} ${item.experience_level} ${item.education_level ?? ""} ${item.technical_skills ?? ""} ${item.managerial_skills ?? ""}`.toLowerCase()
     const matchesSearch = search.trim() === "" || haystack.includes(search.trim().toLowerCase())
-    const matchesStatus = statusFilter === "ALL" || item.status === statusFilter
-    const matchesDirection = directionFilter === "ALL" || String(item.direction_id) === directionFilter
+    const matchesStatus = statusFilter === "" || statusFilter === "ALL" || item.status === statusFilter
+    const matchesDirection = directionFilter === "" || directionFilter === "ALL" || String(item.direction_id) === directionFilter
     return matchesSearch && matchesStatus && matchesDirection
   })
 
@@ -125,8 +125,8 @@ function FichesContent() {
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 grid gap-4 md:grid-cols-3">
             <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>
-            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")}><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>
-            <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)}><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
+            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")} placeholder="Choisir un statut"><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>
+            <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} placeholder="Choisir une direction"><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             {filteredItems.map((item) => (
