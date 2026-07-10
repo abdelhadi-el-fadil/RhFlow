@@ -77,4 +77,5 @@ def get_minio_storage_service() -> MinioStorageService:
         secure=settings.MINIO_SECURE,
         public_endpoint=settings.MINIO_PUBLIC_ENDPOINT,
         public_secure=settings.MINIO_PUBLIC_SECURE,
+        public_path_prefix=settings.MINIO_PUBLIC_PATH_PREFIX,
     )
