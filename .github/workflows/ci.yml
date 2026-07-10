@@ -198,8 +198,8 @@ jobs:
             MINIO_ACCESS_KEY=${{ secrets.MINIO_ROOT_USER }}
             MINIO_SECRET_KEY=${{ secrets.MINIO_ROOT_PASSWORD }}
             MINIO_BUCKET=${{ secrets.MINIO_BUCKET }}
-            MINIO_PUBLIC_ENDPOINT=rhflow.app
-            MINIO_PUBLIC_PATH_PREFIX=storage
+            MINIO_PUBLIC_ENDPOINT=${{ secrets.MINIO_PUBLIC_ENDPOINT }}
+            MINIO_PUBLIC_PATH_PREFIX=${{ secrets.MINIO_PUBLIC_PATH_PREFIX }}
             MINIO_PUBLIC_SECURE=true
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             APP_NAME=RhFlow
