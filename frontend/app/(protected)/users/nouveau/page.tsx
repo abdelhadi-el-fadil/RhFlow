@@ -22,7 +22,44 @@ type UserCreate = {
   role: UserResponse["role"];
 };
 
+type FieldErrors = Partial<Record<keyof UserCreate, string>>;
+
 const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "DG" };
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GSM_PATTERN = /^[0-9+\s-]{6,}$/;
+
+function validate(form: UserCreate): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (!form.email.trim()) {
+    errors.email = "L'email est requis.";
+  } else if (!EMAIL_PATTERN.test(form.email.trim())) {
+    errors.email = "Format d'email invalide.";
+  }
+
+  if (!form.password) {
+    errors.password = "Le mot de passe est requis.";
+  } else if (form.password.length < 8) {
+    errors.password = "Le mot de passe doit contenir au moins 8 caractères.";
+  }
+
+  if (!form.full_name.trim()) {
+    errors.full_name = "Le nom complet est requis.";
+  }
+
+  if (!form.gsm.trim()) {
+    errors.gsm = "Le téléphone est requis.";
+  } else if (!GSM_PATTERN.test(form.gsm.trim())) {
+    errors.gsm = "Format de téléphone invalide.";
+  }
+
+  if (!form.role) {
+    errors.role = "Le rôle est requis.";
+  }
+
+  return errors;
+}
 
 export default function NewUserPage() {
   return (
@@ -37,11 +74,29 @@ function NewUserContent() {
   const [form, setForm] = useState<UserCreate>(EMPTY_CREATE);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const updateField = <K extends keyof UserCreate>(key: K, value: UserCreate[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
 
   const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setError(null);
+
+    const errors = validate(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    setSaving(true);
     try {
       await apiClient.post("/users/", form);
       setFlashSuccess("Utilisateur créé avec succès.");
@@ -64,13 +119,41 @@ function NewUserContent() {
       </CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={createUser}>
-          <Field label="Email"><Input value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></Field>
-          <Field label="Mot de passe"><Input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} /></Field>
-          <Field label="Nom complet"><Input value={form.full_name} onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))} /></Field>
-          <Field label="Téléphone"><Input value={form.gsm} onChange={(event) => setForm((current) => ({ ...current, gsm: event.target.value }))} /></Field>
-          <Field label="Rôle">
-            <Select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as UserCreate["role"] }))}>
+        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={createUser} noValidate>
+          <Field label="Email" error={fieldErrors.email}>
+            <Input
+              value={form.email}
+              onChange={(event) => updateField("email", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.email)}
+            />
+          </Field>
+          <Field label="Mot de passe" error={fieldErrors.password}>
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(event) => updateField("password", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.password)}
+            />
+          </Field>
+          <Field label="Nom complet" error={fieldErrors.full_name}>
+            <Input
+              value={form.full_name}
+              onChange={(event) => updateField("full_name", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.full_name)}
+            />
+          </Field>
+          <Field label="Téléphone" error={fieldErrors.gsm}>
+            <Input
+              value={form.gsm}
+              onChange={(event) => updateField("gsm", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.gsm)}
+            />
+          </Field>
+          <Field label="Rôle" error={fieldErrors.role}>
+            <Select
+              value={form.role}
+              onChange={(event) => updateField("role", event.target.value as UserCreate["role"])}
+            >
               <option value="ADMIN">ADMIN</option>
               <option value="DRH">DRH</option>
               <option value="DIRECTEUR">DIRECTEUR</option>
@@ -87,11 +170,12 @@ function NewUserContent() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

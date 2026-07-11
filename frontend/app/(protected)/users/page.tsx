@@ -246,7 +246,7 @@ function UsersContent() {
                   </TableCell>
                   <TableCell>{editingId === item.id && draft ? <Select value={String(draft.enabled)} onChange={(event) => setDraft((current) => current ? { ...current, enabled: event.target.value === "true" } : current)}><option value="true">Actif</option><option value="false">Désactivé</option></Select> : <Badge variant={item.enabled ? "default" : "destructive"}>{item.enabled ? "Actif" : "Désactivé"}</Badge>}</TableCell>
                   <TableCell>
-                    <div className="relative flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       {item.signature_key ? (
                         <Button
                           variant="outline"
@@ -259,28 +259,6 @@ function UsersContent() {
                         </Button>
                       ) : (
                         <span className="text-xs text-sky-900/70">Aucune</span>
-                      )}
-
-                      {signaturePreview?.userId === item.id && (
-                        <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-md border border-sky-300 bg-white p-2 shadow-lg">
-                          <div className="mb-1 flex items-center justify-between">
-                            <span className="text-xs font-medium text-sky-900">Signature</span>
-                            <button
-                              type="button"
-                              onClick={closeSignaturePreview}
-                              aria-label="Fermer"
-                              className="rounded-sm p-0.5 text-sky-700 hover:bg-sky-100"
-                            >
-                              <X className="size-3.5" />
-                            </button>
-                          </div>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={signaturePreview.url}
-                            alt="Signature utilisateur"
-                            className="h-24 w-full rounded border border-sky-200 bg-white object-contain"
-                          />
-                        </div>
                       )}
 
                       {editingId === item.id && (user?.role === "ADMIN" || user?.role === "DRH") && (
@@ -348,6 +326,38 @@ function UsersContent() {
           </Table>
         </CardContent>
       </Card>
+
+      {signaturePreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={closeSignaturePreview}
+        >
+          <div
+            className="w-full max-w-lg rounded-lg border border-sky-300 bg-white p-4 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-sky-900">Signature</span>
+              <button
+                type="button"
+                onClick={closeSignaturePreview}
+                aria-label="Fermer"
+                className="rounded-sm p-1 text-sky-700 hover:bg-sky-100"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={signaturePreview.url}
+              alt="Signature utilisateur"
+              className="h-64 w-full rounded border border-sky-200 bg-white object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
