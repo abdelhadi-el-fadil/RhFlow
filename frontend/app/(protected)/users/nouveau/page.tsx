@@ -19,12 +19,12 @@ type UserCreate = {
   password: string;
   full_name: string;
   gsm: string;
-  role: UserResponse["role"];
+  role: UserResponse["role"] | "";
 };
 
 type FieldErrors = Partial<Record<keyof UserCreate, string>>;
 
-const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "DG" };
+const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "" };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GSM_PATTERN = /^[0-9+\s-]{6,}$/;
@@ -98,7 +98,7 @@ function NewUserContent() {
 
     setSaving(true);
     try {
-      await apiClient.post("/users/", form);
+      await apiClient.post("/users/", { ...form, role: form.role as UserResponse["role"] });
       setFlashSuccess("Utilisateur créé avec succès.");
       router.push("/users");
     } catch (err) {
@@ -153,6 +153,8 @@ function NewUserContent() {
             <Select
               value={form.role}
               onChange={(event) => updateField("role", event.target.value as UserCreate["role"])}
+              aria-invalid={Boolean(fieldErrors.role)}
+              placeholder="Choisir un rôle"
             >
               <option value="ADMIN">ADMIN</option>
               <option value="DRH">DRH</option>

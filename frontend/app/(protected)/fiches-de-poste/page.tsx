@@ -95,6 +95,12 @@ function FichesContent() {
     }
   }
 
+  const clearFilters = () => {
+    setSearch("")
+    setStatusFilter("")
+    setDirectionFilter("")
+  }
+
   const filteredItems = items.filter((item) => {
     const haystack = `${item.title} ${item.description} ${item.direction_name ?? ""} ${item.experience_level} ${item.education_level ?? ""} ${item.technical_skills ?? ""} ${item.managerial_skills ?? ""}`.toLowerCase()
     const matchesSearch = search.trim() === "" || haystack.includes(search.trim().toLowerCase())
@@ -123,10 +129,20 @@ function FichesContent() {
         <CardContent>
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
-          <div className="mb-4 grid gap-4 md:grid-cols-3">
-            <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>
-            <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")} placeholder="Choisir un statut"><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>
-            <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} placeholder="Choisir une direction"><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
+          <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="grid flex-1 gap-4 md:grid-cols-3">
+              <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>
+              <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")} placeholder="Choisir un statut"><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>
+              <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} placeholder="Choisir une direction"><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={clearFilters}
+              className="bg-sky-500 text-white hover:bg-sky-700 hover:text-white md:self-end"
+            >
+              Effacer les filtres
+            </Button>
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             {filteredItems.map((item) => (

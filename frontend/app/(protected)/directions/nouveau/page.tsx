@@ -20,11 +20,29 @@ type DirectionCreate = {
   director_id: string;
 };
 
+type FieldErrors = Partial<Record<keyof DirectionCreate, string>>;
+
 const EMPTY: DirectionCreate = {
   name: "",
   description: "",
   director_id: "",
 };
+
+function validate(form: DirectionCreate): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (!form.name.trim()) {
+    errors.name = "Le nom est requis.";
+  } else if (form.name.trim().length < 2) {
+    errors.name = "Le nom doit contenir au moins 2 caractères.";
+  }
+
+  if (form.description.trim().length > 500) {
+    errors.description = "La description ne doit pas dépasser 500 caractères.";
+  }
+
+  return errors;
+}
 
 export default function NewDirectionPage() {
   return (
@@ -41,6 +59,7 @@ function NewDirectionContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     const run = async () => {
@@ -59,10 +78,27 @@ function NewDirectionContent() {
     void run();
   }, []);
 
+  const updateField = <K extends keyof DirectionCreate>(key: K, value: DirectionCreate[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
+
   const createDirection = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setError(null);
+
+    const errors = validate(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    setSaving(true);
     try {
       await apiClient.post("/directions/", {
         name: form.name,
@@ -92,16 +128,23 @@ function NewDirectionContent() {
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
         {loading && <p className="mb-4 text-sm text-sky-800">Chargement des directeurs...</p>}
-        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={createDirection}>
-          <Field label="Nom">
-            <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={createDirection} noValidate>
+          <Field label="Nom" error={fieldErrors.name}>
+            <Input
+              value={form.name}
+              onChange={(event) => updateField("name", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.name)}
+            />
           </Field>
-          <Field label="Description">
-            <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+          <Field label="Description" error={fieldErrors.description}>
+            <Input
+              value={form.description}
+              onChange={(event) => updateField("description", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.description)}
+            />
           </Field>
-          <Field label="Directeur">
-            <Select value={form.director_id} onChange={(event) => setForm((current) => ({ ...current, director_id: event.target.value }))}>
-              <option value="">Aucun</option>
+          <Field label="Directeur" error={fieldErrors.director_id}>
+            <Select value={form.director_id} onChange={(event) => updateField("director_id", event.target.value)}>
               {directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}
             </Select>
           </Field>
@@ -115,11 +158,12 @@ function NewDirectionContent() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

@@ -82,6 +82,11 @@ function DirectionsContent() {
     }
   };
 
+  const clearFilters = () => {
+    setSearch("");
+    setDirectorFilter("");
+  };
+
   const canManageDirections = user?.role === "ADMIN" || user?.role === "DRH"
   const directorOptions = users.filter((item) => item.role === "DIRECTEUR" || item.role === "DG")
   const filteredItems = items.filter((item) => {
@@ -117,9 +122,19 @@ function DirectionsContent() {
           )}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
-          <div className="mb-4 grid gap-4 md:grid-cols-2">
-            <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>
-            <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)} placeholder="Choisir un directeur"><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>
+          <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="grid flex-1 gap-4 md:grid-cols-2">
+              <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>
+              <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)} placeholder="Choisir un directeur"><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={clearFilters}
+              className="bg-sky-500 text-white hover:bg-sky-700 hover:text-white md:self-end"
+            >
+              Effacer les filtres
+            </Button>
           </div>
           <Table>
             <TableHeader>
