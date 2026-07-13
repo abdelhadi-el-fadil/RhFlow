@@ -9,7 +9,8 @@ from app.domains.users.model import User
 
 
 def _login(client: TestClient, email: str, password: str) -> str:
-    response = client.post("/auth/login", data={"username": email, "password": password})
+    response = client.post("/auth/login", data={"username": email,
+                                                "password": password})
     return cast(str, response.json()["data"]["access_token"])
 
 
@@ -84,7 +85,8 @@ def test_nominal_create_update_and_delete_by_admin(
     assert updated.status_code == 200
     assert updated.json()["data"]["main_activities"] == "Nouvelles activites"
 
-    deleted = client.delete(f"/fiches-de-poste/{fiche['id']}", headers=_auth(admin_token))
+    deleted = client.delete(f"/fiches-de-poste/{fiche['id']}",
+                            headers=_auth(admin_token))
     assert deleted.status_code == 200
 
 
@@ -93,8 +95,12 @@ def test_directeur_can_create_and_update_only_in_his_direction(
     make_user: Callable[..., User],
 ) -> None:
     admin = make_user("admin2@fiche.test", "Secret123!", role=UserRole.ADMIN)
-    directeur = make_user("directeur2@fiche.test", "Secret123!", role=UserRole.DIRECTEUR)
-    other_directeur = make_user("directeur3@fiche.test", "Secret123!", role=UserRole.DIRECTEUR)
+    directeur = make_user("directeur2@fiche.test",
+                          "Secret123!",
+                          role=UserRole.DIRECTEUR)
+    other_directeur = make_user("directeur3@fiche.test",
+                                "Secret123!",
+                                role=UserRole.DIRECTEUR)
 
     admin_token = _login(client, admin.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
@@ -155,7 +161,9 @@ def test_only_admin_and_drh_can_delete_fiche(
 ) -> None:
     admin = make_user("admin3@fiche.test", "Secret123!", role=UserRole.ADMIN)
     drh = make_user("drh@fiche.test", "Secret123!", role=UserRole.DRH)
-    directeur = make_user("directeur4@fiche.test", "Secret123!", role=UserRole.DIRECTEUR)
+    directeur = make_user("directeur4@fiche.test",
+                          "Secret123!",
+                          role=UserRole.DIRECTEUR)
 
     admin_token = _login(client, admin.email, "Secret123!")
     drh_token = _login(client, drh.email, "Secret123!")
@@ -190,7 +198,9 @@ def test_direction_filter_and_missing_resources(
     make_user: Callable[..., User],
 ) -> None:
     admin = make_user("admin4@fiche.test", "Secret123!", role=UserRole.ADMIN)
-    directeur = make_user("directeur5@fiche.test", "Secret123!", role=UserRole.DIRECTEUR)
+    directeur = make_user("directeur5@fiche.test",
+                          "Secret123!",
+                          role=UserRole.DIRECTEUR)
 
     admin_token = _login(client, admin.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
@@ -218,7 +228,9 @@ def test_direction_filter_and_missing_resources(
         headers=_auth(admin_token),
     )
     assert direction_filtered.status_code == 200
-    assert all(item["direction_id"] == direction_one_id for item in direction_filtered.json()["data"])
+    data = direction_filtered.json()["data"]
+
+    assert {item["direction_id"] for item in data} == {direction_one_id}
 
     missing = client.get("/fiches-de-poste/9999", headers=_auth(admin_token))
     assert missing.status_code == 404
