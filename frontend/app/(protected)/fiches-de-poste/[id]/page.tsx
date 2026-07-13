@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGate } from "@/components/role-gate";
@@ -13,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse, DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types";
-import { setFlashSuccess } from "@/lib/flash";
 import { ApiHttpError, apiClient } from "@/lib/http";
 import { badgeVariantFromFicheStatus } from "@/lib/status-labels";
 
@@ -60,7 +60,6 @@ function FicheDetail({ id }: { id: number }) {
   const [directions, setDirections] = useState<DirectionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -138,17 +137,16 @@ function FicheDetail({ id }: { id: number }) {
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setActionError(null);
     try {
       await apiClient.put(`/fiches-de-poste/${id}`, {
         ...form,
         direction_id: Number(form.direction_id),
         experience_level: `${form.experience_level} an${form.experience_level === "0" || form.experience_level === "1" ? "" : "s"}`,
       });
-      setFlashSuccess("Fiche de poste sauvegardée avec succès.");
+      toast.success("Fiche de poste sauvegardée avec succès.");
       router.push("/fiches-de-poste");
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder cette fiche.");
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder cette fiche.");
     }
   };
 
@@ -169,7 +167,6 @@ function FicheDetail({ id }: { id: number }) {
     <Card>
       <CardHeader><CardTitle>{item.title} <Badge variant={badgeVariantFromFicheStatus(item.status)}>{item.status}</Badge></CardTitle></CardHeader>
       <CardContent>
-        {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
           <Field label="Intitulé"><Input disabled={!editable} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>
           <Field label="Direction"><Select disabled={!editable} value={form.direction_id} onChange={(event) => setForm((current) => ({ ...current, direction_id: event.target.value }))}>{editableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
@@ -184,33 +181,33 @@ function FicheDetail({ id }: { id: number }) {
           <div className="md:col-span-2 flex gap-2">
             {editable && <Button type="submit">Sauvegarder</Button>}
             {canValidate && <Button type="button" onClick={async () => {
-              setActionError(null);
               try {
                 await apiClient.patch(`/fiches-de-poste/${id}/valider`);
                 await refresh();
+                toast.success("Fiche validée avec succès.");
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible de valider cette fiche.");
+                toast.error(err instanceof ApiHttpError ? err.message : "Impossible de valider cette fiche.");
               }
             }}>Valider</Button>}
             {canArchive && <Button type="button" variant="secondary" onClick={async () => {
-              setActionError(null);
               try {
                 await apiClient.patch(`/fiches-de-poste/${id}/archiver`);
                 await refresh();
+                toast.success("Fiche archivée avec succès.");
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'archiver cette fiche.");
+                toast.error(err instanceof ApiHttpError ? err.message : "Impossible d'archiver cette fiche.");
               }
             }}>Archiver</Button>}
             {editable && <Button type="button" variant="destructive" onClick={async () => {
               if (!confirm("Supprimer cette fiche de poste ?")) {
                 return;
               }
-              setActionError(null);
               try {
                 await apiClient.delete(`/fiches-de-poste/${id}`);
+                toast.success("Fiche supprimée avec succès.");
                 window.location.href = "/fiches-de-poste";
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette fiche.");
+                toast.error(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette fiche.");
               }
             }}>Supprimer</Button>}
           </div>

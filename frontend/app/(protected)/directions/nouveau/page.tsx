@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import type { PaginatedResponse, UserResponse } from "@/lib/backend-types";
-import { setFlashSuccess } from "@/lib/flash";
 import { ApiHttpError, apiClient } from "@/lib/http";
 
 type DirectionCreate = {
@@ -105,10 +105,12 @@ function NewDirectionContent() {
         description: form.description || null,
         director_id: form.director_id ? Number(form.director_id) : null,
       });
-      setFlashSuccess("Direction créée avec succès.");
+      toast.success("Direction créée avec succès.");
       router.push("/directions");
     } catch (err) {
-      setError(err instanceof ApiHttpError ? err.message : "Impossible de créer la direction.");
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de créer la direction.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }

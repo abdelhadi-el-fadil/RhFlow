@@ -6,12 +6,18 @@ import { Users } from "lucide-react";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import type { UserResponse } from "@/lib/backend-types";
-import { setFlashSuccess } from "@/lib/flash";
+import { toast } from "sonner";
 import { ApiHttpError, apiClient } from "@/lib/http";
 
 type UserCreate = {
@@ -24,7 +30,13 @@ type UserCreate = {
 
 type FieldErrors = Partial<Record<keyof UserCreate, string>>;
 
-const EMPTY_CREATE: UserCreate = { email: "", password: "", full_name: "", gsm: "", role: "" };
+const EMPTY_CREATE: UserCreate = {
+  email: "",
+  password: "",
+  full_name: "",
+  gsm: "",
+  role: "",
+};
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GSM_PATTERN = /^[0-9+\s-]{6,}$/;
@@ -76,7 +88,10 @@ function NewUserContent() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  const updateField = <K extends keyof UserCreate>(key: K, value: UserCreate[K]) => {
+  const updateField = <K extends keyof UserCreate>(
+    key: K,
+    value: UserCreate[K],
+  ) => {
     setForm((current) => ({ ...current, [key]: value }));
     setFieldErrors((current) => {
       if (!current[key]) return current;
@@ -98,11 +113,18 @@ function NewUserContent() {
 
     setSaving(true);
     try {
-      await apiClient.post("/users/", { ...form, role: form.role as UserResponse["role"] });
-      setFlashSuccess("Utilisateur créé avec succès.");
+      await apiClient.post("/users/", {
+        ...form,
+        role: form.role as UserResponse["role"],
+      });
+      toast.success("Utilisateur créé avec succès.", { duration: 3000 });
       router.push("/users");
     } catch (err) {
-      setError(err instanceof ApiHttpError ? err.message : "Impossible de créer l'utilisateur.");
+      setError(
+        err instanceof ApiHttpError
+          ? err.message
+          : "Impossible de créer l'utilisateur.",
+      );
     } finally {
       setSaving(false);
     }
@@ -111,7 +133,9 @@ function NewUserContent() {
   return (
     <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
       <CardHeader>
-        <CardDescription className="text-sky-800">Administration</CardDescription>
+        <CardDescription className="text-sky-800">
+          Administration
+        </CardDescription>
         <CardTitle className="flex items-center gap-2 text-sky-950">
           <Users className="size-5 text-sky-800" />
           Créer un utilisateur
@@ -119,7 +143,11 @@ function NewUserContent() {
       </CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-        <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={createUser} noValidate>
+        <form
+          className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"
+          onSubmit={createUser}
+          noValidate
+        >
           <Field label="Email" error={fieldErrors.email}>
             <Input
               value={form.email}
@@ -152,7 +180,9 @@ function NewUserContent() {
           <Field label="Rôle" error={fieldErrors.role}>
             <Select
               value={form.role}
-              onChange={(event) => updateField("role", event.target.value as UserCreate["role"])}
+              onChange={(event) =>
+                updateField("role", event.target.value as UserCreate["role"])
+              }
               aria-invalid={Boolean(fieldErrors.role)}
               placeholder="Choisir un rôle"
             >
@@ -163,8 +193,16 @@ function NewUserContent() {
             </Select>
           </Field>
           <div className="md:col-span-2 xl:col-span-5 flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? "Création..." : "Créer"}</Button>
-            <Button type="button" variant="outline" onClick={() => router.push("/users")}>Annuler</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Création..." : "Créer"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/users")}
+            >
+              Annuler
+            </Button>
           </div>
         </form>
       </CardContent>
@@ -172,7 +210,15 @@ function NewUserContent() {
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>

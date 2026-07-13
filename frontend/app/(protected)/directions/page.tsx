@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGate } from "@/components/role-gate";
@@ -43,7 +44,6 @@ function DirectionsContent() {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [directorFilter, setDirectorFilter] = useState("");
 
@@ -73,12 +73,12 @@ function DirectionsContent() {
 
   const deleteDirection = async (id: number) => {
     if (!confirm("Supprimer cette direction ?")) return;
-    setActionError(null);
     try {
       await apiClient.delete(`/directions/${id}`);
       await loadDirections();
+      toast.success("Direction supprimée avec succès.");
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette direction.");
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette direction.");
     }
   };
 
@@ -121,7 +121,6 @@ function DirectionsContent() {
             </p>
           )}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="grid flex-1 gap-4 md:grid-cols-2">
               <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth-provider";
 import { RoleGate } from "@/components/role-gate";
@@ -19,7 +20,6 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { DirectionResponse, PaginatedResponse } from "@/lib/backend-types";
-import { setFlashSuccess } from "@/lib/flash";
 import { ApiHttpError, apiClient } from "@/lib/http";
 
 const EXPERIENCE_LEVELS = [
@@ -175,7 +175,7 @@ function NewFicheContent() {
         direction_id: Number(form.direction_id),
         experience_level: `${form.experience_level} an${form.experience_level === "0" || form.experience_level === "1" ? "" : "s"}`,
       });
-      setFlashSuccess("Fiche de poste créée avec succès.");
+      toast.success("Fiche de poste créée avec succès.");
       router.push("/fiches-de-poste");
     } catch (err) {
       setError(

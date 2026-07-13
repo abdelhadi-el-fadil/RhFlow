@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { FileText } from "lucide-react"
+import { toast } from "sonner"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +31,6 @@ function FichesContent() {
   const [directions, setDirections] = useState<DirectionResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED">("")
   const [directionFilter, setDirectionFilter] = useState("")
@@ -63,22 +63,22 @@ function FichesContent() {
   }, [])
 
   const validateFiche = async (id: number) => {
-    setActionError(null)
     try {
       await apiClient.patch(`/fiches-de-poste/${id}/valider`)
       await load()
+      toast.success("Fiche validée avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de valider la fiche.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de valider la fiche.")
     }
   }
 
   const archiveFiche = async (id: number) => {
-    setActionError(null)
     try {
       await apiClient.patch(`/fiches-de-poste/${id}/archiver`)
       await load()
+      toast.success("Fiche archivée avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'archiver la fiche.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible d'archiver la fiche.")
     }
   }
 
@@ -86,12 +86,12 @@ function FichesContent() {
     if (!confirm("Supprimer cette fiche de poste ?")) {
       return
     }
-    setActionError(null)
     try {
       await apiClient.delete(`/fiches-de-poste/${id}`)
       await load()
+      toast.success("Fiche supprimée avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer la fiche.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de supprimer la fiche.")
     }
   }
 
@@ -128,7 +128,6 @@ function FichesContent() {
         </CardHeader>
         <CardContent>
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="grid flex-1 gap-4 md:grid-cols-3">
               <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>

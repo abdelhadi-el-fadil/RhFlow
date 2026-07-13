@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -16,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import type { ApiResponse, BesoinRecrutementResponse, FicheDePosteResponse, PaginatedResponse, ProjetRecrutementResponse, UserResponse } from "@/lib/backend-types"
 import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
-import { setFlashSuccess } from "@/lib/flash"
 
 export default function ProjetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -128,10 +128,12 @@ function DetailContent({ id }: { id: number }) {
         fiche_de_poste_id: form.fiche_de_poste_id ? Number(form.fiche_de_poste_id) : null,
         nombre_postes: form.nombre_postes ? Number(form.nombre_postes) : null,
       })
-      setFlashSuccess("Projet sauvegardé avec succès.")
+      toast.success("Projet sauvegardé avec succès.")
       router.push("/projets")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce projet.")
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce projet."
+      setActionError(message)
+      toast.error(message)
     }
   }
 
@@ -157,18 +159,24 @@ function DetailContent({ id }: { id: number }) {
                 setActionError(null)
                 try {
                   await apiClient.patch(`/projets/${id}/cloturer`)
+                  toast.success("Projet clôturé avec succès.")
                   await reload()
                 } catch (err) {
-                  setActionError(err instanceof ApiHttpError ? err.message : "Impossible de clôturer ce projet.")
+                  const message = err instanceof ApiHttpError ? err.message : "Impossible de clôturer ce projet."
+                  setActionError(message)
+                  toast.error(message)
                 }
               }}>Clôturer</Button>}
               {canManage && <Button type="button" variant="destructive" onClick={async () => {
                 setActionError(null)
                 try {
                   await apiClient.delete(`/projets/${id}`)
+                  toast.success("Projet supprimé avec succès.")
                   window.location.href = "/projets"
                 } catch (err) {
-                  setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce projet.")
+                  const message = err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce projet."
+                  setActionError(message)
+                  toast.error(message)
                 }
               }}>Supprimer</Button>}
             </div>
@@ -190,9 +198,12 @@ function DetailContent({ id }: { id: number }) {
               setActionError(null)
               try {
                 await apiClient.post(`/projets/${id}/besoins/${parsedNeedId}`)
+                toast.success("Besoin attaché avec succès.")
                 await reload()
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'attacher ce besoin.")
+                const message = err instanceof ApiHttpError ? err.message : "Impossible d'attacher ce besoin."
+                setActionError(message)
+                toast.error(message)
               }
             }}>
               <div className="flex-1 space-y-2">

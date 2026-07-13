@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Eye, Users, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
@@ -35,7 +36,6 @@ function UsersContent() {
   const [roleFilter, setRoleFilter] = useState<UserResponse["role"] | "" | "ALL">("")
   const [statusFilter, setStatusFilter] = useState<"" | "ALL" | "ENABLED" | "DISABLED">("")
   const [error, setError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [signatureFiles, setSignatureFiles] = useState<Record<number, File | null>>({})
   const [uploadingSignatureId, setUploadingSignatureId] = useState<number | null>(null)
   const [signaturePreview, setSignaturePreview] = useState<{ userId: number; url: string } | null>(null)
@@ -72,12 +72,12 @@ function UsersContent() {
       return
     }
 
-    setActionError(null)
     try {
       await apiClient.delete(`/users/${userId}`)
       await loadUsers()
+      toast.success("Utilisateur supprimé avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cet utilisateur.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de supprimer cet utilisateur.")
     }
   }
 
@@ -92,7 +92,6 @@ function UsersContent() {
       return
     }
 
-    setActionError(null)
     try {
       await apiClient.put(`/users/${draft.id}`, {
         email: draft.email,
@@ -113,31 +112,31 @@ function UsersContent() {
       setDraft(null)
       setSignatureFiles((current) => ({ ...current, [draft.id]: null }))
       await loadUsers()
+      toast.success("Utilisateur modifié avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de modifier cet utilisateur.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de modifier cet utilisateur.")
     } finally {
       setUploadingSignatureId(null)
     }
   }
 
   const toggleUserEnabled = async (item: UserResponse) => {
-    setActionError(null)
     try {
       await apiClient.put(`/users/${item.id}`, { enabled: !item.enabled })
       await loadUsers()
+      toast.success(item.enabled ? "Utilisateur désactivé avec succès." : "Utilisateur réactivé avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour le statut de cet utilisateur.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour le statut de cet utilisateur.")
     }
   }
 
   const openSignature = async (userId: number) => {
-    setActionError(null)
     setPreviewLoadingId(userId)
     try {
       const response = await apiClient.get<ApiResponse<UserSignatureResponse>>(`/users/${userId}/signature`)
       setSignaturePreview({ userId, url: response.data.data.url })
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'afficher la signature.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible d'afficher la signature.")
     } finally {
       setPreviewLoadingId(null)
     }
@@ -148,18 +147,18 @@ function UsersContent() {
   const uploadSignature = async (userId: number) => {
     const file = signatureFiles[userId]
     if (!file) {
-      setActionError("Choisissez une image PNG ou JPEG pour la signature.")
+      toast.error("Choisissez une image PNG ou JPEG pour la signature.")
       return
     }
 
     setUploadingSignatureId(userId)
-    setActionError(null)
     try {
       await uploadSignatureFile(userId, file)
       setSignatureFiles((current) => ({ ...current, [userId]: null }))
       await loadUsers()
+      toast.success("Signature mise à jour avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour la signature.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de mettre à jour la signature.")
     } finally {
       setUploadingSignatureId(null)
     }
@@ -170,14 +169,14 @@ function UsersContent() {
       return
     }
 
-    setActionError(null)
     setUploadingSignatureId(userId)
     try {
       await apiClient.delete(`/users/${userId}/signature`)
       setSignaturePreview((current) => (current?.userId === userId ? null : current))
       await loadUsers()
+      toast.success("Signature supprimée avec succès.")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer la signature.")
+      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de supprimer la signature.")
     } finally {
       setUploadingSignatureId(null)
     }
@@ -217,7 +216,6 @@ function UsersContent() {
         <CardContent>
           {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="mb-4 text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-          {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="grid flex-1 gap-4 md:grid-cols-3">
               <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Email, nom, téléphone" /></Field>

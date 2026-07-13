@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { RoleGate } from "@/components/role-gate"
 import { Button } from "@/components/ui/button"
@@ -78,9 +79,12 @@ function CreateContent() {
         desired_date: format(desiredDate, "yyyy-MM-dd"),
         fiche_de_poste_id: ficheId,
       })
+      toast.success("Besoin créé avec succès.")
       window.location.href = "/besoins"
     } catch (err) {
-      setError(err instanceof ApiHttpError ? err.message : "Impossible de creer le besoin.")
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de creer le besoin."
+      setError(message)
+      toast.error(message)
     }
   }
 
@@ -95,7 +99,6 @@ function CreateContent() {
           </Field>
           <Field label="Fiche de poste">
             <Select value={form.fiche_de_poste_id} onChange={(event) => setForm((current) => ({ ...current, fiche_de_poste_id: event.target.value }))}>
-              <option value="">Choisir</option>
               {availableFiches.map((fiche) => <option key={fiche.id} value={fiche.id}>{fiche.title}</option>)}
             </Select>
           </Field>

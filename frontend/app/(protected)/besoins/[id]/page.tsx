@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +16,6 @@ import { ApiHttpError, apiClient } from "@/lib/http"
 import type { ApiResponse, BesoinPriority, BesoinRecrutementResponse, DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
 import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
 import { useAuth } from "@/components/auth-provider"
-import { setFlashSuccess } from "@/lib/flash"
 
 export default function BesoinDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -140,10 +140,12 @@ function DetailContent({ id }: { id: number }) {
         fiche_de_poste_id: Number(form.fiche_de_poste_id),
       })
       setItem(response.data.data)
-      setFlashSuccess("Besoin sauvegardé avec succès.")
+      toast.success("Besoin sauvegardé avec succès.")
       router.push("/besoins")
     } catch (err) {
-      setActionError(err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce besoin.")
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce besoin."
+      setActionError(message)
+      toast.error(message)
     }
   }
 
@@ -182,18 +184,24 @@ function DetailContent({ id }: { id: number }) {
               setActionError(null)
               try {
                 await apiClient.post(`/besoins/${id}/soumettre`)
+                toast.success("Besoin soumis avec succès.")
                 await reload()
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible de soumettre ce besoin.")
+                const message = err instanceof ApiHttpError ? err.message : "Impossible de soumettre ce besoin."
+                setActionError(message)
+                toast.error(message)
               }
             }}>Soumettre</Button>}
             {canApprove && <Button type="button" onClick={async () => {
               setActionError(null)
               try {
                 await apiClient.post(`/besoins/${id}/approuver`)
+                toast.success("Besoin approuvé avec succès.")
                 await reload()
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible d'approuver ce besoin.")
+                const message = err instanceof ApiHttpError ? err.message : "Impossible d'approuver ce besoin."
+                setActionError(message)
+                toast.error(message)
               }
             }}>Approuver</Button>}
             {canReject && <Button type="button" variant="destructive" onClick={async () => {
@@ -201,18 +209,24 @@ function DetailContent({ id }: { id: number }) {
               setActionError(null)
               try {
                 await apiClient.post(`/besoins/${id}/rejeter`, { reason })
+                toast.success("Besoin rejeté avec succès.")
                 await reload()
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible de rejeter ce besoin.")
+                const message = err instanceof ApiHttpError ? err.message : "Impossible de rejeter ce besoin."
+                setActionError(message)
+                toast.error(message)
               }
             }}>Rejeter</Button>}
             {canDelete && <Button type="button" variant="secondary" onClick={async () => {
               setActionError(null)
               try {
                 await apiClient.delete(`/besoins/${id}`)
+                toast.success("Besoin supprimé avec succès.")
                 window.location.href = "/besoins"
               } catch (err) {
-                setActionError(err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce besoin.")
+                const message = err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce besoin."
+                setActionError(message)
+                toast.error(message)
               }
             }}>Supprimer</Button>}
           </div>

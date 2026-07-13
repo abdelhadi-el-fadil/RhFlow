@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { WandSparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { setFlashSuccess } from "@/lib/flash";
 import { ApiHttpError, apiClient } from "@/lib/http";
 
 export default function NewOffrePage() {
@@ -39,10 +39,12 @@ function NewOffreContent() {
         deadline: form.deadline || null,
         besoin_id: Number(form.besoin_id),
       });
-      setFlashSuccess("Offre créée avec succès.");
+      toast.success("Offre créée avec succès.");
       router.push("/offres");
     } catch (err) {
-      setError(err instanceof ApiHttpError ? err.message : "Impossible de créer l'offre.");
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de créer l'offre.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }

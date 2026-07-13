@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { RoleGate } from "@/components/role-gate";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ApiHttpError, apiClient } from "@/lib/http";
-import { setFlashSuccess } from "@/lib/flash";
 import type { ApiResponse, DirectionResponse, PaginatedResponse, UserResponse } from "@/lib/backend-types";
 import { useAuth } from "@/components/auth-provider";
 
@@ -114,14 +114,15 @@ function DirectionDetail({ id }: { id: number }) {
         },
       );
       setItem(response.data.data);
-      setFlashSuccess("Direction sauvegardée avec succès.");
+      toast.success("Direction sauvegardée avec succès.");
       router.push("/directions");
     } catch (err) {
-      setSaveError(
+      const message =
         err instanceof ApiHttpError
           ? err.message
-          : "Impossible de sauvegarder cette direction.",
-      );
+          : "Impossible de sauvegarder cette direction.";
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
