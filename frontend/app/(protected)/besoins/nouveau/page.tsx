@@ -31,6 +31,7 @@ function CreateContent() {
   const { user } = useAuth()
   const [fiches, setFiches] = useState<FicheDePosteResponse[]>([])
   const [directions, setDirections] = useState<DirectionResponse[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [desiredDate, setDesiredDate] = useState<Date | undefined>(undefined)
   const [form, setForm] = useState({
@@ -43,13 +44,24 @@ function CreateContent() {
   })
 
   useEffect(() => {
-    void Promise.all([
-      apiClient.get<PaginatedResponse<FicheDePosteResponse>>("/fiches-de-poste/", { params: { page: 1, page_size: 100 } }),
-      apiClient.get<PaginatedResponse<DirectionResponse>>("/directions/", { params: { page: 1, page_size: 100 } }),
-    ]).then(([fichesRes, directionsRes]) => {
-      setFiches(fichesRes.data.data)
-      setDirections(directionsRes.data.data)
-    })
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const [fichesRes, directionsRes] = await Promise.all([
+          apiClient.get<PaginatedResponse<FicheDePosteResponse>>("/fiches-de-poste/", { params: { page: 1, page_size: 100 } }),
+          apiClient.get<PaginatedResponse<DirectionResponse>>("/directions/", { params: { page: 1, page_size: 100 } }),
+        ])
+        setFiches(fichesRes.data.data)
+        setDirections(directionsRes.data.data)
+      } catch (err) {
+        setError(err instanceof ApiHttpError ? err.message : "Impossible de charger les données de création.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void load()
   }, [])
 
   const availableFiches = user?.role === "DIRECTEUR"
@@ -61,6 +73,18 @@ function CreateContent() {
     const ficheId = Number(form.fiche_de_poste_id)
     if (!Number.isFinite(ficheId) || ficheId <= 0) {
       setError("Veuillez choisir une fiche de poste.")
+      return
+    }
+    if (!form.location.trim()) {
+      setError("Le lieu d'affectation est requis.")
+      return
+    }
+    if (!form.recruitment_reason.trim()) {
+      setError("Le motif de recrutement est requis.")
+      return
+    }
+    if (Number(form.positions_count) < 1) {
+      setError("Le nombre de postes doit être au moins 1.")
       return
     }
     if (!desiredDate) {
@@ -93,12 +117,14 @@ function CreateContent() {
       <CardHeader><CardTitle>Nouveau besoin</CardTitle></CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+        {loading && <p className="mb-4 text-sm text-muted-foreground">Chargement des fiches...</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
           <Field label="Titre (optionnel)">
             <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
           </Field>
           <Field label="Fiche de poste">
             <Select value={form.fiche_de_poste_id} onChange={(event) => setForm((current) => ({ ...current, fiche_de_poste_id: event.target.value }))}>
+              <option value="">Choisir une fiche</option>
               {availableFiches.map((fiche) => <option key={fiche.id} value={fiche.id}>{fiche.title}</option>)}
             </Select>
           </Field>

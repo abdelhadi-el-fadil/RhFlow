@@ -1,12 +1,10 @@
 """Pydantic schemas — fiches de poste domain."""
 from pydantic import BaseModel, ConfigDict
 
-from app.domains.fiches_de_poste.enums import FicheStatus
-
 
 class FicheDePosteCreate(BaseModel):
     title: str
-    description: str
+    main_activities: str
     missions: str
     required_skills: str
     experience_level: str
@@ -19,7 +17,7 @@ class FicheDePosteCreate(BaseModel):
 
 class FicheDePosteUpdate(BaseModel):
     title: str | None = None
-    description: str | None = None
+    main_activities: str | None = None
     missions: str | None = None
     required_skills: str | None = None
     experience_level: str | None = None
@@ -35,7 +33,7 @@ class FicheDePosteResponse(BaseModel):
 
     id: int
     title: str
-    description: str
+    main_activities: str
     missions: str
     required_skills: str
     experience_level: str
@@ -43,7 +41,6 @@ class FicheDePosteResponse(BaseModel):
     education_level: str | None
     technical_skills: str | None
     managerial_skills: str | None
-    status: FicheStatus
     direction_id: int
     direction_name: str | None
     validated_by_id: int | None

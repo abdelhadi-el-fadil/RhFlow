@@ -339,7 +339,8 @@ def list_besoins(
                                               BesoinStatus.REJECTED]))
         else:
             base_query = base_query.where(
-                BesoinRecrutement.status == BesoinStatus.SUBMITTED)
+                BesoinRecrutement.status.in_([BesoinStatus.DRAFT,
+                                              BesoinStatus.SUBMITTED]))
     else:
         if archived:
             base_query = base_query.where(

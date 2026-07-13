@@ -107,6 +107,7 @@ function NewDirectionContent() {
       });
       toast.success("Direction créée avec succès.");
       router.push("/directions");
+      router.refresh();
     } catch (err) {
       const message = err instanceof ApiHttpError ? err.message : "Impossible de créer la direction.";
       setError(message);

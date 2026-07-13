@@ -39,7 +39,7 @@ const EDUCATION_LEVELS = ["Bac", "Bac+2", "Bac+3", "Bac+5", "Doctorat"];
 
 type FicheForm = {
   title: string;
-  description: string;
+  main_activities: string;
   missions: string;
   required_skills: string;
   experience_level: string;
@@ -54,7 +54,7 @@ type FieldErrors = Partial<Record<keyof FicheForm, string>>;
 
 const EMPTY_FORM: FicheForm = {
   title: "",
-  description: "",
+  main_activities: "",
   missions: "",
   required_skills: "",
   experience_level: "",
@@ -76,8 +76,8 @@ function validate(form: FicheForm): FieldErrors {
     errors.direction_id = "La direction est requise.";
   }
 
-  if (!form.description.trim()) {
-    errors.description = "La description est requise.";
+  if (!form.main_activities.trim()) {
+    errors.main_activities = "Les activités principales sont requises.";
   }
 
   if (!form.missions.trim()) {
@@ -233,13 +233,13 @@ function NewFicheContent() {
               ))}
             </Select>
           </Field>
-          <Field label="Description" error={fieldErrors.description}>
+          <Field label="Activités principales" error={fieldErrors.main_activities}>
             <Textarea
-              value={form.description}
+              value={form.main_activities}
               onChange={(event) =>
-                updateField("description", event.target.value)
+                updateField("main_activities", event.target.value)
               }
-              aria-invalid={Boolean(fieldErrors.description)}
+              aria-invalid={Boolean(fieldErrors.main_activities)}
             />
           </Field>
           <Field label="Missions" error={fieldErrors.missions}>

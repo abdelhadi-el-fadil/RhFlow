@@ -14,7 +14,6 @@ from app.core.schemas import (
 )
 from app.database import get_db
 from app.domains.fiches_de_poste import service as fiche_service
-from app.domains.fiches_de_poste.enums import FicheStatus
 from app.domains.fiches_de_poste.schemas import (
     FicheDePosteCreate,
     FicheDePosteResponse,
@@ -28,12 +27,11 @@ router = APIRouter(prefix="/fiches-de-poste", tags=["Fiches de poste"])
 @router.get("/", response_model=PaginatedResponse[FicheDePosteResponse])
 def list_fiches(
     params: Annotated[PaginationParams, Depends()],
-    status: FicheStatus | None = None,
     direction_id: int | None = None,
     _: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[FicheDePosteResponse]:
-    items, total = fiche_service.list_fiches(db, params, status, direction_id)
+    items, total = fiche_service.list_fiches(db, params, direction_id)
     return PaginatedResponse(
         data=[FicheDePosteResponse.model_validate(item) for item in items],
         meta=PaginationMeta(
@@ -86,29 +84,9 @@ def update_fiche(
 def delete_fiche(
     fiche_id: int,
     current_user: User = Depends(
-        require_role(UserRole.ADMIN, UserRole.DRH, UserRole.DIRECTEUR)
+        require_role(UserRole.ADMIN, UserRole.DRH)
         ),
     db: Session = Depends(get_db),
 ) -> ApiResponse[None]:
     fiche_service.delete_fiche(db, fiche_id, current_user)
     return ApiResponse(data=None)
-
-
-@router.patch("/{fiche_id}/valider", response_model=ApiResponse[FicheDePosteResponse])
-def validate_fiche(
-    fiche_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
-    db: Session = Depends(get_db),
-) -> ApiResponse[FicheDePosteResponse]:
-    fiche = fiche_service.validate_fiche(db, fiche_id, current_user)
-    return ApiResponse(data=FicheDePosteResponse.model_validate(fiche))
-
-
-@router.patch("/{fiche_id}/archiver", response_model=ApiResponse[FicheDePosteResponse])
-def archive_fiche(
-    fiche_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
-    db: Session = Depends(get_db),
-) -> ApiResponse[FicheDePosteResponse]:
-    fiche = fiche_service.archive_fiche(db, fiche_id, current_user)
-    return ApiResponse(data=FicheDePosteResponse.model_validate(fiche))

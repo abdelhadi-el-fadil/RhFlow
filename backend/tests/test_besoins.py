@@ -42,7 +42,7 @@ def _create_fiche(client: TestClient, token: str, direction_id: int) -> int:
         "/fiches-de-poste/",
         json={
             "title": "Fiche",
-            "description": "Description",
+            "main_activities": "Description",
             "missions": "Missions",
             "required_skills": "Skills",
             "experience_level": "Senior",

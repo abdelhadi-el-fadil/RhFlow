@@ -1,20 +1,8 @@
 import type {
   BesoinStatus,
-  FicheStatus,
   OffreStatus,
   ProjetStatus,
 } from "@/lib/backend-types"
-
-export function badgeVariantFromFicheStatus(status: FicheStatus) {
-  switch (status) {
-    case "DRAFT":
-      return "secondary" as const
-    case "VALIDATED":
-      return "default" as const
-    case "ARCHIVED":
-      return "outline" as const
-  }
-}
 
 export function badgeVariantFromBesoinStatus(status: BesoinStatus) {
   switch (status) {

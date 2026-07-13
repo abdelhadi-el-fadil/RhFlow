@@ -41,7 +41,7 @@ def _create_fiche(client: TestClient,
         "/fiches-de-poste/",
         json={
             "title": title,
-            "description": "desc",
+            "main_activities": "desc",
             "missions": "missions",
             "required_skills": "skills",
             "experience_level": "Senior",

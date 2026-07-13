@@ -10,9 +10,7 @@ from app.core.enums import UserRole
 from app.core.exceptions import ForbiddenException
 from app.core.schemas import PaginationParams
 from app.domains.directions.service import get_direction
-from app.domains.fiches_de_poste.enums import FicheStatus
 from app.domains.fiches_de_poste.exceptions import (
-    FicheDePosteInvalidTransitionException,
     FicheDePosteNotFoundException,
 )
 from app.domains.fiches_de_poste.model import FicheDePoste
@@ -22,11 +20,8 @@ from app.domains.users.model import User
 
 def _apply_filters(
     stmt: Select[Any],
-    status: FicheStatus | None,
     direction_id: int | None,
 ) -> Select[Any]:
-    if status is not None:
-        stmt = stmt.where(FicheDePoste.status == status)
     if direction_id is not None:
         stmt = stmt.where(FicheDePoste.direction_id == direction_id)
     return stmt
@@ -46,7 +41,7 @@ def create_fiche(
 
     fiche = FicheDePoste(
         title=payload.title,
-        description=payload.description,
+        main_activities=payload.main_activities,
         missions=payload.missions,
         required_skills=payload.required_skills,
         experience_level=payload.experience_level,
@@ -55,7 +50,6 @@ def create_fiche(
         education_level=payload.education_level,
         technical_skills=payload.technical_skills,
         managerial_skills=payload.managerial_skills,
-        status=FicheStatus.DRAFT,
         created_by_id=current_user.id,
         updated_by_id=current_user.id,
     )
@@ -82,14 +76,12 @@ def get_fiche(db: Session, fiche_id: int) -> FicheDePoste:
 def list_fiches(
     db: Session,
     params: PaginationParams,
-    status: FicheStatus | None = None,
     direction_id: int | None = None,
 ) -> tuple[list[FicheDePoste], int]:
     base_query = _apply_filters(
         select(FicheDePoste)
         .options(selectinload(FicheDePoste.direction))
         .where(FicheDePoste.is_deleted.is_(False)),
-        status,
         direction_id,
     ).order_by(FicheDePoste.id)
     items = list(
@@ -102,7 +94,6 @@ def list_fiches(
         select(func.count()).select_from(FicheDePoste).where(
             FicheDePoste.is_deleted.is_(False)
         ),
-        status,
         direction_id,
     )
     total_items = db.scalar(count_query)
@@ -149,42 +140,11 @@ def delete_fiche(db: Session, fiche_id: int, current_user: User) -> FicheDePoste
 
     elevated_editor = current_user.role in {UserRole.ADMIN, UserRole.DRH}
     if not elevated_editor:
-        if current_user.role != UserRole.DIRECTEUR:
-            raise ForbiddenException()
-        direction = get_direction(db, fiche.direction_id)
-        if direction.director_id != current_user.id:
-            raise ForbiddenException()
+        raise ForbiddenException()
 
     fiche.is_deleted = True
     fiche.deleted_at = datetime.now(timezone.utc)
     fiche.updated_by_id = current_user.id
     db.add(fiche)
     db.flush()
-    return fiche
-
-
-def validate_fiche(db: Session, fiche_id: int, current_user: User) -> FicheDePoste:
-    fiche = get_fiche(db, fiche_id)
-    if fiche.status != FicheStatus.DRAFT:
-        raise FicheDePosteInvalidTransitionException()
-
-    fiche.status = FicheStatus.VALIDATED
-    fiche.validated_by_id = current_user.id
-    fiche.updated_by_id = current_user.id
-    db.add(fiche)
-    db.flush()
-    db.refresh(fiche)
-    return fiche
-
-
-def archive_fiche(db: Session, fiche_id: int, current_user: User) -> FicheDePoste:
-    fiche = get_fiche(db, fiche_id)
-    if fiche.status != FicheStatus.VALIDATED:
-        raise FicheDePosteInvalidTransitionException()
-
-    fiche.status = FicheStatus.ARCHIVED
-    fiche.updated_by_id = current_user.id
-    db.add(fiche)
-    db.flush()
-    db.refresh(fiche)
     return fiche

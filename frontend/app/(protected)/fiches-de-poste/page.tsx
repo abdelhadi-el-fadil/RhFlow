@@ -6,7 +6,6 @@ import { FileText } from "lucide-react"
 import { toast } from "sonner"
 
 import { RoleGate } from "@/components/role-gate"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,7 +13,6 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import type { DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
-import { badgeVariantFromFicheStatus } from "@/lib/status-labels"
 import { useAuth } from "@/components/auth-provider"
 
 export default function FichesPage() {
@@ -32,11 +30,10 @@ function FichesContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED">("")
   const [directionFilter, setDirectionFilter] = useState("")
 
   const canCreateFiche = user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR"
-  const canValidateOrArchive = user?.role === "ADMIN" || user?.role === "DRH"
+  const canDeleteFiche = user?.role === "ADMIN" || user?.role === "DRH"
 
   const load = async () => {
     const [fichesRes, directionsRes] = await Promise.all([
@@ -62,26 +59,6 @@ function FichesContent() {
     void run()
   }, [])
 
-  const validateFiche = async (id: number) => {
-    try {
-      await apiClient.patch(`/fiches-de-poste/${id}/valider`)
-      await load()
-      toast.success("Fiche validée avec succès.")
-    } catch (err) {
-      toast.error(err instanceof ApiHttpError ? err.message : "Impossible de valider la fiche.")
-    }
-  }
-
-  const archiveFiche = async (id: number) => {
-    try {
-      await apiClient.patch(`/fiches-de-poste/${id}/archiver`)
-      await load()
-      toast.success("Fiche archivée avec succès.")
-    } catch (err) {
-      toast.error(err instanceof ApiHttpError ? err.message : "Impossible d'archiver la fiche.")
-    }
-  }
-
   const deleteFiche = async (id: number) => {
     if (!confirm("Supprimer cette fiche de poste ?")) {
       return
@@ -97,16 +74,14 @@ function FichesContent() {
 
   const clearFilters = () => {
     setSearch("")
-    setStatusFilter("")
     setDirectionFilter("")
   }
 
   const filteredItems = items.filter((item) => {
-    const haystack = `${item.title} ${item.description} ${item.direction_name ?? ""} ${item.experience_level} ${item.education_level ?? ""} ${item.technical_skills ?? ""} ${item.managerial_skills ?? ""}`.toLowerCase()
+    const haystack = `${item.title} ${item.main_activities} ${item.direction_name ?? ""} ${item.experience_level} ${item.education_level ?? ""} ${item.technical_skills ?? ""} ${item.managerial_skills ?? ""}`.toLowerCase()
     const matchesSearch = search.trim() === "" || haystack.includes(search.trim().toLowerCase())
-    const matchesStatus = statusFilter === "" || statusFilter === "ALL" || item.status === statusFilter
     const matchesDirection = directionFilter === "" || directionFilter === "ALL" || String(item.direction_id) === directionFilter
-    return matchesSearch && matchesStatus && matchesDirection
+    return matchesSearch && matchesDirection
   })
 
   return (
@@ -129,9 +104,8 @@ function FichesContent() {
         <CardContent>
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="grid flex-1 gap-4 md:grid-cols-3">
+            <div className="grid flex-1 gap-4 md:grid-cols-2">
               <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, direction, compétences" /></Field>
-              <Field label="Statut"><Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "" | "ALL" | "DRAFT" | "VALIDATED" | "ARCHIVED")} placeholder="Choisir un statut"><option value="ALL">Tous</option><option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="ARCHIVED">Archivée</option></Select></Field>
               <Field label="Direction"><Select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} placeholder="Choisir une direction"><option value="ALL">Toutes</option>{directions.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
             </div>
             <Button
@@ -157,19 +131,17 @@ function FichesContent() {
                     <Info label="Domaine de formation" value={item.formation_domain ?? "-"} />
                     <Info label="Compétences requises" value={item.required_skills} />
                   </div>
-                  <Info label="Description" value={item.description} />
+                  <Info label="Activités principales" value={item.main_activities} />
                   <Info label="Missions" value={item.missions} />
                   <div className="grid gap-3 md:grid-cols-2">
                     <Info label="Compétences techniques" value={item.technical_skills ?? "-"} />
                     <Info label="Compétences managériales" value={item.managerial_skills ?? "-"} />
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sky-100 pt-4">
-                    <Badge variant={badgeVariantFromFicheStatus(item.status)}>{item.status}</Badge>
+                    <span className="text-sm text-sky-800">Direction: {item.direction_name ?? `#${item.direction_id}`}</span>
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm"><a href={`/fiches-de-poste/${item.id}`}>Ouvrir</a></Button>
-                      {canValidateOrArchive && item.status === "DRAFT" && <Button size="sm" onClick={() => validateFiche(item.id)}>Valider</Button>}
-                      {canValidateOrArchive && item.status === "VALIDATED" && <Button variant="secondary" size="sm" onClick={() => archiveFiche(item.id)}>Archiver</Button>}
-                      {canCreateFiche && <Button variant="destructive" size="sm" onClick={() => deleteFiche(item.id)}>Supprimer</Button>}
+                      {canDeleteFiche && <Button variant="destructive" size="sm" onClick={() => deleteFiche(item.id)}>Supprimer</Button>}
                     </div>
                   </div>
                 </CardContent>

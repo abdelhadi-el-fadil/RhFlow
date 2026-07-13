@@ -28,7 +28,6 @@ from app.core.enums import UserRole
 from app.core.security import hash_password
 from app.database import SessionLocal
 from app.domains.directions.model import Direction
-from app.domains.fiches_de_poste.enums import FicheStatus
 from app.domains.fiches_de_poste.model import FicheDePoste
 from app.domains.offres.enums import OffreStatus
 from app.domains.offres.model import Offre
@@ -119,7 +118,7 @@ SEED_DIRECTIONS: list[dict[str, object]] = [
 SEED_FICHES: list[dict[str, object]] = [
     {
         "title": "Chef de Projet RH",
-        "description": "Pilote les projets de transformation RH.",
+        "main_activities": "Pilote les projets de transformation RH.",
         "missions": "Coordonner les parties prenantes, suivre planning,"
         " assurer livraison.",
         "required_skills": "Gestion de projet, communication, leadership.",
@@ -128,12 +127,11 @@ SEED_FICHES: list[dict[str, object]] = [
         "education_level": "Bac+5",
         "technical_skills": "MS Project, Jira, reporting RH, SIRH.",
         "managerial_skills": "Leadership, animation d'equipe, conduite du changement.",
-        "status": FicheStatus.VALIDATED,
         "direction_code": "HR",
     },
     {
         "title": "Ingenieur DevOps",
-        "description": "Automatise le deploiement et la fiabilite des plateformes.",
+        "main_activities": "Automatise le deploiement et la fiabilite des plateformes.",
         "missions": "Mettre en place CI/CD, observabilite, securite operationnelle.",
         "required_skills": "Docker, Kubernetes, CI/CD, Linux, scripting.",
         "experience_level": "3+ years",
@@ -141,12 +139,11 @@ SEED_FICHES: list[dict[str, object]] = [
         "education_level": "Bac+5",
         "technical_skills": "Docker, Kubernetes, Terraform, GitOps, monitoring.",
         "managerial_skills": "Coordination technique, mentorat junior.",
-        "status": FicheStatus.VALIDATED,
         "direction_code": "IT",
     },
     {
         "title": "Charge de Recrutement",
-        "description": "Conduit les campagnes de recrutement.",
+        "main_activities": "Conduit les campagnes de recrutement.",
         "missions": "Sourcing, entretiens, coordination avec managers.",
         "required_skills": "Entretien, evaluation, communication.",
         "experience_level": "2+ years",
@@ -154,12 +151,11 @@ SEED_FICHES: list[dict[str, object]] = [
         "education_level": "Bac+3",
         "technical_skills": "ATS, LinkedIn Recruiter, sourcing boolean.",
         "managerial_skills": "Organisation, gestion des priorites.",
-        "status": FicheStatus.DRAFT,
         "direction_code": "HR",
     },
     {
         "title": "Responsable Production",
-        "description": "Supervise les lignes de production et la qualite.",
+        "main_activities": "Supervise les lignes de production et la qualite.",
         "missions": "Planifier la production, garantir la qualite,"
         " piloter les equipes terrain.",
         "required_skills": "Lean management, gestion de production, QHSE.",
@@ -168,7 +164,6 @@ SEED_FICHES: list[dict[str, object]] = [
         "education_level": "Bac+5",
         "technical_skills": "Lean Six Sigma, ERP production, QHSE.",
         "managerial_skills": "Gestion d'equipe terrain, resolution de conflits.",
-        "status": FicheStatus.VALIDATED,
         "direction_code": "OPS",
     },
 ]
@@ -396,14 +391,13 @@ def _seed_fiches(
             counters = counters.add_skipped()
             continue
 
-        status = data["status"]
         direction = directions_by_code[str(data["direction_code"])]
         # Each fiche is authored by the directeur of its own direction.
         direction_directeur_id = direction.director_id
 
         fiche = FicheDePoste(
             title=title,
-            description=str(data["description"]),
+            main_activities=str(data["main_activities"]),
             missions=str(data["missions"]),
             required_skills=str(data["required_skills"]),
             experience_level=str(data["experience_level"]),
@@ -411,15 +405,10 @@ def _seed_fiches(
             education_level=str(data["education_level"]),
             technical_skills=str(data["technical_skills"]),
             managerial_skills=str(data["managerial_skills"]),
-            status=status,
             direction_id=direction.id,
-            validated_by_id=drh.id if status == FicheStatus.VALIDATED else None,
+            validated_by_id=drh.id,
             created_by_id=direction_directeur_id,
-            updated_by_id=(
-                drh.id 
-                if status == FicheStatus.VALIDATED 
-                else direction_directeur_id
-                ),
+            updated_by_id=direction_directeur_id,
         )
         db.add(fiche)
         db.flush()

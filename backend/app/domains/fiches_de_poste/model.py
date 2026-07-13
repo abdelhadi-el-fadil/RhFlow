@@ -1,10 +1,8 @@
 """Fiche de poste model."""
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, String, Text, text
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domains.directions.model import Direction
-from app.domains.fiches_de_poste.enums import FicheStatus
 from app.domains.users.model import User
 from app.models.base import AuditMixin, Base, SoftDeleteMixin, TimestampMixin
 
@@ -14,7 +12,7 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(150), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
+    main_activities: Mapped[str] = mapped_column(Text, nullable=False)
     missions: Mapped[str] = mapped_column(Text, nullable=False)
     required_skills: Mapped[str] = mapped_column(Text, nullable=False)
     experience_level: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -22,12 +20,6 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     education_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
     technical_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     managerial_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[FicheStatus] = mapped_column(
-        SQLEnum(FicheStatus, name="fichestatus"),
-        default=FicheStatus.DRAFT,
-        server_default=text("'DRAFT'"),
-        nullable=False,
-    )
     direction_id: Mapped[int] = mapped_column(
         ForeignKey("directions.id"),
         nullable=False,

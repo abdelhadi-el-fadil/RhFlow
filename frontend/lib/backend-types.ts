@@ -46,12 +46,10 @@ export type DirectionResponse = {
   updated_by_id: number | null
 }
 
-export type FicheStatus = "DRAFT" | "VALIDATED" | "ARCHIVED"
-
 export type FicheDePosteResponse = {
   id: number
   title: string
-  description: string
+  main_activities: string
   missions: string
   required_skills: string
   experience_level: string
@@ -59,7 +57,6 @@ export type FicheDePosteResponse = {
   education_level: string | null
   technical_skills: string | null
   managerial_skills: string | null
-  status: FicheStatus
   direction_id: number
   direction_name: string | null
   validated_by_id: number | null

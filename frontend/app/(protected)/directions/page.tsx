@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiHttpError, apiClient } from "@/lib/http";
-import type { DirectionResponse, PaginatedResponse, UserResponse } from "@/lib/backend-types";
+import type { DirectionResponse, PaginatedResponse } from "@/lib/backend-types";
 
 export default function DirectionsPage() {
   return (
@@ -41,20 +41,17 @@ export default function DirectionsPage() {
 function DirectionsContent() {
   const { user } = useAuth();
   const [items, setItems] = useState<DirectionResponse[]>([]);
-  const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [directorFilter, setDirectorFilter] = useState("");
 
-  const loadDirections = async () => {
-    const [directionsResponse, usersResponse] = await Promise.all([
-      apiClient.get<PaginatedResponse<DirectionResponse>>("/directions/", { params: { page: 1, page_size: 50 } }),
-      apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 100 } }),
-    ]);
-    setItems(directionsResponse.data.data);
-    setUsers(usersResponse.data.data);
-  };
+  const canManageDirections = user?.role === "ADMIN" || user?.role === "DRH"
+
+  const loadDirections = useCallback(async () => {
+    const directionsResponse = await apiClient.get<PaginatedResponse<DirectionResponse>>("/directions/", { params: { page: 1, page_size: 50 } })
+    setItems(directionsResponse.data.data)
+  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -69,7 +66,7 @@ function DirectionsContent() {
     };
 
     void run();
-  }, []);
+  }, [loadDirections]);
 
   const deleteDirection = async (id: number) => {
     if (!confirm("Supprimer cette direction ?")) return;
@@ -87,8 +84,13 @@ function DirectionsContent() {
     setDirectorFilter("");
   };
 
-  const canManageDirections = user?.role === "ADMIN" || user?.role === "DRH"
-  const directorOptions = users.filter((item) => item.role === "DIRECTEUR" || item.role === "DG")
+  const directorOptions = Array.from(
+    new Map(
+      items
+        .filter((item): item is DirectionResponse & { director_id: number } => item.director_id !== null)
+        .map((item) => [item.director_id, item.director_name ?? `Directeur #${item.director_id}`] as const),
+    ).entries(),
+  ).map(([id, name]) => ({ id, name }))
   const filteredItems = items.filter((item) => {
     const matchesSearch = search.trim() === "" || `${item.name} ${item.description ?? ""} ${item.director_name ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())
     const matchesDirector = directorFilter === "" || directorFilter === "ALL" || String(item.director_id ?? "") === directorFilter
@@ -124,7 +126,7 @@ function DirectionsContent() {
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="grid flex-1 gap-4 md:grid-cols-2">
               <Field label="Recherche"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, description, directeur" /></Field>
-              <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)} placeholder="Choisir un directeur"><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}</Select></Field>
+              <Field label="Directeur"><Select value={directorFilter} onChange={(event) => setDirectorFilter(event.target.value)} placeholder="Choisir un directeur"><option value="ALL">Tous</option>{directorOptions.map((director) => <option key={String(director.id)} value={String(director.id)}>{director.name}</option>)}</Select></Field>
             </div>
             <Button
               type="button"
