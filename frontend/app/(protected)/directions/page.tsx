@@ -32,7 +32,7 @@ import type { DirectionResponse, PaginatedResponse } from "@/lib/backend-types";
 
 export default function DirectionsPage() {
   return (
-    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
+    <RoleGate roles={["ADMIN", "DRH"]}>
       <DirectionsContent />
     </RoleGate>
   );

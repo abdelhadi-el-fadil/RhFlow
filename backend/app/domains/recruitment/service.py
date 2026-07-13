@@ -302,8 +302,7 @@ def list_besoins(
         scoped_items = [
             item
             for item in scoped_items
-            if item.created_by_id == current_user.id
-            or (
+            if (
                 item.fiche_de_poste
                 and item.fiche_de_poste.direction
                 and item.fiche_de_poste.direction.director_id == current_user.id

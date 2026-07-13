@@ -117,28 +117,27 @@ function FichesContent() {
               Effacer les filtres
             </Button>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-3 xl:grid-cols-2">
             {filteredItems.map((item) => (
               <Card key={item.id} className="border-sky-200 bg-white/80">
-                <CardHeader>
-                  <CardDescription className="text-sky-800">{item.direction_name ?? `Direction #${item.direction_id}`}</CardDescription>
-                  <CardTitle className="text-sky-950">{item.title}</CardTitle>
+                <CardHeader className="gap-1 p-4">
+                  <CardDescription className="text-sky-800 text-xs">{item.direction_name ?? `Direction #${item.direction_id}`}</CardDescription>
+                  <CardTitle className="text-base text-sky-950">{item.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-2">
+                <CardContent className="space-y-2 p-4 pt-0">
+                  <div className="grid gap-2 md:grid-cols-2">
                     <Info label="Niveau d'expérience" value={item.experience_level} />
                     <Info label="Niveau d'études" value={item.education_level ?? "-"} />
                     <Info label="Domaine de formation" value={item.formation_domain ?? "-"} />
-                    <Info label="Compétences requises" value={item.required_skills} />
                   </div>
                   <Info label="Activités principales" value={item.main_activities} />
                   <Info label="Missions" value={item.missions} />
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-2 md:grid-cols-2">
                     <Info label="Compétences techniques" value={item.technical_skills ?? "-"} />
                     <Info label="Compétences managériales" value={item.managerial_skills ?? "-"} />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sky-100 pt-4">
-                    <span className="text-sm text-sky-800">Direction: {item.direction_name ?? `#${item.direction_id}`}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-sky-100 pt-3">
+                    <span className="text-xs text-sky-800">Direction: {item.direction_name ?? `#${item.direction_id}`}</span>
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm"><a href={`/fiches-de-poste/${item.id}`}>Ouvrir</a></Button>
                       {canDeleteFiche && <Button variant="destructive" size="sm" onClick={() => deleteFiche(item.id)}>Supprimer</Button>}
@@ -161,9 +160,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-1 rounded-lg border border-sky-100 bg-sky-50/60 p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-sky-700">{label}</p>
-      <p className="whitespace-pre-line text-sm text-sky-950">{value}</p>
+    <div className="space-y-0.5 rounded-lg border border-sky-100 bg-sky-50/60 p-2">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">{label}</p>
+      <p className="whitespace-pre-line text-sm leading-snug text-sky-950">{value}</p>
     </div>
   )
 }

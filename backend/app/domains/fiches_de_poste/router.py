@@ -28,10 +28,10 @@ router = APIRouter(prefix="/fiches-de-poste", tags=["Fiches de poste"])
 def list_fiches(
     params: Annotated[PaginationParams, Depends()],
     direction_id: int | None = None,
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[FicheDePosteResponse]:
-    items, total = fiche_service.list_fiches(db, params, direction_id)
+    items, total = fiche_service.list_fiches(db, params, current_user, direction_id)
     return PaginatedResponse(
         data=[FicheDePosteResponse.model_validate(item) for item in items],
         meta=PaginationMeta(

@@ -51,7 +51,6 @@ export type FicheDePosteResponse = {
   title: string
   main_activities: string
   missions: string
-  required_skills: string
   experience_level: string
   formation_domain: string | null
   education_level: string | null

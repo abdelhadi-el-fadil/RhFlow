@@ -27,21 +27,72 @@ export default function BesoinCreatePage() {
   )
 }
 
+type BesoinForm = {
+  title: string
+  location: string
+  recruitment_reason: string
+  priority: string
+  positions_count: string
+  fiche_de_poste_id: string
+}
+
+type FieldErrors = Partial<Record<keyof BesoinForm | "desired_date", string>>
+
+const EMPTY_FORM: BesoinForm = {
+  title: "",
+  location: "",
+  recruitment_reason: "",
+  priority: "",
+  positions_count: "1",
+  fiche_de_poste_id: "",
+}
+
+function validate(form: BesoinForm, desiredDate: Date | undefined): FieldErrors {
+  const errors: FieldErrors = {}
+
+  if (!form.title.trim()) {
+    errors.title = "Le titre est requis."
+  }
+
+  if (!form.fiche_de_poste_id) {
+    errors.fiche_de_poste_id = "Veuillez choisir une fiche de poste."
+  }
+
+  if (!form.location.trim()) {
+    errors.location = "Le lieu d'affectation est requis."
+  }
+
+  if (!form.recruitment_reason.trim()) {
+    errors.recruitment_reason = "Le motif de recrutement est requis."
+  }
+
+  if (!form.priority) {
+    errors.priority = "La priorité est requise."
+  }
+
+  if (!form.positions_count.trim()) {
+    errors.positions_count = "Le nombre de postes est requis."
+  } else if (!Number.isFinite(Number(form.positions_count)) || Number(form.positions_count) < 1) {
+    errors.positions_count = "Le nombre de postes doit être au moins 1."
+  }
+
+  if (!desiredDate) {
+    errors.desired_date = "Veuillez choisir une date souhaitée."
+  }
+
+  return errors
+}
+
 function CreateContent() {
   const { user } = useAuth()
   const [fiches, setFiches] = useState<FicheDePosteResponse[]>([])
   const [directions, setDirections] = useState<DirectionResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [desiredDate, setDesiredDate] = useState<Date | undefined>(undefined)
-  const [form, setForm] = useState({
-    title: "",
-    location: "",
-    recruitment_reason: "",
-    priority: "NORMALE",
-    positions_count: "1",
-    fiche_de_poste_id: "",
-  })
+  const [form, setForm] = useState<BesoinForm>(EMPTY_FORM)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   useEffect(() => {
     const load = async () => {
@@ -68,40 +119,46 @@ function CreateContent() {
     ? fiches.filter((fiche) => directions.find((direction) => direction.id === fiche.direction_id)?.director_id === user.id)
     : fiches
 
+  const updateField = <K extends keyof BesoinForm>(key: K, value: BesoinForm[K]) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    setFieldErrors((current) => {
+      if (!current[key]) return current
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
+  }
+
+  const updateDesiredDate = (date: Date | undefined) => {
+    setDesiredDate(date)
+    setFieldErrors((current) => {
+      if (!current.desired_date) return current
+      const next = { ...current }
+      delete next.desired_date
+      return next
+    })
+  }
+
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const ficheId = Number(form.fiche_de_poste_id)
-    if (!Number.isFinite(ficheId) || ficheId <= 0) {
-      setError("Veuillez choisir une fiche de poste.")
-      return
-    }
-    if (!form.location.trim()) {
-      setError("Le lieu d'affectation est requis.")
-      return
-    }
-    if (!form.recruitment_reason.trim()) {
-      setError("Le motif de recrutement est requis.")
-      return
-    }
-    if (Number(form.positions_count) < 1) {
-      setError("Le nombre de postes doit être au moins 1.")
-      return
-    }
-    if (!desiredDate) {
-      setError("Veuillez choisir une date souhaitée.")
+    setError(null)
+
+    const errors = validate(form, desiredDate)
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
       return
     }
 
-    setError(null)
+    setSaving(true)
     try {
       await apiClient.post("/besoins/", {
-        title: form.title || null,
+        title: form.title,
         location: form.location,
         recruitment_reason: form.recruitment_reason,
         priority: form.priority as BesoinPriority,
         positions_count: Number(form.positions_count),
-        desired_date: format(desiredDate, "yyyy-MM-dd"),
-        fiche_de_poste_id: ficheId,
+        desired_date: format(desiredDate as Date, "yyyy-MM-dd"),
+        fiche_de_poste_id: Number(form.fiche_de_poste_id),
       })
       toast.success("Besoin créé avec succès.")
       window.location.href = "/besoins"
@@ -109,6 +166,8 @@ function CreateContent() {
       const message = err instanceof ApiHttpError ? err.message : "Impossible de creer le besoin."
       setError(message)
       toast.error(message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -118,33 +177,59 @@ function CreateContent() {
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
         {loading && <p className="mb-4 text-sm text-muted-foreground">Chargement des fiches...</p>}
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
-          <Field label="Titre (optionnel)">
-            <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={save} noValidate>
+          <Field label="Titre" error={fieldErrors.title}>
+            <Input
+              value={form.title}
+              onChange={(event) => updateField("title", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.title)}
+            />
           </Field>
-          <Field label="Fiche de poste">
-            <Select value={form.fiche_de_poste_id} onChange={(event) => setForm((current) => ({ ...current, fiche_de_poste_id: event.target.value }))}>
+          <Field label="Fiche de poste" error={fieldErrors.fiche_de_poste_id}>
+            <Select
+              value={form.fiche_de_poste_id}
+              onChange={(event) => updateField("fiche_de_poste_id", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.fiche_de_poste_id)}
+            >
               <option value="">Choisir une fiche</option>
               {availableFiches.map((fiche) => <option key={fiche.id} value={fiche.id}>{fiche.title}</option>)}
             </Select>
           </Field>
-          <Field label="Lieu d'affectation">
-            <Input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} />
+          <Field label="Lieu d'affectation" error={fieldErrors.location}>
+            <Input
+              value={form.location}
+              onChange={(event) => updateField("location", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.location)}
+            />
           </Field>
-          <Field label="Motif de recrutement">
-            <Textarea value={form.recruitment_reason} onChange={(event) => setForm((current) => ({ ...current, recruitment_reason: event.target.value }))} />
+          <Field label="Motif de recrutement" error={fieldErrors.recruitment_reason}>
+            <Textarea
+              value={form.recruitment_reason}
+              onChange={(event) => updateField("recruitment_reason", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.recruitment_reason)}
+            />
           </Field>
-          <Field label="Priorité">
-            <Select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}>
+          <Field label="Priorité" error={fieldErrors.priority}>
+            <Select
+              value={form.priority}
+              onChange={(event) => updateField("priority", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.priority)}
+            >
               <option value="HAUTE">Haute</option>
               <option value="NORMALE">Normale</option>
               <option value="BASSE">Basse</option>
             </Select>
           </Field>
-          <Field label="Nombre de postes">
-            <Input type="number" min="1" value={form.positions_count} onChange={(event) => setForm((current) => ({ ...current, positions_count: event.target.value }))} />
+          <Field label="Nombre de postes" error={fieldErrors.positions_count}>
+            <Input
+              type="number"
+              min="1"
+              value={form.positions_count}
+              onChange={(event) => updateField("positions_count", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.positions_count)}
+            />
           </Field>
-          <Field label="Date souhaitée">
+          <Field label="Date souhaitée" error={fieldErrors.desired_date}>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -152,7 +237,8 @@ function CreateContent() {
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !desiredDate && "text-muted-foreground"
+                    !desiredDate && "text-muted-foreground",
+                    fieldErrors.desired_date && "border-destructive"
                   )}
                 >
                   <CalendarIcon className="mr-2 size-4" />
@@ -163,19 +249,37 @@ function CreateContent() {
                 <Calendar
                   mode="single"
                   selected={desiredDate}
-                  onSelect={setDesiredDate}
+                  onSelect={updateDesiredDate}
                   autoFocus
                 />
               </PopoverContent>
             </Popover>
           </Field>
-          <div className="md:col-span-2"><Button type="submit">Créer</Button></div>
+          <div className="md:col-span-2 flex gap-2">
+            <Button type="submit" disabled={saving}>
+              {saving ? "Création..." : "Créer"}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
 }

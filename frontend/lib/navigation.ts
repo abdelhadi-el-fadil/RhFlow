@@ -25,7 +25,7 @@ export type NavigationConfig = {
 const NAV_PRIMARY: NavItem[] = [
   { label: "Tableau de bord", href: "/dashboard", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "dashboard" },
   { label: "Utilisateurs", href: "/users", roles: ["ADMIN", "DRH"], icon: "users" },
-  { label: "Directions", href: "/directions", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "directions" },
+  { label: "Directions", href: "/directions", roles: ["ADMIN", "DRH"], icon: "directions" },
   { label: "Fiches de poste", href: "/fiches-de-poste", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "fiches" },
   { label: "Besoins", href: "/besoins", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "besoins" },
   { label: "Projets", href: "/projets", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "projets" },

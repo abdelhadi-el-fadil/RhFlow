@@ -9,6 +9,7 @@ from sqlalchemy.sql import Select
 from app.core.enums import UserRole
 from app.core.exceptions import ForbiddenException
 from app.core.schemas import PaginationParams
+from app.domains.directions.model import Direction
 from app.domains.directions.service import get_direction
 from app.domains.fiches_de_poste.exceptions import (
     FicheDePosteNotFoundException,
@@ -43,7 +44,6 @@ def create_fiche(
         title=payload.title,
         main_activities=payload.main_activities,
         missions=payload.missions,
-        required_skills=payload.required_skills,
         experience_level=payload.experience_level,
         direction_id=payload.direction_id,
         formation_domain=payload.formation_domain,
@@ -76,6 +76,7 @@ def get_fiche(db: Session, fiche_id: int) -> FicheDePoste:
 def list_fiches(
     db: Session,
     params: PaginationParams,
+    current_user: User,
     direction_id: int | None = None,
 ) -> tuple[list[FicheDePoste], int]:
     base_query = _apply_filters(
@@ -84,18 +85,35 @@ def list_fiches(
         .where(FicheDePoste.is_deleted.is_(False)),
         direction_id,
     ).order_by(FicheDePoste.id)
-    items = list(
-        db.scalars(
-            base_query.offset(params.offset).limit(params.page_size)
-        ).all()
-    )
-
     count_query = _apply_filters(
         select(func.count()).select_from(FicheDePoste).where(
             FicheDePoste.is_deleted.is_(False)
         ),
         direction_id,
     )
+
+    if current_user.role == UserRole.DIRECTEUR:
+        allowed_direction_ids = list(
+            db.scalars(
+                select(Direction.id).where(
+                    Direction.is_deleted.is_(False),
+                    Direction.director_id == current_user.id,
+                )
+            ).all()
+        )
+        if not allowed_direction_ids:
+            return [], 0
+        base_query = base_query.where(
+            FicheDePoste.direction_id.in_(allowed_direction_ids))
+        count_query = count_query.where(
+            FicheDePoste.direction_id.in_(allowed_direction_ids))
+
+    items = list(
+        db.scalars(
+            base_query.offset(params.offset).limit(params.page_size)
+        ).all()
+    )
+
     total_items = db.scalar(count_query)
     return items, int(total_items or 0)
 

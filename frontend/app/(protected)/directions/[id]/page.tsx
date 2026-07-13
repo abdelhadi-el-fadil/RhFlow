@@ -24,7 +24,7 @@ export default function DirectionDetailPage({
 
   if (Number.isNaN(directionId)) {
     return (
-      <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
+      <RoleGate roles={["ADMIN", "DRH"]}>
         <Card>
           <CardContent>Identifiant direction invalide.</CardContent>
         </Card>
@@ -33,7 +33,7 @@ export default function DirectionDetailPage({
   }
 
   return (
-    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
+    <RoleGate roles={["ADMIN", "DRH"]}>
       <DirectionDetail id={directionId} />
     </RoleGate>
   );

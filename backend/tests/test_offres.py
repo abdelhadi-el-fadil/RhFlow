@@ -44,7 +44,6 @@ def _create_fiche(client: TestClient, token: str, direction_id: int) -> int:
             "title": "Fiche Offre",
             "main_activities": "Description",
             "missions": "Missions",
-            "required_skills": "Skills",
             "experience_level": "Senior",
             "direction_id": direction_id,
         },

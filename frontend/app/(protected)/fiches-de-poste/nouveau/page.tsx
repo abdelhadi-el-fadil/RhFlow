@@ -41,7 +41,6 @@ type FicheForm = {
   title: string;
   main_activities: string;
   missions: string;
-  required_skills: string;
   experience_level: string;
   direction_id: string;
   formation_domain: string;
@@ -56,7 +55,6 @@ const EMPTY_FORM: FicheForm = {
   title: "",
   main_activities: "",
   missions: "",
-  required_skills: "",
   experience_level: "",
   direction_id: "",
   formation_domain: "",
@@ -84,12 +82,24 @@ function validate(form: FicheForm): FieldErrors {
     errors.missions = "Les missions sont requises.";
   }
 
-  if (!form.required_skills.trim()) {
-    errors.required_skills = "Les compétences requises sont requises.";
-  }
-
   if (!form.experience_level) {
     errors.experience_level = "Le niveau d'expérience est requis.";
+  }
+
+  if (!form.formation_domain.trim()) {
+    errors.formation_domain = "Le domaine de formation est requis.";
+  }
+
+  if (!form.education_level) {
+    errors.education_level = "Le niveau d'études est requis.";
+  }
+
+  if (!form.technical_skills.trim()) {
+    errors.technical_skills = "Les compétences techniques sont requises.";
+  }
+
+  if (!form.managerial_skills.trim()) {
+    errors.managerial_skills = "Les compétences managériales sont requises.";
   }
 
   return errors;
@@ -247,18 +257,6 @@ function NewFicheContent() {
               value={form.missions}
               onChange={(event) => updateField("missions", event.target.value)}
               aria-invalid={Boolean(fieldErrors.missions)}
-            />
-          </Field>
-          <Field
-            label="Compétences requises"
-            error={fieldErrors.required_skills}
-          >
-            <Textarea
-              value={form.required_skills}
-              onChange={(event) =>
-                updateField("required_skills", event.target.value)
-              }
-              aria-invalid={Boolean(fieldErrors.required_skills)}
             />
           </Field>
           <Field

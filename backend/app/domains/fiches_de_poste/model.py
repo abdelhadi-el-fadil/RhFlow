@@ -14,7 +14,6 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     title: Mapped[str] = mapped_column(String(150), nullable=False)
     main_activities: Mapped[str] = mapped_column(Text, nullable=False)
     missions: Mapped[str] = mapped_column(Text, nullable=False)
-    required_skills: Mapped[str] = mapped_column(Text, nullable=False)
     experience_level: Mapped[str] = mapped_column(String(100), nullable=False)
     formation_domain: Mapped[str | None] = mapped_column(String(150), nullable=True)
     education_level: Mapped[str | None] = mapped_column(String(100), nullable=True)

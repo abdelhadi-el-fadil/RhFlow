@@ -62,7 +62,6 @@ function FicheDetail({ id }: { id: number }) {
     title: "",
     main_activities: "",
     missions: "",
-    required_skills: "",
     experience_level: "0",
     direction_id: "",
     formation_domain: "",
@@ -77,7 +76,6 @@ function FicheDetail({ id }: { id: number }) {
       title: fiche.title,
       main_activities: fiche.main_activities,
       missions: fiche.missions,
-      required_skills: fiche.required_skills,
       experience_level: fiche.experience_level.split(" ")[0] ?? "0",
       direction_id: fiche.direction_id.toString(),
       formation_domain: fiche.formation_domain ?? "",
@@ -159,7 +157,6 @@ function FicheDetail({ id }: { id: number }) {
           <Field label="Direction"><Select disabled={!editable} value={form.direction_id} onChange={(event) => setForm((current) => ({ ...current, direction_id: event.target.value }))}>{editableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}</Select></Field>
           <Field label="Activités principales"><Textarea disabled={!editable} value={form.main_activities} onChange={(event) => setForm((current) => ({ ...current, main_activities: event.target.value }))} /></Field>
           <Field label="Missions"><Textarea disabled={!editable} value={form.missions} onChange={(event) => setForm((current) => ({ ...current, missions: event.target.value }))} /></Field>
-          <Field label="Compétences requises"><Textarea disabled={!editable} value={form.required_skills} onChange={(event) => setForm((current) => ({ ...current, required_skills: event.target.value }))} /></Field>
           <Field label="Années d'expérience"><Select disabled={!editable} value={form.experience_level} onChange={(event) => setForm((current) => ({ ...current, experience_level: event.target.value }))}>{EXPERIENCE_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</Select></Field>
           <Field label="Domaine de formation"><Input disabled={!editable} value={form.formation_domain} onChange={(event) => setForm((current) => ({ ...current, formation_domain: event.target.value }))} /></Field>
           <Field label="Niveau d'études"><Select disabled={!editable} value={form.education_level} onChange={(event) => setForm((current) => ({ ...current, education_level: event.target.value }))}>{EDUCATION_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}</Select></Field>
