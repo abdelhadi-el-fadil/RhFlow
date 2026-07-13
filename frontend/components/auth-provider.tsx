@@ -59,6 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const cachedUser = getStoredUser()
     if (cachedUser) {
+          // The provider hydrates session state from the backend on first mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(cachedUser)
     }
 
