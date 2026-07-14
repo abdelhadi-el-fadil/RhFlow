@@ -18,7 +18,7 @@ def configure_llama_index() -> None:
         api_key=settings.OPENAI_API_KEY,
         api_base=settings.OPENAI_BASE_URL,
     )
-
+ 
     Settings.chunk_size = 1024
     Settings.chunk_overlap = 100
 

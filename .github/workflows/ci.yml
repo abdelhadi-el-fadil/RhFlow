@@ -83,6 +83,10 @@ jobs:
           DATABASE_URL: sqlite:///./test.db
           SECRET_KEY: ci-test-secret-key-not-real
           ALGORITHM: HS256
+          OPENAI_API_KEY: dummy-key
+          OPENAI_BASE_URL: https://api.openai.com/v1
+          OPENAI_MODEL: gpt-4.1-mini
+          OPENAI_EMBEDDING_MODEL: text-embedding-3-small
           ACCESS_TOKEN_EXPIRE_MINUTES: "30"
           MINIO_ENDPOINT: localhost:9000
           MINIO_PUBLIC_ENDPOINT: localhost:9000
