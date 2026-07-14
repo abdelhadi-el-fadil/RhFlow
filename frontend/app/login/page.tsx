@@ -1,11 +1,33 @@
+"use client"
+
 import { LoginForm } from "@/components/login-form"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-svh items-center justify-center bg-gradient-to-r from-sky-100 to-teal-100 p-4 sm:p-6 lg:p-12">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(131,208,203,0.20),transparent_45%)]" />
-      <div className="relative w-full max-w-xl">
-        <LoginForm />
+    <div className="grid min-h-svh md:grid-cols-2">
+      <div className="flex flex-col items-center justify-center gap-8 p-6 md:p-10">
+        <div className="text-center">
+          <p className="bg-gradient-to-r from-slate-900 via-teal-700 to-emerald-700 bg-clip-text text-5xl font-black tracking-tight text-transparent md:text-6xl">
+            RhFlow
+          </p>
+        </div>
+        <div className="flex w-full items-center justify-center">
+          <div className="w-full max-w-xs">
+            <LoginForm />
+          </div>
+        </div>
+      </div>
+      <div className="relative min-h-[260px] bg-muted md:min-h-svh">
+        <Image
+          src="/rhflow.png"
+          alt="RhFlow"
+          fill
+          unoptimized
+          priority
+          sizes="(min-width: 768px) 50vw, 100vw"
+          className="object-contain p-10"
+        />
       </div>
     </div>
   )

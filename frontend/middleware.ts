@@ -9,7 +9,8 @@ function isPublicAsset(pathname: string) {
   return (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
-    pathname.startsWith("/images")
+    pathname.startsWith("/images") ||
+    /\.(png|jpg|jpeg|gif|webp|svg|ico|avif|bmp|tiff)$/.test(pathname)
   )
 }
 

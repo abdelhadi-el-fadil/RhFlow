@@ -124,17 +124,17 @@ function NewDirectionContent() {
   const directorOptions = users.filter((item) => item.role === "DIRECTEUR" || item.role === "DG");
 
   return (
-    <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
       <CardHeader>
-        <CardDescription className="text-sky-800">Référentiel RH</CardDescription>
-        <CardTitle className="flex items-center gap-2 text-sky-950">
-          <Building2 className="size-5 text-sky-800" />
+        <CardDescription className="premium-copy">Référentiel RH</CardDescription>
+        <CardTitle className="premium-title flex items-center gap-2">
+          <Building2 className="size-5 text-teal-700" />
           Créer une direction
         </CardTitle>
       </CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-        {loading && <p className="mb-4 text-sm text-sky-800">Chargement des directeurs...</p>}
+        {loading && <p className="premium-subtle mb-4 text-sm">Chargement des directeurs...</p>}
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={createDirection} noValidate>
           <Field label="Nom" error={fieldErrors.name}>
             <Input

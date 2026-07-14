@@ -131,13 +131,13 @@ function NewUserContent() {
   };
 
   return (
-    <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
       <CardHeader>
-        <CardDescription className="text-sky-800">
+        <CardDescription className="premium-copy">
           Administration
         </CardDescription>
-        <CardTitle className="flex items-center gap-2 text-sky-950">
-          <Users className="size-5 text-sky-800" />
+        <CardTitle className="premium-title flex items-center gap-2">
+          <Users className="size-5 text-teal-700" />
           Créer un utilisateur
         </CardTitle>
       </CardHeader>

@@ -122,10 +122,10 @@ function BesoinsContent() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ClipboardList className="size-5 text-emerald-700" />Besoins de recrutement</CardTitle>
+          <CardTitle className="premium-title flex items-center gap-2"><ClipboardList className="size-5 text-teal-700" />Besoins de recrutement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
@@ -141,18 +141,18 @@ function BesoinsContent() {
         </CardContent>
       </Card>
 
-      {loading && <Card><CardContent>Chargement…</CardContent></Card>}
-      {error && <Card><CardContent>{error}</CardContent></Card>}
+      {loading && <Card className="premium-panel"><CardContent className="premium-copy">Chargement…</CardContent></Card>}
+      {error && <Card className="premium-panel"><CardContent className="premium-copy">{error}</CardContent></Card>}
 
       {!loading && !error && visibleItems.length === 0 && (
-        <Card>
-          <CardContent>Aucun besoin ne correspond aux filtres.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-subtle">Aucun besoin ne correspond aux filtres.</CardContent>
         </Card>
       )}
 
       <div className="grid gap-4 xl:grid-cols-2">
         {visibleItems.map((item) => (
-          <Card key={item.id} className="border-sky-200 bg-white/90">
+          <Card key={item.id} className="premium-panel premium-lift border-stone-300/70 bg-white/90">
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{item.fiche_title ?? `Fiche #${item.fiche_de_poste_id}`}</span>

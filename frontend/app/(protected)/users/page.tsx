@@ -197,13 +197,13 @@ function UsersContent() {
   })
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <Users className="size-5 text-sky-800" />
+          <CardDescription className="premium-copy">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
+          <CardTitle className="premium-title flex items-center gap-2">
+            <Users className="size-5 text-teal-700" />
             Utilisateurs
           </CardTitle>
           </div>
@@ -214,7 +214,7 @@ function UsersContent() {
           )}
         </CardHeader>
         <CardContent>
-          {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="mb-4 text-sm text-sky-800/80">Consultation uniquement pour ce rôle.</p>}
+          {user?.role !== "ADMIN" && user?.role !== "DRH" && <p className="premium-subtle mb-4 text-sm">Consultation uniquement pour ce rôle.</p>}
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="grid flex-1 gap-4 md:grid-cols-3">
@@ -226,7 +226,7 @@ function UsersContent() {
               type="button"
               variant="ghost"
               onClick={clearFilters}
-              className="bg-sky-500 text-white hover:bg-sky-700 hover:text-white md:self-end"
+              className="bg-teal-700 text-white hover:bg-teal-800 hover:text-white md:self-end"
             >
               Effacer les filtres
             </Button>
@@ -272,7 +272,7 @@ function UsersContent() {
                           <Eye className="size-4" />
                         </Button>
                       ) : (
-                        <span className="text-xs text-sky-900/70">Aucune</span>
+                        <span className="premium-subtle text-xs">Aucune</span>
                       )}
 
                       {editingId === item.id && (user?.role === "ADMIN" || user?.role === "DRH") && (
@@ -333,7 +333,7 @@ function UsersContent() {
               ))}
               {filteredItems.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-sm text-sky-900/70">Aucun utilisateur ne correspond aux filtres.</TableCell>
+                  <TableCell colSpan={7} className="premium-subtle text-center text-sm">Aucun utilisateur ne correspond aux filtres.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -349,16 +349,16 @@ function UsersContent() {
           onClick={closeSignaturePreview}
         >
           <div
-            className="w-full max-w-lg rounded-lg border border-sky-300 bg-white p-4 shadow-xl"
+            className="premium-panel w-full max-w-lg border-stone-300/70 p-4"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-sky-900">Signature</span>
+              <span className="text-sm font-medium text-slate-900">Signature</span>
               <button
                 type="button"
                 onClick={closeSignaturePreview}
                 aria-label="Fermer"
-                className="rounded-sm p-1 text-sky-700 hover:bg-sky-100"
+                className="rounded-sm p-1 text-teal-700 hover:bg-amber-50"
               >
                 <X className="size-4" />
               </button>
@@ -367,7 +367,7 @@ function UsersContent() {
             <img
               src={signaturePreview.url}
               alt="Signature utilisateur"
-              className="h-64 w-full rounded border border-sky-200 bg-white object-contain"
+              className="h-64 w-full rounded border border-stone-300/70 bg-white object-contain"
             />
           </div>
         </div>

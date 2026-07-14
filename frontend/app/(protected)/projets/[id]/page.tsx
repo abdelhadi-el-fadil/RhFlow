@@ -22,8 +22,8 @@ export default function ProjetDetailPage({ params }: { params: Promise<{ id: str
   if (Number.isNaN(projectId)) {
     return (
       <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
-        <Card>
-          <CardContent>Identifiant projet invalide.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-copy">Identifiant projet invalide.</CardContent>
         </Card>
       </RoleGate>
     )
@@ -91,9 +91,9 @@ function DetailContent({ id }: { id: number }) {
     }
   }, [reload])
 
-  if (isLoading) return <Card><CardContent>Chargement…</CardContent></Card>
-  if (error) return <Card><CardContent>{error}</CardContent></Card>
-  if (!item) return <Card><CardContent>Projet introuvable.</CardContent></Card>
+  if (isLoading) return <Card className="premium-panel"><CardContent className="premium-copy">Chargement…</CardContent></Card>
+  if (error) return <Card className="premium-panel"><CardContent className="premium-copy">{error}</CardContent></Card>
+  if (!item) return <Card className="premium-panel"><CardContent className="premium-subtle">Projet introuvable.</CardContent></Card>
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -119,15 +119,15 @@ function DetailContent({ id }: { id: number }) {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="premium-panel premium-lift border-stone-300/70 bg-white/90">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="premium-title">
             {item.title} <Badge variant={badgeVariantFromProjetStatus(item.status)}>{item.status}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
-          <div className="mb-4 grid gap-2 text-sm text-muted-foreground">
+          <div className="premium-subtle mb-4 grid gap-2 text-sm">
             <p>Direction: {item.direction_name ?? "-"}</p>
             <p>Directeur: {item.director_name ?? "-"}</p>
             <p>Fiche de poste: {item.fiche_title ?? "-"}</p>

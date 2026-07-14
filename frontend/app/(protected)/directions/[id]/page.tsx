@@ -25,8 +25,8 @@ export default function DirectionDetailPage({
   if (Number.isNaN(directionId)) {
     return (
       <RoleGate roles={["ADMIN", "DRH"]}>
-        <Card>
-          <CardContent>Identifiant direction invalide.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-copy">Identifiant direction invalide.</CardContent>
         </Card>
       </RoleGate>
     );
@@ -130,24 +130,24 @@ function DirectionDetail({ id }: { id: number }) {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent>Chargement…</CardContent>
+      <Card className="premium-panel">
+        <CardContent className="premium-copy">Chargement…</CardContent>
       </Card>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent>{error}</CardContent>
+      <Card className="premium-panel">
+        <CardContent className="premium-copy">{error}</CardContent>
       </Card>
     );
   }
 
   if (!item) {
     return (
-      <Card>
-        <CardContent>Direction introuvable.</CardContent>
+      <Card className="premium-panel">
+        <CardContent className="premium-subtle">Direction introuvable.</CardContent>
       </Card>
     );
   }
@@ -156,10 +156,10 @@ function DirectionDetail({ id }: { id: number }) {
   const directorOptions = users.filter((entry) => entry.role === "DIRECTEUR" || entry.role === "DG");
 
   return (
-    <Card>
+    <Card className="premium-panel premium-lift border-stone-300/70 bg-white/90">
       <CardHeader>
-        <CardDescription>{item.director_name ? `Directeur: ${item.director_name}` : "Aucun directeur assigné"}</CardDescription>
-        <CardTitle>{item.name}</CardTitle>
+        <CardDescription className="premium-copy">{item.director_name ? `Directeur: ${item.director_name}` : "Aucun directeur assigné"}</CardDescription>
+        <CardTitle className="premium-title">{item.name}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
@@ -199,7 +199,7 @@ function DirectionDetail({ id }: { id: number }) {
               {directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}
             </Select>
           </Field>
-          <div className="md:col-span-2 rounded-lg border border-sky-300/70 bg-white/50 p-4 text-sm text-sky-950">
+          <div className="md:col-span-2 rounded-lg border border-stone-300/70 bg-stone-50/70 p-4 text-sm text-slate-900">
             Nombre de fiches de poste liées: <span className="font-semibold">{item.fiche_count}</span>
           </div>
           {saveError && (

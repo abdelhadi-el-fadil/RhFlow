@@ -98,15 +98,15 @@ function DirectionsContent() {
   })
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-          <CardDescription className="text-sky-800">
+          <CardDescription className="premium-copy">
             {loading ? "Chargement…" : `${filteredItems.length} résultats`}
           </CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <Building2 className="size-5 text-sky-800" />
+          <CardTitle className="premium-title flex items-center gap-2">
+            <Building2 className="size-5 text-teal-700" />
             Directions
           </CardTitle>
           </div>
@@ -118,7 +118,7 @@ function DirectionsContent() {
         </CardHeader>
         <CardContent>
           {!canManageDirections && (
-            <p className="mb-4 text-sm text-sky-800/80">
+            <p className="premium-subtle mb-4 text-sm">
               Consultation uniquement pour ce rôle.
             </p>
           )}
@@ -132,7 +132,7 @@ function DirectionsContent() {
               type="button"
               variant="ghost"
               onClick={clearFilters}
-              className="bg-sky-500 text-white hover:bg-sky-700 hover:text-white md:self-end"
+              className="bg-teal-700 text-white hover:bg-teal-800 hover:text-white md:self-end"
             >
               Effacer les filtres
             </Button>
@@ -171,7 +171,7 @@ function DirectionsContent() {
               ))}
               {filteredItems.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-sky-900/70">Aucune direction ne correspond aux filtres.</TableCell>
+                  <TableCell colSpan={4} className="premium-subtle text-center text-sm">Aucune direction ne correspond aux filtres.</TableCell>
                 </TableRow>
               )}
             </TableBody>

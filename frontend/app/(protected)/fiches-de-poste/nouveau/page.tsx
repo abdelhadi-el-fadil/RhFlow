@@ -199,18 +199,18 @@ function NewFicheContent() {
   };
 
   return (
-    <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
       <CardHeader>
-        <CardDescription className="text-sky-800">Créer</CardDescription>
-        <CardTitle className="flex items-center gap-2 text-sky-950">
-          <FileText className="size-5 text-sky-800" />
+        <CardDescription className="premium-copy">Créer</CardDescription>
+        <CardTitle className="premium-title flex items-center gap-2">
+          <FileText className="size-5 text-teal-700" />
           Nouvelle fiche de poste
         </CardTitle>
       </CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
         {loading && (
-          <p className="mb-4 text-sm text-sky-800">
+          <p className="premium-subtle mb-4 text-sm">
             Chargement des directions...
           </p>
         )}

@@ -46,11 +46,11 @@ function Content() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <HandCoins className="size-5 text-sky-800" />
+          <CardTitle className="premium-title flex items-center gap-2">
+            <HandCoins className="size-5 text-teal-700" />
             Offres publiées
           </CardTitle>
           {canCreate && (

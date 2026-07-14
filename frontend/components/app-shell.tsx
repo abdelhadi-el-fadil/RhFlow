@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-svh bg-transparent">
- <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-300/70 bg-gradient-to-r from-slate-100 via-sky-100 to-blue-200 px-4 py-3 shadow-md backdrop-blur-sm">
+ <header className="premium-header sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 shadow-lg shadow-slate-900/5 backdrop-blur-sm">
   <div className="flex items-center gap-3">
     <Button
       type="button"
@@ -103,28 +103,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       size="icon"
       aria-label={navOpen ? "Fermer le menu" : "Ouvrir le menu"}
       onClick={() => setNavOpen((value) => !value)}
-      className="border-slate-300 bg-white/70 text-slate-700 shadow-sm hover:border-sky-400 hover:bg-sky-100"
+      className="border-stone-300 bg-white/80 text-slate-700 shadow-sm hover:border-amber-400 hover:bg-amber-50"
     >
-      <Menu className="text-sky-700" />
+      <Menu className="text-teal-800" />
     </Button>
 
     <div>
       <p className="text-sm font-semibold text-slate-900">
-        Bonjour <span className="text-sky-700">{greetingName}</span>
+        Bonjour <span className="text-teal-800">{greetingName}</span>
       </p>
-      <p className="text-xs text-slate-600">{emailLabel}</p>
+      <p className="text-xs text-slate-600/95">{emailLabel}</p>
     </div>
   </div>
 
   <div className="flex items-center gap-2">
-    <Badge className="border-sky-300 bg-sky-100 text-sky-800">
+    <Badge className="premium-chip">
       {roleLabel}
     </Badge>
 
     <Button
       variant="outline"
       onClick={logout}
-      className="hidden border-slate-300 bg-white/70 text-slate-700 shadow-sm hover:border-red-400 hover:bg-red-50 hover:text-red-700 sm:inline-flex"
+      className="hidden border-stone-300 bg-white/80 text-slate-700 shadow-sm hover:border-red-400 hover:bg-red-50 hover:text-red-700 sm:inline-flex"
     >
       <LogOut className="mr-2 h-4 w-4 text-red-500" />
       Sortir
@@ -190,7 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="page-enter flex-1 bg-[#0f455409] p-4 lg:p-6">
+      <main className="premium-canvas page-enter flex-1 p-4 lg:p-6">
         <Toaster richColors position="top-right" />
         {children}
       </main>

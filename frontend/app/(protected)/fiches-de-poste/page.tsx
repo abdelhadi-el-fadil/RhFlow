@@ -85,13 +85,13 @@ function FichesContent() {
   })
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-linear-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-          <CardDescription className="text-sky-800">{loading ? "Chargement…" : `${filteredItems.length} fiches`}</CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <FileText className="size-5 text-sky-800" />
+          <CardDescription className="premium-copy">{loading ? "Chargement…" : `${filteredItems.length} fiches`}</CardDescription>
+          <CardTitle className="premium-title flex items-center gap-2">
+            <FileText className="size-5 text-teal-700" />
             Fiches de poste
           </CardTitle>
           </div>
@@ -112,17 +112,17 @@ function FichesContent() {
               type="button"
               variant="ghost"
               onClick={clearFilters}
-              className="bg-sky-500 text-white hover:bg-sky-700 hover:text-white md:self-end"
+              className="bg-teal-700 text-white hover:bg-teal-800 hover:text-white md:self-end"
             >
               Effacer les filtres
             </Button>
           </div>
           <div className="grid gap-3 xl:grid-cols-2">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="border-sky-200 bg-white/80">
+              <Card key={item.id} className="premium-panel premium-lift border-stone-300/70 bg-white/85">
                 <CardHeader className="gap-1 p-4">
-                  <CardDescription className="text-sky-800 text-xs">{item.direction_name ?? `Direction #${item.direction_id}`}</CardDescription>
-                  <CardTitle className="text-base text-sky-950">{item.title}</CardTitle>
+                  <CardDescription className="premium-subtle text-xs">{item.direction_name ?? `Direction #${item.direction_id}`}</CardDescription>
+                  <CardTitle className="text-base text-slate-900">{item.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 p-4 pt-0">
                   <div className="grid gap-2 md:grid-cols-2">
@@ -136,8 +136,8 @@ function FichesContent() {
                     <Info label="Compétences techniques" value={item.technical_skills ?? "-"} />
                     <Info label="Compétences managériales" value={item.managerial_skills ?? "-"} />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-sky-100 pt-3">
-                    <span className="text-xs text-sky-800">Direction: {item.direction_name ?? `#${item.direction_id}`}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200/70 pt-3">
+                    <span className="premium-subtle text-xs">Direction: {item.direction_name ?? `#${item.direction_id}`}</span>
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm"><a href={`/fiches-de-poste/${item.id}`}>Ouvrir</a></Button>
                       {canDeleteFiche && <Button variant="destructive" size="sm" onClick={() => deleteFiche(item.id)}>Supprimer</Button>}
@@ -147,7 +147,7 @@ function FichesContent() {
               </Card>
             ))}
           </div>
-          {filteredItems.length === 0 && <p className="text-sm text-sky-900/70">Aucune fiche ne correspond aux filtres.</p>}
+          {filteredItems.length === 0 && <p className="premium-subtle text-sm">Aucune fiche ne correspond aux filtres.</p>}
         </CardContent>
       </Card>
     </div>
@@ -160,9 +160,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-0.5 rounded-lg border border-sky-100 bg-sky-50/60 p-2">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">{label}</p>
-      <p className="whitespace-pre-line text-sm leading-snug text-sky-950">{value}</p>
+    <div className="space-y-0.5 rounded-lg border border-stone-200/75 bg-stone-50/80 p-2">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600">{label}</p>
+      <p className="whitespace-pre-line text-sm leading-snug text-slate-900">{value}</p>
     </div>
   )
 }

@@ -24,8 +24,8 @@ export default function BesoinDetailPage({ params }: { params: Promise<{ id: str
   if (Number.isNaN(besoinId)) {
     return (
       <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
-        <Card>
-          <CardContent>Identifiant besoin invalide.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-copy">Identifiant besoin invalide.</CardContent>
         </Card>
       </RoleGate>
     )
@@ -140,9 +140,9 @@ function DetailContent({ id }: { id: number }) {
     }
   }
 
-  if (isLoading) return <Card><CardContent>Chargement…</CardContent></Card>
-  if (error) return <Card><CardContent>{error}</CardContent></Card>
-  if (!item) return <Card><CardContent>Besoin introuvable.</CardContent></Card>
+  if (isLoading) return <Card className="premium-panel"><CardContent className="premium-copy">Chargement…</CardContent></Card>
+  if (error) return <Card className="premium-panel"><CardContent className="premium-copy">{error}</CardContent></Card>
+  if (!item) return <Card className="premium-panel"><CardContent className="premium-subtle">Besoin introuvable.</CardContent></Card>
 
   const currentFiche = fiches.find((fiche) => fiche.id === item.fiche_de_poste_id)
   const directeurOwnsCurrentDirection = user?.role === "DIRECTEUR" && currentFiche != null
@@ -153,8 +153,8 @@ function DetailContent({ id }: { id: number }) {
   const availableFiches = fiches
 
   return (
-    <Card>
-      <CardHeader><CardTitle>{item.fiche_title ?? `Besoin #${item.id}`} <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge></CardTitle></CardHeader>
+    <Card className="premium-panel premium-lift border-stone-300/70 bg-white/85">
+      <CardHeader><CardTitle className="premium-title">{item.fiche_title ?? `Besoin #${item.id}`} <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge></CardTitle></CardHeader>
       <CardContent>
         {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>

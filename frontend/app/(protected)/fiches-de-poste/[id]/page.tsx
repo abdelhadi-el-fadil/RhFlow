@@ -37,8 +37,8 @@ export default function FicheDetailPage({ params }: { params: Promise<{ id: stri
   if (Number.isNaN(ficheId)) {
     return (
       <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
-        <Card>
-          <CardContent>Identifiant fiche invalide.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-copy">Identifiant fiche invalide.</CardContent>
         </Card>
       </RoleGate>
     );
@@ -136,9 +136,9 @@ function FicheDetail({ id }: { id: number }) {
     }
   };
 
-  if (isLoading) return <Card><CardContent>Chargement...</CardContent></Card>;
-  if (error) return <Card><CardContent>{error}</CardContent></Card>;
-  if (!item) return <Card><CardContent>Fiche introuvable.</CardContent></Card>;
+  if (isLoading) return <Card className="premium-panel"><CardContent className="premium-copy">Chargement...</CardContent></Card>;
+  if (error) return <Card className="premium-panel"><CardContent className="premium-copy">{error}</CardContent></Card>;
+  if (!item) return <Card className="premium-panel"><CardContent className="premium-subtle">Fiche introuvable.</CardContent></Card>;
 
   const canAdminEdit = user?.role === "ADMIN" || user?.role === "DRH";
   const directeurCanEdit = user?.role === "DIRECTEUR" && directions.find((direction) => direction.id === item.direction_id)?.director_id === user.id;
@@ -149,8 +149,8 @@ function FicheDetail({ id }: { id: number }) {
     : directions;
 
   return (
-    <Card>
-      <CardHeader><CardTitle>{item.title}</CardTitle></CardHeader>
+    <Card className="premium-panel premium-lift border-stone-300/70 bg-white/90">
+      <CardHeader><CardTitle className="premium-title">{item.title}</CardTitle></CardHeader>
       <CardContent>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
           <Field label="Intitulé"><Input disabled={!editable} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>

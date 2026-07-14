@@ -144,25 +144,25 @@ function Content() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="animate-pulse motion-reduce:animate-none">Chargement des projets de recrutement…</CardContent>
+      <Card className="premium-panel">
+        <CardContent className="premium-copy animate-pulse motion-reduce:animate-none">Chargement des projets de recrutement…</CardContent>
       </Card>
     )
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent>{error}</CardContent>
+      <Card className="premium-panel">
+        <CardContent className="premium-copy">{error}</CardContent>
       </Card>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><BriefcaseBusiness className="size-5 text-emerald-700" />Projets de recrutement</CardTitle>
+          <CardTitle className="premium-title flex items-center gap-2"><BriefcaseBusiness className="size-5 text-teal-700" />Projets de recrutement</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           {actionError && <p className="md:col-span-3 text-sm text-destructive">{actionError}</p>}
@@ -184,14 +184,14 @@ function Content() {
       </Card>
 
       {projects.length === 0 && (
-        <Card>
-          <CardContent>Aucun projet ne correspond au filtre sélectionné.</CardContent>
+        <Card className="premium-panel">
+          <CardContent className="premium-subtle">Aucun projet ne correspond au filtre sélectionné.</CardContent>
         </Card>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {projects.map((project) => (
-          <Card key={project.id}>
+          <Card key={project.id} className="premium-panel premium-lift border-stone-300/70 bg-white/90">
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{project.title}</span>
@@ -208,7 +208,7 @@ function Content() {
                 <p>Nombre de postes: {project.nombre_postes ?? "-"}</p>
               </div>
 
-              <div className="space-y-2 rounded-lg border p-3">
+              <div className="space-y-2 rounded-lg border border-stone-300/70 bg-stone-50/70 p-3">
                 <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"><Mail className="size-4" />Objet d&apos;email</p>
                 {editingProjectId === project.id ? (
                   <div className="space-y-2">

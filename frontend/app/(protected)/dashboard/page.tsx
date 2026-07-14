@@ -127,19 +127,21 @@ export default function DashboardPage() {
     "utilisateur";
 
   return (
-    <div className="space-y-6">
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+    <div className="stagger-enter space-y-6">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-amber-50 via-stone-50 to-teal-50">
         <CardHeader>
-          <CardDescription className="text-sky-700">
+          <CardDescription className="premium-copy">
             Bonjour {firstName}
           </CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <Gauge className="size-5 text-sky-600" />
+          <CardTitle className="premium-title flex items-center gap-2">
+            <Gauge className="size-5 text-teal-700" />
             Tableau de bord RH
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Badge variant="secondary">Rôle {user?.role}</Badge>
+          <Badge className="premium-chip" variant="secondary">
+            Rôle {user?.role}
+          </Badge>
           <Badge variant={user?.enabled ? "default" : "destructive"}>
             {user?.enabled ? "Compte actif" : "Compte désactivé"}
           </Badge>
@@ -152,65 +154,65 @@ export default function DashboardPage() {
           value={counts.users}
           href="/users"
           loading={loading}
-          tone="from-sky-50 via-sky-100 to-blue-100"
-          border="border-sky-200/70"
-          textColor="text-sky-950"
-          accentColor="text-sky-600"
-          linkColor="text-sky-700 hover:text-sky-900"
+          tone="from-stone-50 via-amber-50 to-emerald-50"
+          border="border-amber-200/70"
+          textColor="text-slate-900"
+          accentColor="text-emerald-700"
+          linkColor="text-teal-800 hover:text-teal-950"
         />
         <StatCard
           title="Directions"
           value={counts.directions}
           href="/directions"
           loading={loading}
-          tone="from-blue-50 via-cyan-100 to-emerald-100"
-          border="border-blue-200/70"
-          textColor="text-blue-950"
-          accentColor="text-blue-600"
-          linkColor="text-blue-700 hover:text-blue-900"
+          tone="from-teal-50 via-cyan-50 to-stone-50"
+          border="border-teal-200/70"
+          textColor="text-slate-900"
+          accentColor="text-teal-700"
+          linkColor="text-teal-800 hover:text-teal-950"
         />
         <StatCard
           title="Fiches de poste"
           value={counts.fiches}
           href="/fiches-de-poste"
           loading={loading}
-          tone="from-cyan-50 via-cyan-100 to-sky-100"
-          border="border-cyan-200/70"
-          textColor="text-cyan-950"
-          accentColor="text-cyan-600"
-          linkColor="text-cyan-700 hover:text-cyan-900"
+          tone="from-stone-50 via-teal-50 to-emerald-50"
+          border="border-emerald-200/70"
+          textColor="text-slate-900"
+          accentColor="text-emerald-700"
+          linkColor="text-teal-800 hover:text-teal-950"
         />
         <StatCard
           title="Besoins"
           value={counts.besoins}
           href="/besoins"
           loading={loading}
-          tone="from-emerald-50 via-emerald-100 to-cyan-100"
-          border="border-emerald-200/70"
-          textColor="text-emerald-950"
-          accentColor="text-emerald-600"
-          linkColor="text-emerald-700 hover:text-emerald-900"
+          tone="from-emerald-50 via-stone-50 to-cyan-50"
+          border="border-cyan-200/70"
+          textColor="text-slate-900"
+          accentColor="text-cyan-700"
+          linkColor="text-teal-800 hover:text-teal-950"
         />
       </div>
 
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
-          <CardDescription className="text-sky-700">Raccourcis</CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <Activity className="size-5 text-sky-600" />
+          <CardDescription className="premium-copy">Raccourcis</CardDescription>
+          <CardTitle className="premium-title flex items-center gap-2">
+            <Activity className="size-5 text-teal-700" />
             Navigation rapide
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 text-sm">
+        <CardContent className="flex flex-wrap gap-3 text-sm premium-copy">
           <Link
-            className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100"
+            className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
             href="/fiches-de-poste"
           >
             Voir les fiches de poste
           </Link>
           {user?.role !== "DG" && (
             <Link
-              className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100"
+              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
               href="/besoins"
             >
               Voir les besoins
@@ -220,7 +222,7 @@ export default function DashboardPage() {
             user?.role === "DRH" ||
             user?.role === "DIRECTEUR") && (
             <Link
-              className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100"
+              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
               href="/projets"
             >
               Voir les projets
@@ -228,7 +230,7 @@ export default function DashboardPage() {
           )}
           {(user?.role === "ADMIN" || user?.role === "DRH") && (
             <Link
-              className="rounded-lg border border-sky-200/70 bg-white/80 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100"
+              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
               href="/offres"
             >
               Voir les offres
@@ -237,13 +239,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-sky-300/70 bg-gradient-to-br from-sky-200 via-blue-200 to-cyan-100">
+      <Card className="premium-panel premium-lift border-teal-200/65 bg-gradient-to-br from-teal-50 via-stone-50 to-cyan-50">
         <CardHeader>
-          <CardDescription className="text-sky-700">
+          <CardDescription className="premium-copy">
             Derniers besoins
           </CardDescription>
-          <CardTitle className="flex items-center gap-2 text-sky-950">
-            <ClipboardList className="size-5 text-sky-600" />
+          <CardTitle className="premium-title flex items-center gap-2">
+            <ClipboardList className="size-5 text-teal-700" />
             Éléments récents depuis le backend
           </CardTitle>
         </CardHeader>
@@ -252,11 +254,11 @@ export default function DashboardPage() {
             <Link
               key={need.id}
               href={`/besoins/${need.id}`}
-              className="flex items-center justify-between rounded-lg border border-sky-200/70 bg-white/70 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100/70"
+              className="flex items-center justify-between rounded-lg border border-stone-300/75 bg-white/80 px-3 py-2 text-slate-800 transition-colors duration-200 hover:bg-amber-50/80"
             >
               <div>
-                <p className="font-medium text-sky-950">{need.fiche_title ?? `Besoin #${need.id}`}</p>
-                <p className="text-xs text-sky-700/80">
+                <p className="font-medium text-slate-900">{need.fiche_title ?? `Besoin #${need.id}`}</p>
+                <p className="text-xs text-slate-600">
                   Fiche {need.fiche_de_poste_id} · {need.status}
                 </p>
               </div>
@@ -264,7 +266,7 @@ export default function DashboardPage() {
             </Link>
           ))}
           {!recentBesoins.length && (
-            <p className="animate-pulse text-sm text-sky-700/70 motion-reduce:animate-none">
+            <p className="premium-subtle animate-pulse text-sm motion-reduce:animate-none">
               Aucune donnée chargée.
             </p>
           )}
@@ -306,7 +308,7 @@ function StatCard({
       <ClipboardList className={`size-4 ${accentColor}`} />
     );
   return (
-    <Card className={`${border} bg-gradient-to-br ${tone}`}>
+    <Card className={`premium-panel premium-lift ${border} bg-gradient-to-br ${tone}`}>
       <CardHeader>
         <CardDescription className={`flex items-center gap-2 ${accentColor}`}>
           {icon}

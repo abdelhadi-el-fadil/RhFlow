@@ -157,11 +157,11 @@ function CreateContent() {
   }
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Nouveau besoin</CardTitle></CardHeader>
+    <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
+      <CardHeader><CardTitle className="premium-title">Nouveau besoin</CardTitle></CardHeader>
       <CardContent>
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-        {loading && <p className="mb-4 text-sm text-muted-foreground">Chargement des fiches...</p>}
+        {loading && <p className="premium-subtle mb-4 text-sm">Chargement des fiches...</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save} noValidate>
           <Field label="Fiche de poste" error={fieldErrors.fiche_de_poste_id}>
             <Select
