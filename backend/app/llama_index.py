@@ -4,6 +4,7 @@ from llama_index.llms.openai import OpenAI
 
 from app.config import settings
 
+
 def configure_llama_index() -> None:
     Settings.llm = OpenAI(
         model=settings.OPENAI_MODEL,
