@@ -74,7 +74,7 @@ jobs:
         run: python -m ruff check backend/app backend/tests
 
       - name: Run Mypy
-        run: python -m mypy backend/app backend/tests
+        run: python -m mypy --config-file backend/pyproject.toml backend/app backend/tests
 
       - name: Run tests
         env:
