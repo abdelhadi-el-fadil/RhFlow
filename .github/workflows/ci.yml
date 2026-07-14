@@ -208,6 +208,10 @@ jobs:
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             APP_NAME=RhFlow
             DEBUG=false
+            OPENAI_API_KEY=your-api-key
+            OPENAI_BASE_URL=https://api.openai.com/v1
+            OPENAI_MODEL=gpt-4.1-mini
+            OPENAI_EMBEDDING_MODEL=text-embedding-3-small
             CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
             ALGORITHM=${{ secrets.ALGORITHM }}
             ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
