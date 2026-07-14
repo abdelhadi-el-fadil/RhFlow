@@ -83,10 +83,6 @@ jobs:
           DATABASE_URL: sqlite:///./test.db
           SECRET_KEY: ci-test-secret-key-not-real
           ALGORITHM: HS256
-          OPENAI_API_KEY: dummy-key
-          OPENAI_BASE_URL: https://api.openai.com/v1
-          OPENAI_MODEL: gpt-4.1-mini
-          OPENAI_EMBEDDING_MODEL: text-embedding-3-small
           ACCESS_TOKEN_EXPIRE_MINUTES: "30"
           MINIO_ENDPOINT: localhost:9000
           MINIO_PUBLIC_ENDPOINT: localhost:9000
@@ -96,6 +92,10 @@ jobs:
           MINIO_SECURE: "false"
           MINIO_PUBLIC_SECURE: "false"
           MINIO_PUBLIC_PATH_PREFIX: ""
+          LLM_PROVIDER: gemini
+          LLM_API_KEY: ci-test-llm-key
+          LLM_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai/
+          LLM_MODEL: gemini-2.5-flash
         run: python -m pytest backend/tests
 
       - name: Set up Docker Buildx
@@ -208,14 +208,14 @@ jobs:
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             APP_NAME=RhFlow
             DEBUG=false
-            OPENAI_API_KEY=your-api-key
-            OPENAI_BASE_URL=https://api.openai.com/v1
-            OPENAI_MODEL=gpt-4.1-mini
-            OPENAI_EMBEDDING_MODEL=text-embedding-3-small
             CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
             ALGORITHM=${{ secrets.ALGORITHM }}
             ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
             NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+            LLM_PROVIDER=${{ secrets.LLM_PROVIDER }}
+            LLM_API_KEY=${{ secrets.LLM_API_KEY }}
+            LLM_BASE_URL=${{ secrets.LLM_BASE_URL }}
+            LLM_MODEL=${{ secrets.LLM_MODEL }}
             EOF
 
             docker compose pull

@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str
+    LLM_PROVIDER: str 
+    LLM_API_KEY: str
+    LLM_BASE_URL: str
+    LLM_MODEL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     MINIO_ENDPOINT: str
     MINIO_PUBLIC_ENDPOINT: str
@@ -22,10 +26,6 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str
     MINIO_SECURE: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
-    OPENAI_API_KEY: str
-    OPENAI_BASE_URL: str
-    OPENAI_MODEL: str
-    OPENAI_EMBEDDING_MODEL: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

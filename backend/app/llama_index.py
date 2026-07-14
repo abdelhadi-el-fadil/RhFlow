@@ -1,26 +1,12 @@
-from llama_index.core import Settings
-from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.llms.openai import OpenAI
+from llama_index.llms.openai_like import OpenAILike
 
 from app.config import settings
 
-
-def configure_llama_index() -> None:
-    Settings.llm = OpenAI(
-        model=settings.OPENAI_MODEL,
-        api_key=settings.OPENAI_API_KEY,
-        api_base=settings.OPENAI_BASE_URL,  # or base_url depending on your version
-        temperature=0,
-    )
-
-    Settings.embed_model = OpenAIEmbedding(
-        model=settings.OPENAI_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,
-        api_base=settings.OPENAI_BASE_URL,
-    )
- 
-    Settings.chunk_size = 1024
-    Settings.chunk_overlap = 100
-
-    Settings.context_window = 8192
-    Settings.num_output = 512
+llm = OpenAILike(
+    model=settings.LLM_MODEL,
+    api_base=settings.LLM_BASE_URL,
+    api_key=settings.LLM_API_KEY,
+    context_window=128000,
+    is_chat_model=True,
+    is_function_calling_model=False,
+)

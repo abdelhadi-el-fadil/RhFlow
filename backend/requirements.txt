@@ -3,6 +3,7 @@ bcrypt==4.0.1
 fastapi==0.136.3
 httpx==0.28.1
 llama-index==0.14.23
+llama-index-llms-openai-like==0.7.2
 minio==7.2.20
 mypy==2.1.0
 passlib[bcrypt]==1.7.4
