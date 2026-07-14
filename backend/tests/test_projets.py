@@ -93,12 +93,14 @@ def test_admin_can_create_list_update_close_and_delete_project(
     besoin = _create_besoin(client, directeur_token, fiche_id)
     client.post(f"/besoins/{besoin['id']}/approuver", headers=_auth(drh_token))
 
-    # Find the auto-created project by querying projects with the besoin's fiche direction
+    # Find the auto-created project by 
+    # querying projects with the besoin's fiche direction
     projects_response = client.get(f"/projets/?direction_id={direction_id}",
                                     headers=_auth(admin_token))
     assert projects_response.status_code == 200
     projects = projects_response.json()["data"]
-    auto_project = next((p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+    auto_project = next(
+        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
     assert auto_project is not None
     auto_project_id = auto_project["id"]
 
@@ -165,11 +167,13 @@ def test_attach_need_populates_new_project_fields(
                                     headers=_auth(drh_token))
     assert projects_response.status_code == 200
     projects = projects_response.json()["data"]
-    auto_project = next((p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+    auto_project = next(
+        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
     assert auto_project is not None
     auto_project_id = auto_project["id"]
 
-    auto_project_detail = client.get(f"/projets/{auto_project_id}", headers=_auth(drh_token))
+    auto_project_detail = client.get(f"/projets/{auto_project_id}",
+                                     headers=_auth(drh_token))
     assert auto_project_detail.status_code == 200
     auto_project_body = auto_project_detail.json()["data"]
     assert auto_project_body["besoin_recrutement_id"] == besoin["id"]
