@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str
     MINIO_SECURE: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    OPENAI_API_KEY: str
+    OPENAI_BASE_URL: str
+    OPENAI_MODEL: str
+    OPENAI_EMBEDDING_MODEL: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

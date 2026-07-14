@@ -1,5 +1,6 @@
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -23,10 +24,25 @@ from app.domains.recruitment.router import (
     router as recruitment_router,
 )
 from app.domains.users.router import router as users_router
+from app.llama_index import configure_llama_index
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    try:
+        logger.info("Initializing LlamaIndex...")
+        configure_llama_index()
+        logger.info("LlamaIndex initialized successfully.")
+    except Exception:
+        logger.exception("Failed to initialize LlamaIndex.")
+        raise
+
+    yield
 
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 allowed_origins = [
