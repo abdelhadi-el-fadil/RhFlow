@@ -16,8 +16,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import type { BesoinPriority, DirectionResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
-import { useAuth } from "@/components/auth-provider"
+import type { BesoinPriority, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
 
 export default function BesoinCreatePage() {
   return (
@@ -28,8 +27,7 @@ export default function BesoinCreatePage() {
 }
 
 type BesoinForm = {
-  title: string
-  location: string
+  lieu_affectation: string
   recruitment_reason: string
   priority: string
   positions_count: string
@@ -39,8 +37,7 @@ type BesoinForm = {
 type FieldErrors = Partial<Record<keyof BesoinForm | "desired_date", string>>
 
 const EMPTY_FORM: BesoinForm = {
-  title: "",
-  location: "",
+  lieu_affectation: "",
   recruitment_reason: "",
   priority: "",
   positions_count: "1",
@@ -50,16 +47,12 @@ const EMPTY_FORM: BesoinForm = {
 function validate(form: BesoinForm, desiredDate: Date | undefined): FieldErrors {
   const errors: FieldErrors = {}
 
-  if (!form.title.trim()) {
-    errors.title = "Le titre est requis."
-  }
-
   if (!form.fiche_de_poste_id) {
     errors.fiche_de_poste_id = "Veuillez choisir une fiche de poste."
   }
 
-  if (!form.location.trim()) {
-    errors.location = "Le lieu d'affectation est requis."
+  if (!form.lieu_affectation.trim()) {
+    errors.lieu_affectation = "Le lieu d'affectation est requis."
   }
 
   if (!form.recruitment_reason.trim()) {
@@ -84,9 +77,7 @@ function validate(form: BesoinForm, desiredDate: Date | undefined): FieldErrors 
 }
 
 function CreateContent() {
-  const { user } = useAuth()
   const [fiches, setFiches] = useState<FicheDePosteResponse[]>([])
-  const [directions, setDirections] = useState<DirectionResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -99,12 +90,8 @@ function CreateContent() {
       setLoading(true)
       setError(null)
       try {
-        const [fichesRes, directionsRes] = await Promise.all([
-          apiClient.get<PaginatedResponse<FicheDePosteResponse>>("/fiches-de-poste/", { params: { page: 1, page_size: 100 } }),
-          apiClient.get<PaginatedResponse<DirectionResponse>>("/directions/", { params: { page: 1, page_size: 100 } }),
-        ])
+        const fichesRes = await apiClient.get<PaginatedResponse<FicheDePosteResponse>>("/fiches-de-poste/", { params: { page: 1, page_size: 100 } })
         setFiches(fichesRes.data.data)
-        setDirections(directionsRes.data.data)
       } catch (err) {
         setError(err instanceof ApiHttpError ? err.message : "Impossible de charger les données de création.")
       } finally {
@@ -115,9 +102,8 @@ function CreateContent() {
     void load()
   }, [])
 
-  const availableFiches = user?.role === "DIRECTEUR"
-    ? fiches.filter((fiche) => directions.find((direction) => direction.id === fiche.direction_id)?.director_id === user.id)
-    : fiches
+  const availableFiches = fiches
+  const selectedFiche = availableFiches.find((fiche) => String(fiche.id) === form.fiche_de_poste_id)
 
   const updateField = <K extends keyof BesoinForm>(key: K, value: BesoinForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }))
@@ -152,8 +138,7 @@ function CreateContent() {
     setSaving(true)
     try {
       await apiClient.post("/besoins/", {
-        title: form.title,
-        location: form.location,
+        lieu_affectation: form.lieu_affectation,
         recruitment_reason: form.recruitment_reason,
         priority: form.priority as BesoinPriority,
         positions_count: Number(form.positions_count),
@@ -178,28 +163,20 @@ function CreateContent() {
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
         {loading && <p className="mb-4 text-sm text-muted-foreground">Chargement des fiches...</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save} noValidate>
-          <Field label="Titre" error={fieldErrors.title}>
-            <Input
-              value={form.title}
-              onChange={(event) => updateField("title", event.target.value)}
-              aria-invalid={Boolean(fieldErrors.title)}
-            />
-          </Field>
           <Field label="Fiche de poste" error={fieldErrors.fiche_de_poste_id}>
             <Select
               value={form.fiche_de_poste_id}
               onChange={(event) => updateField("fiche_de_poste_id", event.target.value)}
               aria-invalid={Boolean(fieldErrors.fiche_de_poste_id)}
             >
-              <option value="">Choisir une fiche</option>
               {availableFiches.map((fiche) => <option key={fiche.id} value={fiche.id}>{fiche.title}</option>)}
             </Select>
           </Field>
-          <Field label="Lieu d'affectation" error={fieldErrors.location}>
+          <Field label="Lieu d'affectation" error={fieldErrors.lieu_affectation}>
             <Input
-              value={form.location}
-              onChange={(event) => updateField("location", event.target.value)}
-              aria-invalid={Boolean(fieldErrors.location)}
+              value={form.lieu_affectation}
+              onChange={(event) => updateField("lieu_affectation", event.target.value)}
+              aria-invalid={Boolean(fieldErrors.lieu_affectation)}
             />
           </Field>
           <Field label="Motif de recrutement" error={fieldErrors.recruitment_reason}>

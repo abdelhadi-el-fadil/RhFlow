@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.enums import UserRole
+from app.core.exceptions import ForbiddenException
 from app.core.schemas import PaginationParams
 from app.domains.directions.exceptions import (
     DirectionCodeAlreadyExistsException,
@@ -62,7 +64,11 @@ def create_direction(
     return direction
 
 
-def get_direction(db: Session, direction_id: int) -> Direction:
+def get_direction(
+    db: Session,
+    direction_id: int,
+    current_user: User | None = None,
+) -> Direction:
     direction = db.scalars(
         select(Direction)
         .options(selectinload(Direction.director), selectinload(Direction.fiches))
@@ -73,26 +79,44 @@ def get_direction(db: Session, direction_id: int) -> Direction:
     ).first()
     if direction is None:
         raise DirectionsNotFoundException()
+    if (
+        current_user is not None
+        and current_user.role == UserRole.DIRECTEUR
+        and direction.director_id != current_user.id
+    ):
+        raise ForbiddenException()
     return direction
 
 
 def list_directions(
-    db: Session, params: PaginationParams
+    db: Session,
+    params: PaginationParams,
+    current_user: User,
 ) -> tuple[list[Direction], int]:
     base_query = (
         select(Direction)
         .options(selectinload(Direction.director), selectinload(Direction.fiches))
         .where(Direction.is_deleted.is_(False))
-        .order_by(Direction.id)
     )
+
+    if current_user.role == UserRole.DIRECTEUR:
+        base_query = base_query.where(Direction.director_id == current_user.id)
+
+    base_query = base_query.order_by(Direction.id)
+
     items = list(
         db.scalars(base_query.offset(params.offset).limit(params.page_size)).all()
     )
-    total_items = db.scalar(
+    count_query = (
         select(func.count())
         .select_from(Direction)
         .where(Direction.is_deleted.is_(False))
     )
+
+    if current_user.role == UserRole.DIRECTEUR:
+        count_query = count_query.where(Direction.director_id == current_user.id)
+
+    total_items = db.scalar(count_query)
     return items, int(total_items or 0)
 
 

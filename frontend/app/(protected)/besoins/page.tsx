@@ -49,7 +49,7 @@ function BesoinsContent() {
   const [showArchives, setShowArchives] = useState(false)
 
   const canCreateNeed = user?.role === "DIRECTEUR" || user?.role === "DRH" || user?.role === "ADMIN"
-  const canDecide = user?.role === "DRH"
+  const canDecide = user?.role === "DRH" || user?.role === "ADMIN"
 
   const load = async () => {
     const params: Record<string, string | number | boolean> = { page: 1, page_size: 100, archived: showArchives }
@@ -91,7 +91,7 @@ function BesoinsContent() {
       return items
     }
     return items.filter((item) => {
-      const text = `${item.fiche_title ?? ""} ${item.direction_name ?? ""} ${item.director_name ?? ""} ${item.requester_name ?? ""} ${item.location ?? ""} ${item.recruitment_reason ?? ""}`.toLowerCase()
+      const text = `${item.fiche_title ?? ""} ${item.direction_name ?? ""} ${item.director_name ?? ""} ${item.requester_name ?? ""} ${item.lieu_affectation ?? ""} ${item.justification ?? ""}`.toLowerCase()
       return text.includes(query)
     })
   }, [items, search])
@@ -155,7 +155,7 @@ function BesoinsContent() {
           <Card key={item.id} className="border-sky-200 bg-white/90">
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
-                <span>{item.fiche_title ?? item.title}</span>
+                <span>{item.fiche_title ?? `Fiche #${item.fiche_de_poste_id}`}</span>
                 <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge>
               </CardTitle>
             </CardHeader>
@@ -163,8 +163,8 @@ function BesoinsContent() {
               <p className="flex items-center gap-2"><Users className="size-4" />Direction: {item.direction_name ?? "-"}</p>
               <p className="flex items-center gap-2"><UserRound className="size-4" />Directeur: {item.director_name ?? "-"}</p>
               <p className="flex items-center gap-2"><UserRound className="size-4" />Demandeur: {item.requester_name ?? "-"}</p>
-              <p className="flex items-center gap-2"><MapPin className="size-4" />Lieu: {item.location ?? "-"}</p>
-              <p>Motif: {item.recruitment_reason ?? "-"}</p>
+              <p className="flex items-center gap-2"><MapPin className="size-4" />Lieu: {item.lieu_affectation ?? "-"}</p>
+              <p>Motif: {item.justification ?? "-"}</p>
               <p>Nombre de postes: {item.positions_count ?? "-"}</p>
               <p>Date souhaitée: {item.desired_date ?? "-"}</p>
               <p>Priorité: <Badge variant="outline">{PRIORITY_LABELS[item.priority]}</Badge></p>

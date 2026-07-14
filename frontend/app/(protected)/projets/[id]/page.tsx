@@ -1,7 +1,6 @@
 "use client"
 
 import { use, useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -12,10 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
+import type { ApiResponse, PaginatedResponse, ProjetRecrutementResponse, UserResponse } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import type { ApiResponse, BesoinRecrutementResponse, FicheDePosteResponse, PaginatedResponse, ProjetRecrutementResponse, UserResponse } from "@/lib/backend-types"
 import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
 
 export default function ProjetDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,42 +37,29 @@ export default function ProjetDetailPage({ params }: { params: Promise<{ id: str
 }
 
 function DetailContent({ id }: { id: number }) {
-  const router = useRouter()
   const { user } = useAuth()
   const [item, setItem] = useState<ProjetRecrutementResponse | null>(null)
-  const [approvedNeeds, setApprovedNeeds] = useState<BesoinRecrutementResponse[]>([])
-  const [fiches, setFiches] = useState<FicheDePosteResponse[]>([])
   const [managers, setManagers] = useState<UserResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [attachNeedId, setAttachNeedId] = useState("")
-  const [form, setForm] = useState({ title: "", description: "", start_date: "", expected_end_date: "", status: "DRAFT", manager_id: "", besoin_recrutement_id: "", fiche_de_poste_id: "", nombre_postes: "" })
+  const [form, setForm] = useState({ manager_id: "", email_subject: "" })
 
-  const canManage = user?.role === "ADMIN" || user?.role === "DRH" || user?.role === "DIRECTEUR" || user?.role === "DG"
+  const canManage = user?.role === "ADMIN" || user?.role === "DRH"
 
   const reload = useCallback(async () => {
-    const [projectRes, needsRes, fichesRes, usersRes] = await Promise.all([
+    const [projectRes, usersRes] = await Promise.all([
       apiClient.get<ApiResponse<ProjetRecrutementResponse>>(`/projets/${id}`),
-      apiClient.get<PaginatedResponse<BesoinRecrutementResponse>>("/besoins/", { params: { page: 1, page_size: 100 } }),
-      apiClient.get<PaginatedResponse<FicheDePosteResponse>>("/fiches-de-poste/", { params: { page: 1, page_size: 100 } }),
-      canManage ? apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 100 } }) : Promise.resolve({ data: { data: [] as UserResponse[] } }),
+      canManage
+        ? apiClient.get<PaginatedResponse<UserResponse>>("/users/", { params: { page: 1, page_size: 100 } })
+        : Promise.resolve({ data: { data: [] as UserResponse[] } }),
     ])
 
     setItem(projectRes.data.data)
-    setApprovedNeeds(needsRes.data.data.filter((need) => need.status === "APPROVED" || need.projet_id === id))
-    setFiches(fichesRes.data.data)
     setManagers(usersRes.data.data)
     setForm({
-      title: projectRes.data.data.title,
-      description: projectRes.data.data.description ?? "",
-      start_date: projectRes.data.data.start_date,
-      expected_end_date: projectRes.data.data.expected_end_date,
-      status: projectRes.data.data.status,
       manager_id: String(projectRes.data.data.manager_id),
-      besoin_recrutement_id: projectRes.data.data.besoin_recrutement_id?.toString() ?? "",
-      fiche_de_poste_id: projectRes.data.data.fiche_de_poste_id?.toString() ?? "",
-      nombre_postes: projectRes.data.data.nombre_postes?.toString() ?? "",
+      email_subject: projectRes.data.data.email_subject ?? "",
     })
   }, [canManage, id])
 
@@ -91,8 +75,6 @@ function DetailContent({ id }: { id: number }) {
         if (!cancelled) {
           setError(err instanceof ApiHttpError ? err.message : "Impossible de charger ce projet.")
           setItem(null)
-          setApprovedNeeds([])
-          setFiches([])
           setManagers([])
         }
       } finally {
@@ -115,21 +97,19 @@ function DetailContent({ id }: { id: number }) {
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!canManage || item.status === "CLOSED") {
+      setActionError("Ce projet est en lecture seule.")
+      return
+    }
+
     setActionError(null)
     try {
       await apiClient.put(`/projets/${id}`, {
-        title: form.title,
-        description: form.description || null,
-        start_date: form.start_date,
-        expected_end_date: form.expected_end_date,
-        status: form.status,
         manager_id: Number(form.manager_id),
-        besoin_recrutement_id: form.besoin_recrutement_id ? Number(form.besoin_recrutement_id) : null,
-        fiche_de_poste_id: form.fiche_de_poste_id ? Number(form.fiche_de_poste_id) : null,
-        nombre_postes: form.nombre_postes ? Number(form.nombre_postes) : null,
+        email_subject: form.email_subject || null,
       })
       toast.success("Projet sauvegardé avec succès.")
-      router.push("/projets")
+      await reload()
     } catch (err) {
       const message = err instanceof ApiHttpError ? err.message : "Impossible de sauvegarder ce projet."
       setActionError(message)
@@ -140,103 +120,64 @@ function DetailContent({ id }: { id: number }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle>{item.title} <Badge variant={badgeVariantFromProjetStatus(item.status)}>{item.status}</Badge></CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>
+            {item.title} <Badge variant={badgeVariantFromProjetStatus(item.status)}>{item.status}</Badge>
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
+          <div className="mb-4 grid gap-2 text-sm text-muted-foreground">
+            <p>Direction: {item.direction_name ?? "-"}</p>
+            <p>Directeur: {item.director_name ?? "-"}</p>
+            <p>Fiche de poste: {item.fiche_title ?? "-"}</p>
+            <p>Besoin principal: {item.besoin_title ?? "-"}</p>
+            <p>Nombre de postes: {item.nombre_postes ?? "-"}</p>
+          </div>
+
           <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
-            <Field label="Titre"><Input disabled={!canManage} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></Field>
-            <Field label="Manager"><Select disabled={!canManage} value={form.manager_id} onChange={(event) => setForm((current) => ({ ...current, manager_id: event.target.value }))}><option value="">Choisir</option>{managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.full_name || manager.email}</option>)}</Select></Field>
-            <Field label="Date de début"><Input disabled={!canManage} type="date" value={form.start_date} onChange={(event) => setForm((current) => ({ ...current, start_date: event.target.value }))} /></Field>
-            <Field label="Date de fin prévue"><Input disabled={!canManage} type="date" value={form.expected_end_date} onChange={(event) => setForm((current) => ({ ...current, expected_end_date: event.target.value }))} /></Field>
-            <Field label="Statut"><Select disabled={!canManage} value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}><option value="DRAFT">Brouillon</option><option value="ACTIVE">Actif</option><option value="CLOSED">Clôturé</option></Select></Field>
-            <Field label="Besoin principal"><Select disabled={!canManage} value={form.besoin_recrutement_id} onChange={(event) => { const selectedNeed = approvedNeeds.find((need) => String(need.id) === event.target.value); setForm((current) => ({ ...current, besoin_recrutement_id: event.target.value, fiche_de_poste_id: selectedNeed ? String(selectedNeed.fiche_de_poste_id) : current.fiche_de_poste_id, nombre_postes: selectedNeed?.positions_count ? String(selectedNeed.positions_count) : current.nombre_postes })) }}><option value="">Aucun</option>{approvedNeeds.map((need) => <option key={need.id} value={need.id}>{need.title}</option>)}</Select></Field>
-            <Field label="Fiche de poste"><Select disabled={!canManage} value={form.fiche_de_poste_id} onChange={(event) => setForm((current) => ({ ...current, fiche_de_poste_id: event.target.value }))}><option value="">Choisir</option>{fiches.map((fiche) => <option key={fiche.id} value={fiche.id}>{fiche.title}</option>)}</Select></Field>
-            <Field label="Nombre de postes"><Input disabled={!canManage} type="number" min="1" value={form.nombre_postes} onChange={(event) => setForm((current) => ({ ...current, nombre_postes: event.target.value }))} /></Field>
-            <div className="md:col-span-2"><Field label="Description"><Textarea disabled={!canManage} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field></div>
+            <Field label="Manager">
+              <Select
+                disabled={!canManage || item.status === "CLOSED"}
+                value={form.manager_id}
+                onChange={(event) => setForm((current) => ({ ...current, manager_id: event.target.value }))}
+              >
+                {managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>{manager.full_name || manager.email}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Objet d'email">
+              <Input
+                disabled={!canManage || item.status === "CLOSED"}
+                value={form.email_subject}
+                onChange={(event) => setForm((current) => ({ ...current, email_subject: event.target.value }))}
+              />
+            </Field>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              {canManage && <Button type="submit">Sauvegarder</Button>}
-              {canManage && item.status !== "CLOSED" && <Button type="button" variant="secondary" onClick={async () => {
-                setActionError(null)
-                try {
-                  await apiClient.patch(`/projets/${id}/cloturer`)
-                  toast.success("Projet clôturé avec succès.")
-                  await reload()
-                } catch (err) {
-                  const message = err instanceof ApiHttpError ? err.message : "Impossible de clôturer ce projet."
-                  setActionError(message)
-                  toast.error(message)
-                }
-              }}>Clôturer</Button>}
-              {canManage && <Button type="button" variant="destructive" onClick={async () => {
-                setActionError(null)
-                try {
-                  await apiClient.delete(`/projets/${id}`)
-                  toast.success("Projet supprimé avec succès.")
-                  window.location.href = "/projets"
-                } catch (err) {
-                  const message = err instanceof ApiHttpError ? err.message : "Impossible de supprimer ce projet."
-                  setActionError(message)
-                  toast.error(message)
-                }
-              }}>Supprimer</Button>}
+              {canManage && item.status !== "CLOSED" && <Button type="submit">Sauvegarder</Button>}
+              {canManage && item.status !== "CLOSED" && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={async () => {
+                    setActionError(null)
+                    try {
+                      await apiClient.patch(`/projets/${id}/cloturer`)
+                      toast.success("Projet clôturé avec succès.")
+                      await reload()
+                    } catch (err) {
+                      const message = err instanceof ApiHttpError ? err.message : "Impossible de clôturer ce projet."
+                      setActionError(message)
+                      toast.error(message)
+                    }
+                  }}
+                >
+                  Clôturer
+                </Button>
+              )}
             </div>
           </form>
-        </CardContent>
-      </Card>
-
-      {canManage && (
-        <Card>
-          <CardHeader><CardTitle>Rattacher un besoin approuvé</CardTitle></CardHeader>
-          <CardContent>
-            <form className="flex gap-3" onSubmit={async (event) => {
-              event.preventDefault()
-              const parsedNeedId = Number(attachNeedId)
-              if (Number.isNaN(parsedNeedId)) {
-                return
-              }
-
-              setActionError(null)
-              try {
-                await apiClient.post(`/projets/${id}/besoins/${parsedNeedId}`)
-                toast.success("Besoin attaché avec succès.")
-                await reload()
-              } catch (err) {
-                const message = err instanceof ApiHttpError ? err.message : "Impossible d'attacher ce besoin."
-                setActionError(message)
-                toast.error(message)
-              }
-            }}>
-              <div className="flex-1 space-y-2">
-                <Label>Besoin approuvé</Label>
-                <Select value={attachNeedId} onChange={(event) => setAttachNeedId(event.target.value)}>
-                  <option value="">Choisir</option>
-                  {approvedNeeds.map((need) => <option key={need.id} value={need.id}>{need.title}</option>)}
-                </Select>
-              </div>
-              <div className="self-end"><Button type="submit" disabled={!attachNeedId}>Attacher</Button></div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader><CardTitle>Besoins liés</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow><TableHead>Titre</TableHead><TableHead>Statut</TableHead><TableHead>Fiche</TableHead><TableHead /></TableRow>
-            </TableHeader>
-            <TableBody>
-              {item.besoins.map((need) => (
-                <TableRow key={need.id}>
-                  <TableCell>{need.title}</TableCell>
-                  <TableCell><Badge variant="outline">{need.status}</Badge></TableCell>
-                  <TableCell>{need.fiche_title ?? `Fiche #${need.fiche_de_poste_id}`}</TableCell>
-                  <TableCell className="text-right"><Button asChild variant="outline" size="sm"><a href={`/besoins/${need.id}`}>Ouvrir</a></Button></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
     </div>

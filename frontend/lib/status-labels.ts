@@ -6,8 +6,6 @@ import type {
 
 export function badgeVariantFromBesoinStatus(status: BesoinStatus) {
   switch (status) {
-    case "DRAFT":
-      return "secondary" as const
     case "SUBMITTED":
       return "outline" as const
     case "APPROVED":
@@ -19,8 +17,6 @@ export function badgeVariantFromBesoinStatus(status: BesoinStatus) {
 
 export function badgeVariantFromProjetStatus(status: ProjetStatus) {
   switch (status) {
-    case "DRAFT":
-      return "secondary" as const
     case "ACTIVE":
       return "default" as const
     case "CLOSED":

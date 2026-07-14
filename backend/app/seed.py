@@ -31,7 +31,7 @@ from app.domains.directions.model import Direction
 from app.domains.fiches_de_poste.model import FicheDePoste
 from app.domains.offres.enums import OffreStatus
 from app.domains.offres.model import Offre
-from app.domains.recruitment.enums import BesoinStatus, ProjetStatus
+from app.domains.recruitment.enums import BesoinStatus
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.users.model import User
 
@@ -164,94 +164,55 @@ SEED_FICHES: list[dict[str, object]] = [
     },
 ]
 
-SEED_PROJECTS: list[dict[str, object]] = [
-    {
-        "title": "Programme Recrutement 2026",
-        "description": "Plan global de renforcement des equipes.",
-        "start_date": date(2026, 1, 10),
-        "expected_end_date": date(2026, 12, 20),
-        "status": ProjetStatus.ACTIVE,
-        "manager_email": "drh@example.com",
-        "fiche_title": "Ingenieur DevOps",
-        "nombre_postes": 5,
-    },
-    {
-        "title": "Expansion Equipe IT",
-        "description": "Renforcement des capacites engineering.",
-        "start_date": date(2026, 3, 1),
-        "expected_end_date": date(2026, 10, 1),
-        "status": ProjetStatus.DRAFT,
-        "manager_email": "drh@example.com",
-        "fiche_title": "Ingenieur DevOps",
-        "nombre_postes": 3,
-    },
-    {
-        "title": "Renforcement RH 2026",
-        "description": "Structuration de l'equipe recrutement interne.",
-        "start_date": date(2026, 2, 1),
-        "expected_end_date": date(2026, 11, 30),
-        "status": ProjetStatus.ACTIVE,
-        "manager_email": "drh@example.com",
-        "fiche_title": "Charge de Recrutement",
-        "nombre_postes": 2,
-    },
-]
+SEED_PROJECTS: list[dict[str, object]] = []
 
 SEED_BESOINS: list[dict[str, object]] = [
     {
-        "title": "Recruter 2 DevOps Seniors",
-        "description": "Soutenir la migration cloud.",
+        "key": "devops-senior",
+        "lieu_affectation": "Casablanca - IT",
         "positions_count": 2,
         "desired_date": date(2026, 8, 1),
         "justification": "Montee en charge des plateformes critiques.",
         "status": BesoinStatus.APPROVED,
-        "rejection_reason": None,
         "fiche_title": "Ingenieur DevOps",
         "submitted_by_email": "directeur.it@example.com",
         "processed_by_email": "drh@example.com",
-        "project_title": "Programme Recrutement 2026",
         "owner_email": "directeur.it@example.com",
     },
     {
-        "title": "Recruter 1 Charge de Recrutement",
-        "description": "Accompagner la croissance des recrutements.",
+        "key": "charge-recrutement",
+        "lieu_affectation": "Rabat - RH",
         "positions_count": 1,
         "desired_date": date(2026, 7, 1),
         "justification": "Volume de postes ouverts en forte hausse.",
         "status": BesoinStatus.SUBMITTED,
-        "rejection_reason": None,
         "fiche_title": "Charge de Recrutement",
         "submitted_by_email": "directeur.hr@example.com",
         "processed_by_email": None,
-        "project_title": None,
         "owner_email": "directeur.hr@example.com",
     },
     {
-        "title": "Recruter 1 Chef de Projet RH",
-        "description": "Pilotage de plusieurs chantiers structurants.",
+        "key": "chef-projet-rh",
+        "lieu_affectation": "Rabat - RH",
         "positions_count": 1,
         "desired_date": date(2026, 9, 1),
         "justification": "Besoin de coordination transverse.",
         "status": BesoinStatus.REJECTED,
-        "rejection_reason": "Budget non valide pour ce trimestre.",
         "fiche_title": "Chef de Projet RH",
         "submitted_by_email": "directeur.hr@example.com",
         "processed_by_email": "drh@example.com",
-        "project_title": None,
         "owner_email": "directeur.hr@example.com",
     },
     {
-        "title": "Recruter 1 Responsable Production",
-        "description": "Renforcer l'encadrement de la ligne de production B.",
+        "key": "responsable-production",
+        "lieu_affectation": "Tanger - Operations",
         "positions_count": 1,
         "desired_date": date(2026, 8, 15),
         "justification": "Depart a la retraite du titulaire actuel.",
         "status": BesoinStatus.APPROVED,
-        "rejection_reason": None,
         "fiche_title": "Responsable Production",
         "submitted_by_email": "directeur.ops@example.com",
         "processed_by_email": "drh@example.com",
-        "project_title": None,
         "owner_email": "directeur.ops@example.com",
     },
 ]
@@ -264,7 +225,7 @@ SEED_OFFRES: list[dict[str, object]] = [
         "deadline": date(2026, 9, 15),
         "status": OffreStatus.PUBLISHED,
         "published_at": datetime(2026, 6, 15, 10, 0, tzinfo=timezone.utc),
-        "besoin_title": "Recruter 2 DevOps Seniors",
+        "besoin_key": "devops-senior",
         "published_by_email": "drh@example.com",
         "owner_email": "drh@example.com",
     },
@@ -275,7 +236,7 @@ SEED_OFFRES: list[dict[str, object]] = [
         "deadline": date(2026, 10, 1),
         "status": OffreStatus.DRAFT,
         "published_at": None,
-        "besoin_title": "Recruter 1 Charge de Recrutement",
+        "besoin_key": "charge-recrutement",
         "published_by_email": None,
         "owner_email": "drh@example.com",
     },
@@ -286,7 +247,7 @@ SEED_OFFRES: list[dict[str, object]] = [
         "deadline": date(2026, 9, 30),
         "status": OffreStatus.PUBLISHED,
         "published_at": datetime(2026, 7, 1, 9, 0, tzinfo=timezone.utc),
-        "besoin_title": "Recruter 1 Responsable Production",
+        "besoin_key": "responsable-production",
         "published_by_email": "drh@example.com",
         "owner_email": "directeur.ops@example.com",
     },
@@ -419,41 +380,13 @@ def _seed_projects(
     users_by_email: dict[str, User],
     fiches_by_title: dict[str, FicheDePoste],
 ) -> tuple[dict[str, ProjetRecrutement], SeedCounters]:
-    counters = SeedCounters()
-    projects_by_title: dict[str, ProjetRecrutement] = {}
-    drh = users_by_email["drh@example.com"]
-
+    _ = db
+    _ = users_by_email
+    _ = fiches_by_title
     print("\nSeeding projets recrutement...")
-    for data in SEED_PROJECTS:
-        title = str(data["title"])
-        existing = db.scalars(
-            select(ProjetRecrutement).where(ProjetRecrutement.title == title)
-        ).first()
-        if existing:
-            print(f"  [skip]    projet '{title}' already exists")
-            projects_by_title[title] = existing
-            counters = counters.add_skipped()
-            continue
-
-        project = ProjetRecrutement(
-            title=title,
-            description=str(data["description"]),
-            start_date=data["start_date"],
-            expected_end_date=data["expected_end_date"],
-            status=data["status"],
-            manager_id=users_by_email[str(data["manager_email"])].id,
-            fiche_de_poste_id=fiches_by_title[str(data["fiche_title"])].id,
-            nombre_postes=cast(int, data["nombre_postes"]),
-            created_by_id=drh.id,
-            updated_by_id=drh.id,
-        )
-        db.add(project)
-        db.flush()
-        projects_by_title[title] = project
-        print(f"  [created] projet '{title}'")
-        counters = counters.add_created()
-
-    return projects_by_title, counters
+    if not SEED_PROJECTS:
+        print("  [skip]    no standalone project seeds configured")
+    return {}, SeedCounters()
 
 
 def _seed_besoins(
@@ -463,36 +396,33 @@ def _seed_besoins(
     projects_by_title: dict[str, ProjetRecrutement],
 ) -> tuple[dict[str, BesoinRecrutement], SeedCounters]:
     counters = SeedCounters()
-    besoins_by_title: dict[str, BesoinRecrutement] = {}
+    besoins_by_key: dict[str, BesoinRecrutement] = {}
+    _ = projects_by_title
 
     print("\nSeeding besoins recrutement...")
     for data in SEED_BESOINS:
-        title = str(data["title"])
+        key = str(data["key"])
+        fiche = fiches_by_title[str(data["fiche_title"])]
+        justification = str(data["justification"])
         existing = db.scalars(
-            select(BesoinRecrutement).where(BesoinRecrutement.title == title)
+            select(BesoinRecrutement).where(
+                BesoinRecrutement.fiche_de_poste_id == fiche.id,
+                BesoinRecrutement.justification == justification,
+            )
         ).first()
         if existing:
-            print(f"  [skip]    besoin '{title}' already exists")
-            besoins_by_title[title] = existing
+            print(f"  [skip]    besoin '{key}' already exists")
+            besoins_by_key[key] = existing
             counters = counters.add_skipped()
             continue
 
-        project_title = data["project_title"]
-        project_id = (
-            projects_by_title[str(project_title)].id
-            if project_title is not None
-            else None
-        )
-
         besoin = BesoinRecrutement(
-            title=title,
-            description=str(data["description"]),
+            lieu_affectation=str(data["lieu_affectation"]),
             positions_count=cast(int, data["positions_count"]),
             desired_date=data["desired_date"],
-            justification=str(data["justification"]),
+            justification=justification,
             status=data["status"],
-            rejection_reason=data["rejection_reason"],
-            fiche_de_poste_id=fiches_by_title[str(data["fiche_title"])].id,
+            fiche_de_poste_id=fiche.id,
             submitted_by_id=(
                 users_by_email[str(data["submitted_by_email"])].id
                 if data["submitted_by_email"] is not None
@@ -503,23 +433,22 @@ def _seed_besoins(
                 if data["processed_by_email"] is not None
                 else None
             ),
-            projet_id=project_id,
             created_by_id=users_by_email[str(data["owner_email"])].id,
             updated_by_id=users_by_email[str(data["owner_email"])].id,
         )
         db.add(besoin)
         db.flush()
-        besoins_by_title[title] = besoin
-        print(f"  [created] besoin '{title}'")
+        besoins_by_key[key] = besoin
+        print(f"  [created] besoin '{key}'")
         counters = counters.add_created()
 
-    return besoins_by_title, counters
+    return besoins_by_key, counters
 
 
 def _seed_offres(
     db: Session,
     users_by_email: dict[str, User],
-    besoins_by_title: dict[str, BesoinRecrutement],
+    besoins_by_key: dict[str, BesoinRecrutement],
 ) -> SeedCounters:
     counters = SeedCounters()
 
@@ -539,7 +468,7 @@ def _seed_offres(
             deadline=data["deadline"],
             status=data["status"],
             published_at=data["published_at"],
-            besoin_id=besoins_by_title[str(data["besoin_title"])].id,
+            besoin_id=besoins_by_key[str(data["besoin_key"])].id,
             published_by_id=(
                 users_by_email[str(data["published_by_email"])].id
                 if data["published_by_email"] is not None

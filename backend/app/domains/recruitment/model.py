@@ -1,10 +1,10 @@
 """Recruitment models."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, String, text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,44 +21,30 @@ class ProjetRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     __tablename__ = "projets_recrutement"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(150), nullable=False)
-    description: Mapped[str | None] = mapped_column(nullable=True)
-    start_date: Mapped[date] = mapped_column(Date, nullable=False)
-    expected_end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[ProjetStatus] = mapped_column(
         SQLEnum(ProjetStatus, name="projetstatus"),
-        default=ProjetStatus.DRAFT,
-        server_default=text("'DRAFT'"),
+        default=ProjetStatus.ACTIVE,
+        server_default=text("'ACTIVE'"),
         nullable=False,
     )
     manager_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    besoin_recrutement_id: Mapped[int | None] = mapped_column(
+    besoin_recrutement_id: Mapped[int] = mapped_column(
         ForeignKey("besoins_recrutement.id"),
         unique=True,
-        nullable=True,
+        nullable=False,
     )
-    fiche_de_poste_id: Mapped[int | None] = mapped_column(
-        ForeignKey("fiches_de_poste.id"),
-        nullable=True,
-    )
-    nombre_postes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     email_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     manager: Mapped[User | None] = relationship(
         "User",
         foreign_keys=[manager_id],
         overlaps="managed_projects",
     )
-    besoins: Mapped[list[BesoinRecrutement]] = relationship(
-        back_populates="projet",
-        foreign_keys="BesoinRecrutement.projet_id",
-    )
-    besoin_recrutement: Mapped[BesoinRecrutement | None] = relationship(
-        foreign_keys=[besoin_recrutement_id],
-        post_update=True,
-    )
-    fiche_de_poste: Mapped[FicheDePoste | None] = relationship(
-        foreign_keys=[fiche_de_poste_id],
-        overlaps="recruitment_projects",
+    besoin_recrutement: Mapped[BesoinRecrutement] = relationship(
+        foreign_keys=[besoin_recrutement_id]
     )
 
     @property
@@ -70,20 +56,34 @@ class ProjetRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
 
     @property
     def fiche_title(self) -> str | None:
-        return self.fiche_de_poste.title if self.fiche_de_poste else None
+        besoin = self.besoin_recrutement
+        fiche = besoin.fiche_de_poste if besoin else None
+        return fiche.title if fiche else None
 
     @property
     def besoin_title(self) -> str | None:
-        return self.besoin_recrutement.title if self.besoin_recrutement else None
+        return self.fiche_title
+
+    @property
+    def nombre_postes(self) -> int | None:
+        besoin = self.besoin_recrutement
+        return besoin.positions_count if besoin else None
+
+    @property
+    def title(self) -> str:
+        fiche_title = self.fiche_title or "Poste"
+        return f"Recrutement - {fiche_title}"
 
     @property
     def direction_name(self) -> str | None:
-        fiche = self.fiche_de_poste
+        besoin = self.besoin_recrutement
+        fiche = besoin.fiche_de_poste if besoin else None
         return fiche.direction_name if fiche else None
 
     @property
     def director_name(self) -> str | None:
-        fiche = self.fiche_de_poste
+        besoin = self.besoin_recrutement
+        fiche = besoin.fiche_de_poste if besoin else None
         direction = fiche.direction if fiche else None
         director = direction.director if direction else None
         if director is None:
@@ -95,8 +95,7 @@ class BesoinRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     __tablename__ = "besoins_recrutement"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(150), nullable=False)
-    description: Mapped[str | None] = mapped_column(nullable=True)
+    lieu_affectation: Mapped[str] = mapped_column(String(255), nullable=False)
     positions_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     desired_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     justification: Mapped[str | None] = mapped_column(nullable=True)
@@ -108,11 +107,10 @@ class BesoinRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     )
     status: Mapped[BesoinStatus] = mapped_column(
         SQLEnum(BesoinStatus, name="besoinstatus"),
-        default=BesoinStatus.DRAFT,
-        server_default=text("'DRAFT'"),
+        default=BesoinStatus.SUBMITTED,
+        server_default=text("'SUBMITTED'"),
         nullable=False,
     )
-    rejection_reason: Mapped[str | None] = mapped_column(nullable=True)
     fiche_de_poste_id: Mapped[int] = mapped_column(
         ForeignKey("fiches_de_poste.id"),
         nullable=False,
@@ -125,16 +123,8 @@ class BesoinRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
         ForeignKey("users.id"),
         nullable=True,
     )
-    projet_id: Mapped[int | None] = mapped_column(
-        ForeignKey("projets_recrutement.id"),
-        nullable=True,
-    )
     fiche_de_poste: Mapped[FicheDePoste] = relationship(
-    foreign_keys=[fiche_de_poste_id]
-)
-    projet: Mapped[ProjetRecrutement | None] = relationship(
-        back_populates="besoins",
-        foreign_keys=[projet_id],
+        foreign_keys=[fiche_de_poste_id]
     )
     submitted_by: Mapped[User | None] = relationship(foreign_keys=[submitted_by_id])
     processed_by: Mapped[User | None] = relationship(foreign_keys=[processed_by_id])
@@ -167,7 +157,7 @@ class BesoinRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
 
     @property
     def location(self) -> str | None:
-        return self.description
+        return self.lieu_affectation
 
     @property
     def recruitment_reason(self) -> str | None:

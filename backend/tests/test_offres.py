@@ -57,8 +57,7 @@ def _create_besoin(client: TestClient, token: str, fiche_id: int, title: str) ->
     r = client.post(
         "/besoins/",
         json={
-            "title": title,
-            "location": f"{title} description",
+            "lieu_affectation": f"{title} affectation",
             "recruitment_reason": f"{title} justification",
             "priority": "NORMALE",
             "positions_count": 1,
@@ -79,12 +78,6 @@ def _create_approved_besoin(
     title: str,
 ) -> int:
     besoin_id = _create_besoin(client, directeur_token, fiche_id, title)
-
-    submitted = client.post(
-        f"/besoins/{besoin_id}/soumettre",
-        headers=_auth(directeur_token),
-    )
-    assert submitted.status_code == 200
 
     approved = client.post(
         f"/besoins/{besoin_id}/approuver",

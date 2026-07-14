@@ -30,8 +30,6 @@ class FicheDePoste(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
 
     direction: Mapped[Direction] = relationship(back_populates="fiches")
     validated_by: Mapped[User | None] = relationship(foreign_keys=[validated_by_id])
-    recruitment_projects = relationship("ProjetRecrutement",
-                                         foreign_keys="ProjetRecrutement.fiche_de_poste_id")
 
     @property
     def direction_name(self) -> str | None:

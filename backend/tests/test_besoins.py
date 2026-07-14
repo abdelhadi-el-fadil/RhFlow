@@ -57,14 +57,13 @@ def _create_besoin(
     client: TestClient,
     token: str,
     fiche_id: int,
-    title: str,
+    label: str,
 ) -> dict[str, Any]:
     r = client.post(
         "/besoins/",
         json={
-            "title": title,
-            "location": f"{title} description",
-            "recruitment_reason": f"{title} justification",
+            "lieu_affectation": f"{label} lieu",
+            "recruitment_reason": f"{label} justification",
             "priority": "NORMALE",
             "positions_count": 2,
             "desired_date": "2026-07-01",
@@ -97,16 +96,8 @@ def test_nominal_workflow_submit_approve_and_reject(
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     besoin = _create_besoin(client, directeur_token, fiche_id, "Need 1")
-    assert besoin["status"] == "DRAFT"
-
-    submitted = client.post(
-        f"/besoins/{besoin['id']}/soumettre",
-        headers=_auth(directeur_token),
-    )
-    assert submitted.status_code == 200
-    submitted_body = submitted.json()["data"]
-    assert submitted_body["status"] == "SUBMITTED"
-    assert submitted_body["submitted_by_id"] == directeur.id
+    assert besoin["status"] == "SUBMITTED"
+    assert besoin["submitted_by_id"] == directeur.id
 
     approved = client.post(
         f"/besoins/{besoin['id']}/approuver",
@@ -118,10 +109,6 @@ def test_nominal_workflow_submit_approve_and_reject(
     assert approved_body["processed_by_id"] == drh.id
 
     rejected_besoin = _create_besoin(client, directeur_token, fiche_id, "Need 2")
-    client.post(
-        f"/besoins/{rejected_besoin['id']}/soumettre",
-        headers=_auth(directeur_token),
-    )
     rejected = client.post(
         f"/besoins/{rejected_besoin['id']}/rejeter",
         json={"reason": "Reason is detailed enough"},
@@ -130,7 +117,6 @@ def test_nominal_workflow_submit_approve_and_reject(
     assert rejected.status_code == 200
     rejected_body = rejected.json()["data"]
     assert rejected_body["status"] == "REJECTED"
-    assert rejected_body["rejection_reason"] == "Reason is detailed enough"
 
 
 def test_invalid_transitions_return_409(
@@ -154,12 +140,6 @@ def test_invalid_transitions_return_409(
     fiche_id = _create_fiche(client, directeur_token, direction_id)
 
     draft_need = _create_besoin(client, directeur_token, fiche_id, "Need draft")
-    submitted = client.post(
-        f"/besoins/{draft_need['id']}/soumettre",
-        headers=_auth(directeur_token),
-    )
-    assert submitted.status_code == 200
-
     approved = client.post(
         f"/besoins/{draft_need['id']}/approuver",
         headers=_auth(drh_token),
@@ -174,20 +154,20 @@ def test_invalid_transitions_return_409(
     assert approve_approved.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
 
     second_need = _create_besoin(client, directeur_token, fiche_id, "Need second")
-    reject_draft = client.post(
+    reject_submitted = client.post(
         f"/besoins/{second_need['id']}/rejeter",
         json={"reason": "This reason is long enough"},
         headers=_auth(drh_token),
     )
-    assert reject_draft.status_code == 409
-    assert reject_draft.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
+    assert reject_submitted.status_code == 200
+    assert reject_submitted.json()["data"]["status"] == "REJECTED"
 
     third_need = _create_besoin(client, directeur_token, fiche_id, "Need third")
     submit_third = client.post(
         f"/besoins/{third_need['id']}/soumettre",
         headers=_auth(directeur_token),
     )
-    assert submit_third.status_code == 200
+    assert submit_third.status_code == 409
 
     resubmit = client.post(
         f"/besoins/{third_need['id']}/soumettre",
@@ -196,32 +176,28 @@ def test_invalid_transitions_return_409(
     assert resubmit.status_code == 409
     assert resubmit.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
 
-    client.post(
-        f"/besoins/{third_need['id']}/rejeter",
-        json={"reason": "This reason is long enough"},
-        headers=_auth(drh_token),
-    )
-    after_rejected_approve = client.post(
+    client.post(f"/besoins/{third_need['id']}/approuver", headers=_auth(drh_token))
+    after_approved_approve = client.post(
         f"/besoins/{third_need['id']}/approuver",
         headers=_auth(drh_token),
     )
-    assert after_rejected_approve.status_code == 409
-    assert after_rejected_approve.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
+    assert after_approved_approve.status_code == 409
+    assert after_approved_approve.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
 
-    after_rejected_reject = client.post(
+    after_approved_reject = client.post(
         f"/besoins/{third_need['id']}/rejeter",
         json={"reason": "This reason is long enough"},
         headers=_auth(drh_token),
     )
-    assert after_rejected_reject.status_code == 409
-    assert after_rejected_reject.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
+    assert after_approved_reject.status_code == 409
+    assert after_approved_reject.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
 
-    after_rejected_submit = client.post(
+    after_approved_submit = client.post(
         f"/besoins/{third_need['id']}/soumettre",
         headers=_auth(directeur_token),
     )
-    assert after_rejected_submit.status_code == 409
-    assert after_rejected_submit.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
+    assert after_approved_submit.status_code == 409
+    assert after_approved_submit.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
 
 
 def test_409_vs_422_on_reject(
@@ -253,13 +229,13 @@ def test_409_vs_422_on_reject(
     assert reject_without_reason.status_code == 422
     assert reject_without_reason.json()["code"] == ErrorCode.VALIDATION_ERROR
 
-    valid_reason_on_draft = client.post(
+    valid_reason_on_submitted = client.post(
         f"/besoins/{besoin['id']}/rejeter",
         json={"reason": "This reason is long enough"},
         headers=_auth(drh_token),
     )
-    assert valid_reason_on_draft.status_code == 409
-    assert valid_reason_on_draft.json()["code"] == "RECRUTEMENT_INVALID_TRANSITION"
+    assert valid_reason_on_submitted.status_code == 200
+    assert valid_reason_on_submitted.json()["data"]["status"] == "REJECTED"
 
 
 def test_rbac_returns_403(
@@ -287,8 +263,7 @@ def test_rbac_returns_403(
         f"/besoins/{besoin['id']}/soumettre",
         headers=_auth(drh_token),
     )
-    assert submit_forbidden.status_code == 200
-    assert submit_forbidden.json()["data"]["status"] == "SUBMITTED"
+    assert submit_forbidden.status_code == 409
 
     approve_forbidden = client.post(
         f"/besoins/{besoin['id']}/approuver",
@@ -331,8 +306,7 @@ def test_404_for_missing_besoin_and_invalid_fiche_fk(
     invalid_fk = client.post(
         "/besoins/",
         json={
-            "title": "Invalid",
-            "location": "Description",
+            "lieu_affectation": "Description",
             "recruitment_reason": "Reason that is detailed enough",
             "priority": "NORMALE",
             "positions_count": 1,

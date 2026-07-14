@@ -255,7 +255,7 @@ export default function DashboardPage() {
               className="flex items-center justify-between rounded-lg border border-sky-200/70 bg-white/70 px-3 py-2 text-sky-900 transition-colors duration-200 hover:bg-sky-100/70"
             >
               <div>
-                <p className="font-medium text-sky-950">{need.title}</p>
+                <p className="font-medium text-sky-950">{need.fiche_title ?? `Besoin #${need.id}`}</p>
                 <p className="text-xs text-sky-700/80">
                   Fiche {need.fiche_de_poste_id} · {need.status}
                 </p>

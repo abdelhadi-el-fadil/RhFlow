@@ -8,14 +8,17 @@ function isLocalHost(hostname:  string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1"
 }
 
+function isInternalHost(hostname: string): boolean {
+  return hostname === "backend" || hostname === "0.0.0.0"
+}
+
 function resolveApiBaseUrl(): string {
   if (typeof window === "undefined") {
     return normalizeUrl(configuredApiBaseUrl ?? "http://localhost:8000")
   }
 
-  const browserProtocol = window.location.protocol === "https:" ? "https:" : "http:"
   const browserHost = window.location.hostname
-  const browserDefault = `${browserProtocol}//${browserHost}:8000`
+  const browserDefault = `http://${browserHost}:8000`
 
   if (!configuredApiBaseUrl) {
     return browserDefault
@@ -23,9 +26,8 @@ function resolveApiBaseUrl(): string {
 
   try {
     const parsed = new URL(configuredApiBaseUrl)
-    if (isLocalHost(parsed.hostname) && !isLocalHost(browserHost)) {
+    if ((isLocalHost(parsed.hostname) || isInternalHost(parsed.hostname)) && !isLocalHost(browserHost)) {
       parsed.hostname = browserHost
-      parsed.protocol = browserProtocol
       if (!parsed.port) {
         parsed.port = "8000"
       }

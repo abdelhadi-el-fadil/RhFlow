@@ -59,8 +59,7 @@ def _create_besoin(client: TestClient,
     response = client.post(
         "/besoins/",
         json={
-            "title": title,
-            "location": "desc",
+            "lieu_affectation": "desc",
             "recruitment_reason": "justification detaillee",
             "priority": "NORMALE",
             "positions_count": 3,
@@ -92,19 +91,21 @@ def test_admin_can_create_list_update_close_and_delete_project(
                                      director_id=directeur.id)
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     besoin = _create_besoin(client, directeur_token, fiche_id)
-    client.post(f"/besoins/{besoin['id']}/soumettre", headers=_auth(directeur_token))
     client.post(f"/besoins/{besoin['id']}/approuver", headers=_auth(drh_token))
 
-    besoin_lookup = client.get(f"/besoins/{besoin['id']}", headers=_auth(admin_token))
-    assert besoin_lookup.status_code == 200
-    auto_project_id = besoin_lookup.json()["data"]["projet_id"]
-    assert auto_project_id is not None
+    # Find the auto-created project by querying projects with the besoin's fiche direction
+    projects_response = client.get(f"/projets/?direction_id={direction_id}",
+                                    headers=_auth(admin_token))
+    assert projects_response.status_code == 200
+    projects = projects_response.json()["data"]
+    auto_project = next((p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+    assert auto_project is not None
+    auto_project_id = auto_project["id"]
 
     created = client.get(f"/projets/{auto_project_id}", headers=_auth(admin_token))
     assert created.status_code == 200
     body = created.json()["data"]
     assert body["besoin_recrutement_id"] == besoin["id"]
-    assert body["fiche_de_poste_id"] == fiche_id
     assert body["nombre_postes"] == 3
 
     listed = client.get(f"/projets/?direction_id={direction_id}",
@@ -114,11 +115,11 @@ def test_admin_can_create_list_update_close_and_delete_project(
 
     updated = client.put(
         f"/projets/{body['id']}",
-        json={"nombre_postes": 6, "description": "mise a jour"},
+        json={"email_subject": "Candidature - Test - Ref. 0001"},
         headers=_auth(admin_token),
     )
     assert updated.status_code == 200
-    assert updated.json()["data"]["nombre_postes"] == 6
+    assert updated.json()["data"]["email_subject"] == "Candidature - Test - Ref. 0001"
 
     closed = client.patch(f"/projets/{body['id']}/cloturer", headers=_auth(admin_token))
     assert closed.status_code == 200
@@ -147,36 +148,29 @@ def test_attach_need_populates_new_project_fields(
                              direction_id,
                              title="Fiche projet 2")
     besoin = _create_besoin(client, directeur_token, fiche_id, title="Besoin projet 2")
-    client.post(f"/besoins/{besoin['id']}/soumettre", headers=_auth(directeur_token))
     client.post(f"/besoins/{besoin['id']}/approuver", headers=_auth(drh_token))
 
     project = client.post(
         "/projets/",
         json={
-            "title": "Projet B",
-            "description": "description",
-            "start_date": "2026-07-01",
-            "expected_end_date": "2026-08-01",
-            "status": "DRAFT",
             "manager_id": drh.id,
+            "besoin_recrutement_id": besoin["id"],
         },
         headers=_auth(drh_token),
     )
-    project_id = project.json()["data"]["id"]
+    assert project.status_code == 409
 
-    besoin_lookup = client.get(f"/besoins/{besoin['id']}", headers=_auth(drh_token))
-    assert besoin_lookup.status_code == 200
-    auto_project_id = besoin_lookup.json()["data"]["projet_id"]
-    assert auto_project_id is not None
+    # Find the auto-created project by querying all projects
+    projects_response = client.get("/projets/?direction_id=" + str(direction_id),
+                                    headers=_auth(drh_token))
+    assert projects_response.status_code == 200
+    projects = projects_response.json()["data"]
+    auto_project = next((p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+    assert auto_project is not None
+    auto_project_id = auto_project["id"]
 
-    auto_project = client.get(f"/projets/{auto_project_id}", headers=_auth(drh_token))
-    assert auto_project.status_code == 200
-    auto_project_body = auto_project.json()["data"]
+    auto_project_detail = client.get(f"/projets/{auto_project_id}", headers=_auth(drh_token))
+    assert auto_project_detail.status_code == 200
+    auto_project_body = auto_project_detail.json()["data"]
     assert auto_project_body["besoin_recrutement_id"] == besoin["id"]
-    assert auto_project_body["fiche_de_poste_id"] == fiche_id
     assert auto_project_body["nombre_postes"] == 3
-
-    attached = client.post(f"/projets/{project_id}/besoins/{besoin['id']}",
-                           headers=_auth(drh_token))
-    assert attached.status_code == 409
-    assert attached.json()["code"] == "RECRUTEMENT_BESOIN_ALREADY_ATTACHED"

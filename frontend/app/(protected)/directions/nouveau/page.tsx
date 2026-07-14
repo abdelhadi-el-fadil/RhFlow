@@ -41,6 +41,10 @@ function validate(form: DirectionCreate): FieldErrors {
     errors.description = "La description ne doit pas dépasser 500 caractères.";
   }
 
+  if (!form.director_id) {
+    errors.director_id = "Le directeur est requis.";
+  }
+
   return errors;
 }
 
@@ -103,7 +107,7 @@ function NewDirectionContent() {
       await apiClient.post("/directions/", {
         name: form.name,
         description: form.description || null,
-        director_id: form.director_id ? Number(form.director_id) : null,
+        director_id: Number(form.director_id),
       });
       toast.success("Direction créée avec succès.");
       router.push("/directions");
@@ -147,7 +151,13 @@ function NewDirectionContent() {
             />
           </Field>
           <Field label="Directeur" error={fieldErrors.director_id}>
-            <Select value={form.director_id} onChange={(event) => updateField("director_id", event.target.value)}>
+            <Select
+              value={form.director_id}
+              onChange={(event) => updateField("director_id", event.target.value)}
+              placeholder="Choisir un directeur"
+              aria-invalid={Boolean(fieldErrors.director_id)}
+            >
+              <option value=""></option>
               {directorOptions.map((director) => <option key={director.id} value={director.id}>{director.full_name || director.email}</option>)}
             </Select>
           </Field>

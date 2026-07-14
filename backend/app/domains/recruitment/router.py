@@ -35,10 +35,17 @@ besoins_router = APIRouter(prefix="/besoins", tags=["Recruitment needs"])
 def list_projects(
     params: Annotated[PaginationParams, Depends()],
     direction_id: int | None = None,
-    _: User = Depends(get_current_user),
+    archived: bool = False,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[ProjetRecrutementCardResponse]:
-    items, total = recruitment_service.list_projects(db, params, direction_id)
+    items, total = recruitment_service.list_projects(
+        db,
+        params,
+        current_user,
+        direction_id=direction_id,
+        archived=archived,
+    )
     return PaginatedResponse(
         data=[ProjetRecrutementCardResponse.model_validate(item) for item in items],
         meta=PaginationMeta(
@@ -116,10 +123,10 @@ def attach_need(
 @router.get("/{projet_id}", response_model=ApiResponse[ProjetRecrutementResponse])
 def get_project(
     projet_id: int,
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProjetRecrutementResponse]:
-    project = recruitment_service.get_project(db, projet_id)
+    project = recruitment_service.get_project(db, projet_id, current_user)
     return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
 
 
@@ -228,7 +235,7 @@ def submit_besoin(
 )
 def approve_besoin(
     besoin_id: int,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.approve_besoin(db, besoin_id, current_user)
@@ -242,7 +249,7 @@ def approve_besoin(
 def reject_besoin(
     besoin_id: int,
     payload: RejectBesoinRequest,
-    current_user: User = Depends(require_role(UserRole.DRH)),
+    current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.reject_besoin(db, besoin_id, payload, current_user)

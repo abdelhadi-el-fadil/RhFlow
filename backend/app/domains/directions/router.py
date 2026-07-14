@@ -26,10 +26,10 @@ router = APIRouter(prefix="/directions", tags=["Directions"])
 @router.get("/", response_model=PaginatedResponse[DirectionResponse])
 def list_directions(
     params: Annotated[PaginationParams, Depends()],
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[DirectionResponse]:
-    items, total = directions_service.list_directions(db, params)
+    items, total = directions_service.list_directions(db, params, current_user)
     return PaginatedResponse(
         data=[DirectionResponse.model_validate(i) for i in items],
         meta=PaginationMeta(
@@ -44,10 +44,10 @@ def list_directions(
 @router.get("/{direction_id}", response_model=ApiResponse[DirectionResponse])
 def get_direction(
     direction_id: int,
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[DirectionResponse]:
-    direction = directions_service.get_direction(db, direction_id)
+    direction = directions_service.get_direction(db, direction_id, current_user)
     return ApiResponse(data=DirectionResponse.model_validate(direction))
 
 

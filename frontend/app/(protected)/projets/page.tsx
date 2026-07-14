@@ -37,9 +37,10 @@ function Content() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null)
   const [emailDraft, setEmailDraft] = useState("")
+  const [showArchived, setShowArchived] = useState(false)
 
   const canManageProjects = user?.role === "ADMIN" || user?.role === "DRH"
-  const canEditEmailSubject = user?.role === "DRH"
+  const canEditEmailSubject = user?.role === "DRH" || user?.role === "ADMIN"
 
   const directionParam = useMemo(() => {
     if (!selectedDirectionId) {
@@ -57,14 +58,14 @@ function Content() {
   }, [])
 
   const loadProjects = useCallback(async () => {
-    const params: Record<string, number> = { page: 1, page_size: 100 }
+    const params: Record<string, number | boolean> = { page: 1, page_size: 100, archived: showArchived }
     if (directionParam !== null) {
       params.direction_id = directionParam
     }
 
     const response = await apiClient.get<PaginatedResponse<ProjetRecrutementCardResponse>>("/projets/", { params })
     setProjects(response.data.data)
-  }, [directionParam])
+  }, [directionParam, showArchived])
 
   useEffect(() => {
     let cancelled = false
@@ -167,7 +168,6 @@ function Content() {
           {actionError && <p className="md:col-span-3 text-sm text-destructive">{actionError}</p>}
           <Field label="Filtrer par direction">
             <Select value={selectedDirectionId} onChange={(event) => setSelectedDirectionId(event.target.value)}>
-              <option value="">Toutes les directions</option>
               {directions.map((direction) => (
                 <option key={direction.id} value={direction.id}>
                   {direction.name}
@@ -175,6 +175,11 @@ function Content() {
               ))}
             </Select>
           </Field>
+          <div className="flex items-end">
+            <Button type="button" variant="outline" onClick={() => setShowArchived((value) => !value)}>
+              {showArchived ? "Voir actifs" : "Voir archives"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -200,7 +205,6 @@ function Content() {
                 <p>Manager: {project.manager_name ?? "-"}</p>
                 <p>Fiche de poste: {project.fiche_title ?? "-"}</p>
                 <p>Besoin principal: {project.besoin_title ?? "-"}</p>
-                <p>Date d&apos;ouverture: {project.start_date}</p>
                 <p>Nombre de postes: {project.nombre_postes ?? "-"}</p>
               </div>
 
@@ -252,7 +256,7 @@ function Content() {
                 <Button asChild variant="outline">
                   <Link href={`/projets/${project.id}/candidatures`}>Voir les candidatures</Link>
                 </Button>
-                {canManageProjects && project.status !== "CLOSED" && (
+                {canManageProjects && project.status !== "CLOSED" && !showArchived && (
                   <Button variant="secondary" onClick={() => void closeProject(project.id)}>
                     Fermer le projet
                   </Button>
