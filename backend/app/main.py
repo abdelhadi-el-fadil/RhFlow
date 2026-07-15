@@ -1,5 +1,6 @@
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -8,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.ai.factory import configure_llm
+from app.ai.router.chat_router import router as ai_router
 from app.config import settings
 from app.core.codes import ErrorCode
 from app.core.exceptions import AppException
@@ -24,9 +27,22 @@ from app.domains.recruitment.router import (
 )
 from app.domains.users.router import router as users_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info("Initializing LLM...")
+
+    configure_llm()
+
+    logger.info("LLM initialized successfully.")
+
+    yield
+
+    logger.info("Application shutting down.")
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 allowed_origins = [
@@ -130,6 +146,7 @@ app.include_router(fiches_de_poste_router)
 app.include_router(recruitment_router)
 app.include_router(recruitment_besoins_router)
 app.include_router(offres_router)
+app.include_router(ai_router)
 
 # ---------------------------------------------------------------------------
 # Base routes
