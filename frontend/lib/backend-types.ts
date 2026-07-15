@@ -118,6 +118,10 @@ export type ProjetRecrutementCardResponse = {
   email_subject: string | null
 }
 
+export type GeneratedOfferResponse = {
+  offer: string
+}
+
 export type OffreStatus = "DRAFT" | "PUBLISHED" | "CLOSED"
 
 export type OffreResponse = {

@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { HandCoins } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
@@ -9,8 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { ApiResponse, GeneratedOfferResponse, OffrePublicResponse, PaginatedResponse } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import type { OffrePublicResponse, PaginatedResponse } from "@/lib/backend-types"
 import { useAuth } from "@/components/auth-provider"
 
 export default function OffresPage() {
@@ -23,16 +24,37 @@ export default function OffresPage() {
 
 function Content() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [items, setItems] = useState<OffrePublicResponse[]>([])
+  const [generatedOffer, setGeneratedOffer] = useState<string | null>(null)
+  const [isLoadingOffer, setIsLoadingOffer] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const canCreate = user?.role === "DRH" || user?.role === "ADMIN" || user?.role === "DIRECTEUR" || user?.role === "DG"
+  const projectId = useMemo(() => {
+    const rawProjectId = searchParams.get("projectId")
+    if (!rawProjectId) {
+      return null
+    }
+
+    const parsed = Number(rawProjectId)
+    return Number.isNaN(parsed) ? null : parsed
+  }, [searchParams])
 
   const load = async () => {
     const response = await apiClient.get<PaginatedResponse<OffrePublicResponse>>("/offres/", { params: { page: 1, page_size: 50 } })
     setItems(response.data.data)
   }
 
+  const loadGeneratedOffer = async (offerProjectId: number) => {
+    const response = await apiClient.get<ApiResponse<GeneratedOfferResponse>>(`/ai/generate-offer/${offerProjectId}`)
+    setGeneratedOffer(response.data.data.offer)
+  }
+
   useEffect(() => {
+    if (projectId !== null) {
+      return
+    }
+
     const run = async () => {
       try {
         setError(null)
@@ -43,11 +65,68 @@ function Content() {
     }
 
     void run()
-  }, [])
+  }, [projectId])
+
+  useEffect(() => {
+    if (projectId === null) {
+      return
+    }
+
+    let cancelled = false
+
+    const run = async () => {
+      setIsLoadingOffer(true)
+      setError(null)
+      try {
+        await loadGeneratedOffer(projectId)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiHttpError ? err.message : "Impossible de générer l'offre.")
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingOffer(false)
+        }
+      }
+    }
+
+    void run()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  if (projectId !== null) {
+    return (
+      <div className="stagger-enter space-y-6">
+        <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <CardTitle className="premium-title flex items-center gap-2">
+              <HandCoins className="size-5 text-teal-700" />
+              Offre LinkedIn générée
+            </CardTitle>
+            <Button asChild variant="outline">
+              <Link href="/offres">Retour aux offres</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+            {isLoadingOffer && <p className="premium-copy animate-pulse motion-reduce:animate-none">Génération de l&apos;offre…</p>}
+            {!isLoadingOffer && generatedOffer && (
+              <pre className="whitespace-pre-wrap rounded-lg border border-stone-300/70 bg-white/90 p-4 text-sm leading-6 text-stone-900">
+                {generatedOffer}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="stagger-enter space-y-6">
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <CardTitle className="premium-title flex items-center gap-2">
             <HandCoins className="size-5 text-teal-700" />

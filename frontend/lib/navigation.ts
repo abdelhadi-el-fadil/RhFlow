@@ -7,14 +7,15 @@ export type NavIconKey =
   | "fiches"
   | "besoins"
   | "projets"
-  | "offres"
+  | "archives"
   | "settings"
 
 export type NavItem = {
   label: string
-  href: string
+  href?: string
   roles: UserRole[]
   icon: NavIconKey
+  children?: NavItem[]
 }
 
 export type NavigationConfig = {
@@ -29,7 +30,25 @@ const NAV_PRIMARY: NavItem[] = [
   { label: "Fiches de poste", href: "/fiches-de-poste", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "fiches" },
   { label: "Besoins", href: "/besoins", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "besoins" },
   { label: "Projets", href: "/projets", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "projets" },
-  { label: "Offres", href: "/offres", roles: ["ADMIN", "DRH"], icon: "offres" },
+  {
+    label: "Archives",
+    roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"],
+    icon: "archives",
+    children: [
+      {
+        label: "Besoins de recrutement",
+        href: "/archives/besoins",
+        roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"],
+        icon: "archives",
+      },
+      {
+        label: "Projets de recrutement",
+        href: "/archives/projets",
+        roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"],
+        icon: "archives",
+      },
+    ],
+  },
 ]
 
 const NAV_FOOTER: NavItem[] = [
@@ -42,7 +61,10 @@ export function getNavigationForRole(role: UserRole | null | undefined): Navigat
   }
 
   return {
-    primary: NAV_PRIMARY.filter((item) => item.roles.includes(role)),
+    primary: NAV_PRIMARY.filter((item) => item.roles.includes(role)).map((item) => ({
+      ...item,
+      children: item.children?.filter((child) => child.roles.includes(role)),
+    })),
     footer: NAV_FOOTER.filter((item) => item.roles.includes(role)),
   }
 }

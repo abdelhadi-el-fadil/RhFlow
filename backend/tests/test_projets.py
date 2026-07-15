@@ -178,3 +178,4 @@ def test_attach_need_populates_new_project_fields(
     auto_project_body = auto_project_detail.json()["data"]
     assert auto_project_body["besoin_recrutement_id"] == besoin["id"]
     assert auto_project_body["nombre_postes"] == 3
+    assert auto_project_body["offre"] is None

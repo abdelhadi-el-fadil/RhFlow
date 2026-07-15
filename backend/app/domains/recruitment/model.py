@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +34,7 @@ class ProjetRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
         nullable=False,
     )
     email_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    offre: Mapped[str | None] = mapped_column(Text, nullable=True)
     archived_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

@@ -53,12 +53,14 @@ class ProjetRecrutementCreate(BaseModel):
     manager_id: int | None = None
     besoin_recrutement_id: int
     email_subject: str | None = None
+    offre: str | None = None
 
 
 class ProjetRecrutementUpdate(BaseModel):
     status: ProjetStatus | None = None
     manager_id: int | None = None
     email_subject: str | None = None
+    offre: str | None = None
 
 
 class ProjetRecrutementCardResponse(BaseModel):
@@ -75,6 +77,7 @@ class ProjetRecrutementCardResponse(BaseModel):
     fiche_title: str | None
     besoin_title: str | None
     email_subject: str | None
+    offre: str | None
 
 
 class ProjetRecrutementResponse(BaseModel):
@@ -90,6 +93,7 @@ class ProjetRecrutementResponse(BaseModel):
     fiche_title: str | None = None
     nombre_postes: int | None
     email_subject: str | None = None
+    offre: str | None = None
     direction_name: str | None = None
     director_name: str | None = None
     archived_at: datetime | None = None

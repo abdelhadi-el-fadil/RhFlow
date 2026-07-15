@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Archive,
   BookUser,
   Building2,
+  ChevronDown,
   ClipboardList,
   FileText,
   Gauge,
-  HandCoins,
   LogOut,
   Menu,
   Settings,
@@ -23,6 +24,7 @@ import { Toaster } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import type { NavItem } from "@/lib/navigation";
 import { getNavigationForRole } from "@/lib/navigation";
 
 const ICON_BY_KEY: Record<string, LucideIcon> = {
@@ -32,7 +34,7 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
   fiches: FileText,
   besoins: ClipboardList,
   projets: BookUser,
-  offres: HandCoins,
+  archives: Archive,
   settings: Settings,
 };
 
@@ -41,6 +43,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    archives: pathname.startsWith("/archives"),
+  });
   const roleLabel = user?.role ?? "-";
   const userLabel = user?.full_name ?? user?.email ?? "Utilisateur";
   const greetingName =
@@ -61,16 +66,85 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
-  const nav = (items: typeof navigation.primary) => (
+  const nav = (items: NavItem[]) => (
     <nav className="space-y-1">
       {items.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const hasChildren = Boolean(item.children?.length);
+        const active = hasChildren
+          ? item.children?.some(
+              (child) => child.href && (pathname === child.href || pathname.startsWith(`${child.href}/`)),
+            )
+          : Boolean(
+              item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`)),
+            );
         const Icon = ICON_BY_KEY[item.icon];
+
+        if (hasChildren) {
+          const expanded = expandedGroups.archives || active;
+          return (
+            <div key={item.label} className="space-y-1">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  setExpandedGroups((current) => ({
+                    ...current,
+                    archives: !expanded,
+                  }))
+                }
+                className={`group flex h-auto w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  active
+                    ? "bg-white/12 text-white ring-1 ring-sky-400/40 shadow-lg shadow-sky-900/20"
+                    : "text-slate-300 hover:bg-white/8 hover:text-white hover:ring-1 hover:ring-white/10"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <Icon
+                    className={`size-4 shrink-0 transition-colors ${
+                      active
+                        ? "text-sky-300"
+                        : "text-slate-400 group-hover:text-sky-300"
+                    }`}
+                    strokeWidth={2.5}
+                  />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                </span>
+                <ChevronDown
+                  className={`size-4 transition-transform ${expanded ? "rotate-180 text-sky-300" : "text-slate-400 group-hover:text-sky-300"}`}
+                />
+              </Button>
+              {expanded && item.children && (
+                <div className="ml-6 space-y-1 border-l border-white/10 pl-3">
+                  {item.children.map((child) => {
+                    const childActive = Boolean(
+                      child.href &&
+                        (pathname === child.href || pathname.startsWith(`${child.href}/`)),
+                    );
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href ?? "#"}
+                        onClick={closeNav}
+                        className={`block rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                          childActive
+                            ? "bg-white/12 text-white ring-1 ring-sky-400/40"
+                            : "text-slate-300 hover:bg-white/8 hover:text-white"
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href ?? "#"}
             onClick={closeNav}
             className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
               active
@@ -141,7 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sliding drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-slate-600/40 bg-gradient-to-br from-slate-950 via-indigo-950 to-emerald-950 p-4 shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-slate-600/40 bg-linear-to-br from-slate-950 via-indigo-950 to-emerald-950 p-4 shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
           navOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

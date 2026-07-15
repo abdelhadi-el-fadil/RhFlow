@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.ai.factory import configure_llm
 from app.ai.router.chat_router import router as ai_router
+from app.ai.router.offer_router import router as ai_offer_router
 from app.config import settings
 from app.core.codes import ErrorCode
 from app.core.exceptions import AppException
@@ -18,7 +19,6 @@ from app.core.logging import logger
 from app.domains.auth.router import router as auth_router
 from app.domains.directions.router import router as directions_router
 from app.domains.fiches_de_poste.router import router as fiches_de_poste_router
-from app.domains.offres.router import router as offres_router
 from app.domains.recruitment.router import (
     besoins_router as recruitment_besoins_router,
 )
@@ -145,8 +145,8 @@ app.include_router(directions_router)
 app.include_router(fiches_de_poste_router)
 app.include_router(recruitment_router)
 app.include_router(recruitment_besoins_router)
-app.include_router(offres_router)
 app.include_router(ai_router)
+app.include_router(ai_offer_router)
 
 # ---------------------------------------------------------------------------
 # Base routes

@@ -6,7 +6,6 @@ Seeds:
 - fiches de poste
 - projets recrutement
 - besoins recrutement
-- offres
 
 Run AFTER migrations have been applied:
     python -m alembic upgrade head
@@ -18,7 +17,7 @@ Idempotent: existing rows (matched on stable business keys) are not duplicated.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import cast
 
 from sqlalchemy import select
@@ -29,8 +28,6 @@ from app.core.security import hash_password
 from app.database import SessionLocal
 from app.domains.directions.model import Direction
 from app.domains.fiches_de_poste.model import FicheDePoste
-from app.domains.offres.enums import OffreStatus
-from app.domains.offres.model import Offre
 from app.domains.recruitment.enums import BesoinStatus
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.users.model import User
@@ -70,7 +67,6 @@ SEED_USERS: list[dict[str, object]] = [
         "role": UserRole.DG,
         "gsm": "+212600000003",
     },
-    # One dedicated DIRECTEUR per direction below.
     {
         "email": "directeur.ops@example.com",
         "full_name": "Directeur des Operations",
@@ -119,8 +115,10 @@ SEED_FICHES: list[dict[str, object]] = [
     {
         "title": "Chef de Projet RH",
         "main_activities": "Pilote les projets de transformation RH.",
-        "missions": "Coordonner les parties prenantes, suivre planning,"
-        " assurer livraison.",
+        "missions": (
+            "Coordonner les parties prenantes, suivre planning, "
+            "assurer livraison."
+        ),
         "experience_level": "5+ years",
         "formation_domain": "Ressources Humaines / Gestion",
         "education_level": "Bac+5",
@@ -153,8 +151,10 @@ SEED_FICHES: list[dict[str, object]] = [
     {
         "title": "Responsable Production",
         "main_activities": "Supervise les lignes de production et la qualite.",
-        "missions": "Planifier la production, garantir la qualite,"
-        " piloter les equipes terrain.",
+        "missions": (
+            "Planifier la production, garantir la qualite, piloter "
+            "les equipes terrain."
+        ),
         "experience_level": "4+ years",
         "formation_domain": "Genie Industriel",
         "education_level": "Bac+5",
@@ -213,42 +213,6 @@ SEED_BESOINS: list[dict[str, object]] = [
         "fiche_title": "Responsable Production",
         "submitted_by_email": "directeur.ops@example.com",
         "processed_by_email": "drh@example.com",
-        "owner_email": "directeur.ops@example.com",
-    },
-]
-
-SEED_OFFRES: list[dict[str, object]] = [
-    {
-        "title": "Offre Ingenieur DevOps Senior",
-        "description": "Rejoignez l'equipe plateforme pour accelerer notre cloud.",
-        "requirements": "Kubernetes, Terraform, GitOps, monitoring.",
-        "deadline": date(2026, 9, 15),
-        "status": OffreStatus.PUBLISHED,
-        "published_at": datetime(2026, 6, 15, 10, 0, tzinfo=timezone.utc),
-        "besoin_key": "devops-senior",
-        "published_by_email": "drh@example.com",
-        "owner_email": "drh@example.com",
-    },
-    {
-        "title": "Offre Charge de Recrutement",
-        "description": "Rejoignez l'equipe RH pour accelerer le staffing.",
-        "requirements": "Sourcing, conduite d'entretien, ATS.",
-        "deadline": date(2026, 10, 1),
-        "status": OffreStatus.DRAFT,
-        "published_at": None,
-        "besoin_key": "charge-recrutement",
-        "published_by_email": None,
-        "owner_email": "drh@example.com",
-    },
-    {
-        "title": "Offre Responsable Production",
-        "description": "Encadrez une ligne de production a fort enjeu qualite.",
-        "requirements": "Lean Six Sigma, gestion d'equipe, QHSE.",
-        "deadline": date(2026, 9, 30),
-        "status": OffreStatus.PUBLISHED,
-        "published_at": datetime(2026, 7, 1, 9, 0, tzinfo=timezone.utc),
-        "besoin_key": "responsable-production",
-        "published_by_email": "drh@example.com",
         "owner_email": "directeur.ops@example.com",
     },
 ]
@@ -349,7 +313,6 @@ def _seed_fiches(
             continue
 
         direction = directions_by_code[str(data["direction_code"])]
-        # Each fiche is authored by the directeur of its own direction.
         direction_directeur_id = direction.director_id
 
         fiche = FicheDePoste(
@@ -433,8 +396,10 @@ def _seed_besoins(
                 if data["processed_by_email"] is not None
                 else None
             ),
-            created_by_id=users_by_email[str(data["owner_email"])].id,
-            updated_by_id=users_by_email[str(data["owner_email"])].id,
+            created_by_id=users_by_email[str(data["owner_email"])]
+            .id,
+            updated_by_id=users_by_email[str(data["owner_email"])]
+            .id,
         )
         db.add(besoin)
         db.flush()
@@ -445,52 +410,11 @@ def _seed_besoins(
     return besoins_by_key, counters
 
 
-def _seed_offres(
-    db: Session,
-    users_by_email: dict[str, User],
-    besoins_by_key: dict[str, BesoinRecrutement],
-) -> SeedCounters:
-    counters = SeedCounters()
-
-    print("\nSeeding offres...")
-    for data in SEED_OFFRES:
-        title = str(data["title"])
-        existing = db.scalars(select(Offre).where(Offre.title == title)).first()
-        if existing:
-            print(f"  [skip]    offre '{title}' already exists")
-            counters = counters.add_skipped()
-            continue
-
-        offer = Offre(
-            title=title,
-            description=str(data["description"]),
-            requirements=str(data["requirements"]),
-            deadline=data["deadline"],
-            status=data["status"],
-            published_at=data["published_at"],
-            besoin_id=besoins_by_key[str(data["besoin_key"])].id,
-            published_by_id=(
-                users_by_email[str(data["published_by_email"])].id
-                if data["published_by_email"] is not None
-                else None
-            ),
-            created_by_id=users_by_email[str(data["owner_email"])].id,
-            updated_by_id=users_by_email[str(data["owner_email"])].id,
-        )
-        db.add(offer)
-        db.flush()
-        print(f"  [created] offre '{title}'")
-        counters = counters.add_created()
-
-    return counters
-
-
 def seed() -> None:
     db = SessionLocal()
     try:
         users_by_email, users_counts = _seed_users(db)
 
-        # Ensure maps include any pre-existing users required by later entities.
         for data in SEED_USERS:
             email = str(data["email"])
             if email not in users_by_email:
@@ -513,7 +437,6 @@ def seed() -> None:
             fiches_by_title,
             projects_by_title,
         )
-        offres_counts = _seed_offres(db, users_by_email, besoins_by_title)
 
         db.commit()
 
@@ -523,7 +446,6 @@ def seed() -> None:
             + fiches_counts.created
             + projects_counts.created
             + besoins_counts.created
-            + offres_counts.created
         )
         total_skipped = (
             users_counts.skipped
@@ -531,7 +453,6 @@ def seed() -> None:
             + fiches_counts.skipped
             + projects_counts.skipped
             + besoins_counts.skipped
-            + offres_counts.skipped
         )
         print(f"\nDone. {total_created} created, {total_skipped} skipped.")
     except Exception:

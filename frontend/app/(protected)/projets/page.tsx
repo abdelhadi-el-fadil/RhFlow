@@ -160,7 +160,7 @@ function Content() {
 
   return (
     <div className="stagger-enter space-y-6">
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
           <CardTitle className="premium-title flex items-center gap-2"><BriefcaseBusiness className="size-5 text-teal-700" />Projets de recrutement</CardTitle>
         </CardHeader>
@@ -251,7 +251,7 @@ function Content() {
                   <Link href={`/projets/${project.id}`}>Gérer</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href={`/offres?projectId=${project.id}`}>Voir / générer l&apos;offre</Link>
+                  <Link href={`/projets/${project.id}/offre`}>Voir / générer l&apos;offre</Link>
                 </Button>
                 <Button asChild variant="outline">
                   <Link href={`/projets/${project.id}/candidatures`}>Voir les candidatures</Link>

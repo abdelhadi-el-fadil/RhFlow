@@ -1,1 +1,0 @@
-"""Offres domain package."""

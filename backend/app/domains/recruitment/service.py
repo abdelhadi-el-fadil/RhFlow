@@ -112,6 +112,7 @@ def create_project(
         manager_id=payload.manager_id or current_user.id,
         besoin_recrutement_id=payload.besoin_recrutement_id,
         email_subject=payload.email_subject,
+        offre=payload.offre,
         created_by_id=current_user.id,
         updated_by_id=current_user.id,
     )
@@ -186,7 +187,7 @@ def update_project(
 
     payload_data = payload.model_dump(exclude_unset=True)
 
-    for field_name in ("status", "manager_id", "email_subject"):
+    for field_name in ("status", "manager_id", "email_subject", "offre"):
         if field_name in payload_data:
             setattr(project, field_name, payload_data[field_name])
 
@@ -459,6 +460,7 @@ def approve_besoin(
             manager_id=current_user.id,
             besoin_recrutement_id=besoin.id,
             email_subject=subject,
+            offre=None,
             created_by_id=current_user.id,
             updated_by_id=current_user.id,
         )
