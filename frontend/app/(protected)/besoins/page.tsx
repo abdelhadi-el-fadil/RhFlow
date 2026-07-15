@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ClipboardList, MapPin, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { apiClient, ApiHttpError } from "@/lib/http"
 import type { BesoinPriority, BesoinRecrutementResponse, DirectionResponse, PaginatedResponse } from "@/lib/backend-types"
-import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
+import { badgeVariantFromBesoinStatus, labelFromBesoinStatus } from "@/lib/status-labels"
 
 const PRIORITY_OPTIONS: Array<{ value: BesoinPriority; label: string }> = [
   { value: "HAUTE", label: "Haute" },
@@ -51,7 +51,7 @@ function BesoinsContent() {
   const canCreateNeed = user?.role === "DIRECTEUR" || user?.role === "DRH" || user?.role === "ADMIN"
   const canDecide = user?.role === "DRH" || user?.role === "ADMIN"
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const params: Record<string, string | number | boolean> = { page: 1, page_size: 100, archived: showArchives }
     if (directionFilter !== "" && directionFilter !== "ALL") {
       params.direction_id = Number(directionFilter)
@@ -67,7 +67,7 @@ function BesoinsContent() {
 
     setItems(besoinsRes.data.data)
     setDirections(directionsRes.data.data)
-  }
+  }, [directionFilter, priorityFilter, showArchives])
 
   useEffect(() => {
     const run = async () => {
@@ -83,7 +83,7 @@ function BesoinsContent() {
     }
 
     void run()
-  }, [directionFilter, priorityFilter, showArchives])
+  }, [load])
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -123,7 +123,7 @@ function BesoinsContent() {
 
   return (
     <div className="stagger-enter space-y-6">
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
           <CardTitle className="premium-title flex items-center gap-2"><ClipboardList className="size-5 text-teal-700" />Besoins de recrutement</CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ function BesoinsContent() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{item.fiche_title ?? `Fiche #${item.fiche_de_poste_id}`}</span>
-                <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge>
+                <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{labelFromBesoinStatus(item.status)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-slate-700">

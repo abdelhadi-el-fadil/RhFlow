@@ -15,7 +15,7 @@ import type {
   ProjetRecrutementCardResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
+import { badgeVariantFromProjetStatus, labelFromProjetStatus } from "@/lib/status-labels"
 
 export default function ArchiveProjectsPage() {
   return (
@@ -123,7 +123,7 @@ function ArchiveProjectsContent() {
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{project.title}</span>
                 <Badge variant={badgeVariantFromProjetStatus(project.status)}>
-                  {project.status}
+                  {labelFromProjetStatus(project.status)}
                 </Badge>
               </CardTitle>
             </CardHeader>

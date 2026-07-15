@@ -16,7 +16,7 @@ import type {
   PaginatedResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
+import { badgeVariantFromBesoinStatus, labelFromBesoinStatus } from "@/lib/status-labels"
 
 const PRIORITY_OPTIONS: Array<{ value: BesoinPriority; label: string }> = [
   { value: "HAUTE", label: "Haute" },
@@ -140,7 +140,7 @@ function ArchiveBesoinsContent() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{item.fiche_title ?? `Fiche #${item.fiche_de_poste_id}`}</span>
-                <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge>
+                <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{labelFromBesoinStatus(item.status)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-slate-700">

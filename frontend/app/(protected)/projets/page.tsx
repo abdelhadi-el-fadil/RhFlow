@@ -17,7 +17,7 @@ import type {
   ProjetRecrutementCardResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
+import { badgeVariantFromProjetStatus, labelFromProjetStatus } from "@/lib/status-labels"
 
 export default function ProjetsPage() {
   return (
@@ -195,7 +195,7 @@ function Content() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-3">
                 <span>{project.title}</span>
-                <Badge variant={badgeVariantFromProjetStatus(project.status)}>{project.status === "ACTIVE" ? "OUVERT" : project.status}</Badge>
+                <Badge variant={badgeVariantFromProjetStatus(project.status)}>{labelFromProjetStatus(project.status)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">

@@ -14,7 +14,7 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import type { ApiResponse, BesoinPriority, BesoinRecrutementResponse, FicheDePosteResponse, PaginatedResponse } from "@/lib/backend-types"
-import { badgeVariantFromBesoinStatus } from "@/lib/status-labels"
+import { badgeVariantFromBesoinStatus, labelFromBesoinStatus } from "@/lib/status-labels"
 import { useAuth } from "@/components/auth-provider"
 
 export default function BesoinDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -154,7 +154,7 @@ function DetailContent({ id }: { id: number }) {
 
   return (
     <Card className="premium-panel premium-lift border-stone-300/70 bg-white/85">
-      <CardHeader><CardTitle className="premium-title">{item.fiche_title ?? `Besoin #${item.id}`} <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{item.status}</Badge></CardTitle></CardHeader>
+      <CardHeader><CardTitle className="premium-title">{item.fiche_title ?? `Besoin #${item.id}`} <Badge variant={badgeVariantFromBesoinStatus(item.status)}>{labelFromBesoinStatus(item.status)}</Badge></CardTitle></CardHeader>
       <CardContent>
         {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>

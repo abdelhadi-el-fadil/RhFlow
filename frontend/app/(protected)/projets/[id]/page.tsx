@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import type { ApiResponse, PaginatedResponse, ProjetRecrutementResponse, UserResponse } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
-import { badgeVariantFromProjetStatus } from "@/lib/status-labels"
+import { badgeVariantFromProjetStatus, labelFromProjetStatus } from "@/lib/status-labels"
 
 export default function ProjetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -122,7 +122,7 @@ function DetailContent({ id }: { id: number }) {
       <Card className="premium-panel premium-lift border-stone-300/70 bg-white/90">
         <CardHeader>
           <CardTitle className="premium-title">
-            {item.title} <Badge variant={badgeVariantFromProjetStatus(item.status)}>{item.status}</Badge>
+            {item.title} <Badge variant={badgeVariantFromProjetStatus(item.status)}>{labelFromProjetStatus(item.status)}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
