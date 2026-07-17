@@ -18,6 +18,7 @@ Usage
     def delete_user(user_id: int, _: User = Depends(require_role(UserRole.ADMIN))):
         ...
 """
+
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Annotated
@@ -74,6 +75,20 @@ def get_minio_storage_service() -> MinioStorageService:
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
         bucket_name=settings.MINIO_BUCKET,
+        secure=settings.MINIO_SECURE,
+        public_endpoint=settings.MINIO_PUBLIC_ENDPOINT,
+        public_secure=settings.MINIO_PUBLIC_SECURE,
+        public_path_prefix=settings.MINIO_PUBLIC_PATH_PREFIX,
+    )
+
+
+@lru_cache
+def get_minio_candidatures_storage_service() -> MinioStorageService:
+    return MinioStorageService(
+        endpoint=settings.MINIO_ENDPOINT,
+        access_key=settings.MINIO_ACCESS_KEY,
+        secret_key=settings.MINIO_SECRET_KEY,
+        bucket_name=settings.MINIO_CANDIDATURES_BUCKET or settings.MINIO_BUCKET,
         secure=settings.MINIO_SECURE,
         public_endpoint=settings.MINIO_PUBLIC_ENDPOINT,
         public_secure=settings.MINIO_PUBLIC_SECURE,

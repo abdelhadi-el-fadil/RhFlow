@@ -5,6 +5,7 @@ Why these two libraries?
 - passlib  : high-level wrapper around bcrypt; handles salting automatically.
 - PyJWT    : lightweight, no hidden magic — encode/decode are explicit calls.
 """
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 

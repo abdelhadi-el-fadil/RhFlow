@@ -3,6 +3,7 @@ User model — "users" domain.
 
 Represents an application user account.
 """
+
 from sqlalchemy import Boolean, String, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -39,5 +40,6 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
 
-    managed_projects = relationship("ProjetRecrutement",
-                                    foreign_keys="ProjetRecrutement.manager_id")
+    managed_projects = relationship(
+        "ProjetRecrutement", foreign_keys="ProjetRecrutement.manager_id"
+    )

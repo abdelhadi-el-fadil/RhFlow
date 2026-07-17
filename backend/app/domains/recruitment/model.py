@@ -1,4 +1,5 @@
 """Recruitment models."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -13,6 +14,7 @@ from app.domains.recruitment.enums import BesoinPriority, BesoinStatus, ProjetSt
 from app.models.base import AuditMixin, Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.domains.candidatures.model import Candidature
     from app.domains.fiches_de_poste.model import FicheDePoste
     from app.domains.users.model import User
 
@@ -46,6 +48,11 @@ class ProjetRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     )
     besoin_recrutement: Mapped[BesoinRecrutement] = relationship(
         foreign_keys=[besoin_recrutement_id]
+    )
+    candidatures: Mapped[list[Candidature]] = relationship(
+        "Candidature",
+        back_populates="projet_recrutement",
+        cascade="all, delete-orphan",
     )
 
     @property
@@ -163,3 +170,6 @@ class BesoinRecrutement(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     @property
     def recruitment_reason(self) -> str | None:
         return self.justification
+
+
+from app.domains.candidatures.model import Candidature  # noqa: E402, F401

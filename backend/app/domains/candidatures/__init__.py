@@ -1,0 +1,1 @@
+"""Candidatures domain package."""

@@ -1,4 +1,5 @@
 """Router — recruitment domain."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -93,8 +94,8 @@ def delete_project(
 
 
 @router.patch(
-        "/{projet_id}/cloturer", response_model=ApiResponse[ProjetRecrutementResponse]
-        )
+    "/{projet_id}/cloturer", response_model=ApiResponse[ProjetRecrutementResponse]
+)
 def close_project(
     projet_id: int,
     current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
@@ -114,9 +115,7 @@ def attach_need(
     current_user: User = Depends(require_role(UserRole.DRH, UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProjetRecrutementResponse]:
-    project = recruitment_service.attach_besoin(
-        db, projet_id, besoin_id, current_user
-    )
+    project = recruitment_service.attach_besoin(db, projet_id, besoin_id, current_user)
     return ApiResponse(data=ProjetRecrutementResponse.model_validate(project))
 
 
@@ -168,9 +167,9 @@ def list_besoins(
 )
 def create_besoin(
     payload: BesoinRecrutementCreate,
-    current_user: User = Depends(require_role(UserRole.DIRECTEUR,
-                                              UserRole.DRH,
-                                              UserRole.ADMIN)),
+    current_user: User = Depends(
+        require_role(UserRole.DIRECTEUR, UserRole.DRH, UserRole.ADMIN)
+    ),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.create_besoin(db, payload, current_user)
@@ -220,9 +219,9 @@ def delete_besoin(
 )
 def submit_besoin(
     besoin_id: int,
-    current_user: User = Depends(require_role(UserRole.DIRECTEUR,
-                                              UserRole.DRH,
-                                              UserRole.ADMIN)),
+    current_user: User = Depends(
+        require_role(UserRole.DIRECTEUR, UserRole.DRH, UserRole.ADMIN)
+    ),
     db: Session = Depends(get_db),
 ) -> ApiResponse[BesoinRecrutementResponse]:
     besoin = recruitment_service.submit_besoin(db, besoin_id, current_user)

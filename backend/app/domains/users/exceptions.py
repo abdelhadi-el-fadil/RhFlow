@@ -1,6 +1,7 @@
 """
 Business exceptions — "users" domain.
 """
+
 from app.core.exceptions import AppException, ConflictException, ForbiddenException
 
 

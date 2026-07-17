@@ -1,6 +1,7 @@
 """
 Pydantic schemas — "auth" domain.
 """
+
 from pydantic import BaseModel
 
 

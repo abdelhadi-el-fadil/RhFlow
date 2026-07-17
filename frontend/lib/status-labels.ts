@@ -1,5 +1,6 @@
 import type {
   BesoinStatus,
+  CandidatureStatut,
   OffreStatus,
   ProjetStatus,
 } from "@/lib/backend-types"
@@ -63,5 +64,39 @@ export function labelFromOffreStatus(status: OffreStatus) {
       return "Publié"
     case "CLOSED":
       return "Fermé"
+  }
+}
+
+export function badgeVariantFromCandidatureStatut(status: CandidatureStatut) {
+  switch (status) {
+    case "RECU":
+      return "secondary" as const
+    case "EN_COURS":
+      return "outline" as const
+    case "EVALUE":
+      return "default" as const
+    case "ERREUR":
+      return "destructive" as const
+    case "RETENU":
+      return "default" as const
+    case "REJETE":
+      return "destructive" as const
+  }
+}
+
+export function labelFromCandidatureStatut(status: CandidatureStatut) {
+  switch (status) {
+    case "RECU":
+      return "Reçu"
+    case "EN_COURS":
+      return "En cours"
+    case "EVALUE":
+      return "Évalué"
+    case "ERREUR":
+      return "Erreur"
+    case "RETENU":
+      return "Retenu"
+    case "REJETE":
+      return "Rejeté"
   }
 }

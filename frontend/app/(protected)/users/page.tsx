@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Eye, Users, X } from "lucide-react"
+import { Eye, ImageIcon, Users, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -40,6 +40,7 @@ function UsersContent() {
   const [uploadingSignatureId, setUploadingSignatureId] = useState<number | null>(null)
   const [signaturePreview, setSignaturePreview] = useState<{ userId: number; url: string } | null>(null)
   const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null)
+  const [signatureUrls, setSignatureUrls] = useState<Record<number, string>>({})
 
   const uploadSignatureFile = async (userId: number, file: File) => {
     const formData = new FormData()
@@ -66,6 +67,49 @@ function UsersContent() {
 
     void run()
   }, [])
+
+  useEffect(() => {
+    const targetUsers = items.filter((item) => item.signature_key && !signatureUrls[item.id])
+    if (targetUsers.length === 0) {
+      return
+    }
+
+    let cancelled = false
+
+    const run = async () => {
+      const entries = await Promise.all(
+        targetUsers.map(async (item) => {
+          try {
+            const response = await apiClient.get<ApiResponse<UserSignatureResponse>>(
+              `/users/${item.id}/signature`,
+            )
+            return [item.id, response.data.data.url] as const
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      if (cancelled) {
+        return
+      }
+
+      const nextEntries = Object.fromEntries(
+        entries.filter((entry): entry is readonly [number, string] => entry !== null),
+      )
+      if (Object.keys(nextEntries).length === 0) {
+        return
+      }
+
+      setSignatureUrls((current) => ({ ...current, ...nextEntries }))
+    }
+
+    void run()
+
+    return () => {
+      cancelled = true
+    }
+  }, [items, signatureUrls])
 
   const deleteUser = async (userId: number) => {
     if (!confirm("Supprimer ce compte ?")) {
@@ -133,8 +177,16 @@ function UsersContent() {
   const openSignature = async (userId: number) => {
     setPreviewLoadingId(userId)
     try {
+      const cached = signatureUrls[userId]
+      if (cached) {
+        setSignaturePreview({ userId, url: cached })
+        return
+      }
+
       const response = await apiClient.get<ApiResponse<UserSignatureResponse>>(`/users/${userId}/signature`)
-      setSignaturePreview({ userId, url: response.data.data.url })
+      const url = response.data.data.url
+      setSignatureUrls((current) => ({ ...current, [userId]: url }))
+      setSignaturePreview({ userId, url })
     } catch (err) {
       toast.error(err instanceof ApiHttpError ? err.message : "Impossible d'afficher la signature.")
     } finally {
@@ -155,6 +207,11 @@ function UsersContent() {
     try {
       await uploadSignatureFile(userId, file)
       setSignatureFiles((current) => ({ ...current, [userId]: null }))
+      setSignatureUrls((current) => {
+        const next = { ...current }
+        delete next[userId]
+        return next
+      })
       await loadUsers()
       toast.success("Signature mise à jour avec succès.")
     } catch (err) {
@@ -173,6 +230,11 @@ function UsersContent() {
     try {
       await apiClient.delete(`/users/${userId}/signature`)
       setSignaturePreview((current) => (current?.userId === userId ? null : current))
+      setSignatureUrls((current) => {
+        const next = { ...current }
+        delete next[userId]
+        return next
+      })
       await loadUsers()
       toast.success("Signature supprimée avec succès.")
     } catch (err) {
@@ -198,7 +260,7 @@ function UsersContent() {
 
   return (
     <div className="stagger-enter space-y-6">
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
           <CardDescription className="premium-copy">{loading ? "Chargement…" : `${filteredItems.length} résultats`}</CardDescription>
@@ -260,17 +322,40 @@ function UsersContent() {
                   </TableCell>
                   <TableCell>{editingId === item.id && draft ? <Select value={String(draft.enabled)} onChange={(event) => setDraft((current) => current ? { ...current, enabled: event.target.value === "true" } : current)}><option value="true">Actif</option><option value="false">Désactivé</option></Select> : <Badge variant={item.enabled ? "default" : "destructive"}>{item.enabled ? "Actif" : "Désactivé"}</Badge>}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {item.signature_key ? (
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          onClick={() => openSignature(item.id)}
-                          aria-label="Voir la signature"
-                          disabled={previewLoadingId === item.id}
-                        >
-                          <Eye className="size-4" />
-                        </Button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void openSignature(item.id)}
+                            className="overflow-hidden rounded-md border border-stone-300/70 bg-white"
+                            aria-label="Voir la signature"
+                            disabled={previewLoadingId === item.id}
+                          >
+                            {signatureUrls[item.id] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={signatureUrls[item.id]}
+                                alt={`Signature de ${item.full_name ?? item.email}`}
+                                className="h-12 w-24 object-contain"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-24 items-center justify-center gap-1 text-xs text-muted-foreground">
+                                <ImageIcon className="size-3.5" />
+                                Signature
+                              </div>
+                            )}
+                          </button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void openSignature(item.id)}
+                            disabled={previewLoadingId === item.id}
+                          >
+                            <Eye className="size-4" />
+                            {previewLoadingId === item.id ? "Chargement..." : "Voir"}
+                          </Button>
+                        </>
                       ) : (
                         <span className="premium-subtle text-xs">Aucune</span>
                       )}

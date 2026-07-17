@@ -1,6 +1,7 @@
 """
 Direction model — "directions" domain.
 """
+
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String
@@ -23,8 +24,9 @@ class Direction(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     director_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     director: Mapped["User | None"] = relationship("User", foreign_keys=[director_id])
-    fiches: Mapped[list["FicheDePoste"]] = relationship("FicheDePoste",
-                                                         back_populates="direction")
+    fiches: Mapped[list["FicheDePoste"]] = relationship(
+        "FicheDePoste", back_populates="direction"
+    )
 
     @property
     def director_name(self) -> str | None:

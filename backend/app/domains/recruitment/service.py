@@ -1,4 +1,5 @@
 """Service — recruitment domain."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Select, select
@@ -48,8 +49,7 @@ def _ensure_besoin_attachable(
         raise BesoinRecrutementInvalidTransitionException()
 
     existing_project = db.scalars(
-        select(ProjetRecrutement)
-        .where(
+        select(ProjetRecrutement).where(
             ProjetRecrutement.besoin_recrutement_id == besoin.id,
             ProjetRecrutement.is_deleted.is_(False),
         )
@@ -76,9 +76,10 @@ def create_besoin(
     direction = fiche.direction
 
     if (
-        current_user.role == UserRole.DIRECTEUR 
-        and direction and direction.director_id != current_user.id
-        ):
+        current_user.role == UserRole.DIRECTEUR
+        and direction
+        and direction.director_id != current_user.id
+    ):
         raise ForbiddenException()
 
     besoin = BesoinRecrutement(
@@ -159,17 +160,15 @@ def get_project(
     current_user: User | None = None,
 ) -> ProjetRecrutement:
     project = db.scalars(
-        _project_query()
-        .where(
+        _project_query().where(
             ProjetRecrutement.id == projet_id,
             ProjetRecrutement.is_deleted.is_(False),
         )
     ).first()
     if project is None:
         raise ProjetRecrutementNotFoundException()
-    if (
-        current_user is not None
-        and not _is_project_visible_to_user(project, current_user)
+    if current_user is not None and not _is_project_visible_to_user(
+        project, current_user
     ):
         raise ForbiddenException()
     return project
@@ -290,7 +289,7 @@ def list_besoins(
             scoped_items = [
                 item
                 for item in scoped_items
-                if item.fiche_de_poste 
+                if item.fiche_de_poste
                 and item.fiche_de_poste.direction_id == direction_id
             ]
         if priority is not None:
@@ -303,9 +302,7 @@ def list_besoins(
             ]
         else:
             scoped_items = [
-                item
-                for item in scoped_items
-                if item.status == BesoinStatus.SUBMITTED
+                item for item in scoped_items if item.status == BesoinStatus.SUBMITTED
             ]
         total_items = len(scoped_items)
         paged_items = scoped_items[params.offset : params.offset + params.page_size]
@@ -325,8 +322,10 @@ def list_besoins(
     else:
         if archived:
             base_query = base_query.where(
-                BesoinRecrutement.status.in_([BesoinStatus.APPROVED,
-                                              BesoinStatus.REJECTED]))
+                BesoinRecrutement.status.in_(
+                    [BesoinStatus.APPROVED, BesoinStatus.REJECTED]
+                )
+            )
 
     if priority is not None:
         base_query = base_query.where(BesoinRecrutement.priority == priority)
@@ -334,8 +333,9 @@ def list_besoins(
     all_items = list(db.scalars(base_query).all())
     if direction_id is not None:
         all_items = [
-            item for item in all_items if item.fiche_de_poste 
-            and item.fiche_de_poste.direction_id == direction_id
+            item
+            for item in all_items
+            if item.fiche_de_poste and item.fiche_de_poste.direction_id == direction_id
         ]
 
     total_items = len(all_items)
@@ -360,9 +360,11 @@ def update_besoin(
         and direction.director_id == current_user.id
     )
 
-    if (not elevated_editor 
-        and not directeur_owner 
-        and besoin.created_by_id != current_user.id):
+    if (
+        not elevated_editor
+        and not directeur_owner
+        and besoin.created_by_id != current_user.id
+    ):
         raise ForbiddenException()
 
     if besoin.status != BesoinStatus.SUBMITTED:
@@ -374,8 +376,10 @@ def update_besoin(
         and payload_data["fiche_de_poste_id"] is not None
     ):
         next_fiche = get_fiche_de_poste(db, payload_data["fiche_de_poste_id"])
-        if (current_user.role == UserRole.DIRECTEUR 
-            and next_fiche.direction.director_id != current_user.id):
+        if (
+            current_user.role == UserRole.DIRECTEUR
+            and next_fiche.direction.director_id != current_user.id
+        ):
             raise ForbiddenException()
 
     if "lieu_affectation" in payload_data and payload_data["lieu_affectation"] is None:
@@ -409,9 +413,11 @@ def delete_besoin(
         and direction.director_id == current_user.id
     )
 
-    if (not elevated_editor 
-        and not directeur_owner 
-        and besoin.created_by_id != current_user.id):
+    if (
+        not elevated_editor
+        and not directeur_owner
+        and besoin.created_by_id != current_user.id
+    ):
         raise ForbiddenException()
     if besoin.status != BesoinStatus.SUBMITTED:
         raise BesoinRecrutementInvalidTransitionException()
@@ -444,8 +450,7 @@ def approve_besoin(
     besoin.updated_by_id = current_user.id
 
     existing_project = db.scalars(
-        select(ProjetRecrutement)
-        .where(
+        select(ProjetRecrutement).where(
             ProjetRecrutement.besoin_recrutement_id == besoin.id,
             ProjetRecrutement.is_deleted.is_(False),
         )

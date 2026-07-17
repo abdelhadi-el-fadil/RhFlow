@@ -8,8 +8,9 @@ from app.domains.users.model import User
 
 
 def _login(client: TestClient, email: str, password: str) -> str:
-    response = client.post("/auth/login", data={"username": email,
-                                                "password": password})
+    response = client.post(
+        "/auth/login", data={"username": email, "password": password}
+    )
     return cast(str, response.json()["data"]["access_token"])
 
 
@@ -33,10 +34,9 @@ def _create_direction(
     return cast(int, response.json()["data"]["id"])
 
 
-def _create_fiche(client: TestClient,
-                  token: str,
-                  direction_id: int,
-                  title: str = "Fiche projet") -> int:
+def _create_fiche(
+    client: TestClient, token: str, direction_id: int, title: str = "Fiche projet"
+) -> int:
     response = client.post(
         "/fiches-de-poste/",
         json={
@@ -52,10 +52,9 @@ def _create_fiche(client: TestClient,
     return cast(int, response.json()["data"]["id"])
 
 
-def _create_besoin(client: TestClient,
-                   token: str,
-                   fiche_id: int,
-                   title: str = "Besoin projet") -> dict[str, Any]:
+def _create_besoin(
+    client: TestClient, token: str, fiche_id: int, title: str = "Besoin projet"
+) -> dict[str, Any]:
     response = client.post(
         "/besoins/",
         json={
@@ -84,23 +83,23 @@ def test_admin_can_create_list_update_close_and_delete_project(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client,
-                                     admin_token,
-                                     "DIR-PROJ-1",
-                                     "Direction projet",
-                                     director_id=directeur.id)
+    direction_id = _create_direction(
+        client, admin_token, "DIR-PROJ-1", "Direction projet", director_id=directeur.id
+    )
     fiche_id = _create_fiche(client, directeur_token, direction_id)
     besoin = _create_besoin(client, directeur_token, fiche_id)
     client.post(f"/besoins/{besoin['id']}/approuver", headers=_auth(drh_token))
 
-    # Find the auto-created project by 
+    # Find the auto-created project by
     # querying projects with the besoin's fiche direction
-    projects_response = client.get(f"/projets/?direction_id={direction_id}",
-                                    headers=_auth(admin_token))
+    projects_response = client.get(
+        f"/projets/?direction_id={direction_id}", headers=_auth(admin_token)
+    )
     assert projects_response.status_code == 200
     projects = projects_response.json()["data"]
     auto_project = next(
-        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None
+    )
     assert auto_project is not None
     auto_project_id = auto_project["id"]
 
@@ -110,8 +109,9 @@ def test_admin_can_create_list_update_close_and_delete_project(
     assert body["besoin_recrutement_id"] == besoin["id"]
     assert body["nombre_postes"] == 3
 
-    listed = client.get(f"/projets/?direction_id={direction_id}",
-                        headers=_auth(admin_token))
+    listed = client.get(
+        f"/projets/?direction_id={direction_id}", headers=_auth(admin_token)
+    )
     assert listed.status_code == 200
     assert listed.json()["data"][0]["direction_name"] == "Direction projet"
 
@@ -141,14 +141,12 @@ def test_attach_need_populates_new_project_fields(
     drh_token = _login(client, drh.email, "Secret123!")
     directeur_token = _login(client, directeur.email, "Secret123!")
 
-    direction_id = _create_direction(client, drh_token,
-                                     "DIR-PROJ-2",
-                                     "Direction projet 2",
-                                     director_id=directeur.id)
-    fiche_id = _create_fiche(client,
-                             directeur_token,
-                             direction_id,
-                             title="Fiche projet 2")
+    direction_id = _create_direction(
+        client, drh_token, "DIR-PROJ-2", "Direction projet 2", director_id=directeur.id
+    )
+    fiche_id = _create_fiche(
+        client, directeur_token, direction_id, title="Fiche projet 2"
+    )
     besoin = _create_besoin(client, directeur_token, fiche_id, title="Besoin projet 2")
     client.post(f"/besoins/{besoin['id']}/approuver", headers=_auth(drh_token))
 
@@ -163,17 +161,20 @@ def test_attach_need_populates_new_project_fields(
     assert project.status_code == 409
 
     # Find the auto-created project by querying all projects
-    projects_response = client.get("/projets/?direction_id=" + str(direction_id),
-                                    headers=_auth(drh_token))
+    projects_response = client.get(
+        "/projets/?direction_id=" + str(direction_id), headers=_auth(drh_token)
+    )
     assert projects_response.status_code == 200
     projects = projects_response.json()["data"]
     auto_project = next(
-        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None)
+        (p for p in projects if p["besoin_recrutement_id"] == besoin["id"]), None
+    )
     assert auto_project is not None
     auto_project_id = auto_project["id"]
 
-    auto_project_detail = client.get(f"/projets/{auto_project_id}",
-                                     headers=_auth(drh_token))
+    auto_project_detail = client.get(
+        f"/projets/{auto_project_id}", headers=_auth(drh_token)
+    )
     assert auto_project_detail.status_code == 200
     auto_project_body = auto_project_detail.json()["data"]
     assert auto_project_body["besoin_recrutement_id"] == besoin["id"]

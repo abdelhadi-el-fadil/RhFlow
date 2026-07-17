@@ -1,4 +1,5 @@
 """Business exceptions — fiches de poste domain."""
+
 from app.core.exceptions import AppException
 
 

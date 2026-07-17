@@ -1,4 +1,5 @@
 """Service — fiches de poste domain."""
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -35,9 +36,9 @@ def create_fiche(
 ) -> FicheDePoste:
     direction = get_direction(db, payload.direction_id)
     if (
-        current_user.role == UserRole.DIRECTEUR 
+        current_user.role == UserRole.DIRECTEUR
         and direction.director_id != current_user.id
-        ):
+    ):
         raise ForbiddenException()
 
     fiche = FicheDePoste(
@@ -86,9 +87,9 @@ def list_fiches(
         direction_id,
     ).order_by(FicheDePoste.id)
     count_query = _apply_filters(
-        select(func.count()).select_from(FicheDePoste).where(
-            FicheDePoste.is_deleted.is_(False)
-        ),
+        select(func.count())
+        .select_from(FicheDePoste)
+        .where(FicheDePoste.is_deleted.is_(False)),
         direction_id,
     )
 
@@ -104,14 +105,14 @@ def list_fiches(
         if not allowed_direction_ids:
             return [], 0
         base_query = base_query.where(
-            FicheDePoste.direction_id.in_(allowed_direction_ids))
+            FicheDePoste.direction_id.in_(allowed_direction_ids)
+        )
         count_query = count_query.where(
-            FicheDePoste.direction_id.in_(allowed_direction_ids))
+            FicheDePoste.direction_id.in_(allowed_direction_ids)
+        )
 
     items = list(
-        db.scalars(
-            base_query.offset(params.offset).limit(params.page_size)
-        ).all()
+        db.scalars(base_query.offset(params.offset).limit(params.page_size)).all()
     )
 
     total_items = db.scalar(count_query)

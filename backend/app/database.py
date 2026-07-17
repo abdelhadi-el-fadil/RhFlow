@@ -4,6 +4,7 @@ Database engine + session factory + FastAPI dependency.
 All other modules import ``get_db`` from here — never create sessions
 directly so connection management stays in one place.
 """
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

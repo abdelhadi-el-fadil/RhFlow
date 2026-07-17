@@ -1,6 +1,7 @@
 """
 Business exceptions — "auth" domain.
 """
+
 from app.core.exceptions import AppException
 
 

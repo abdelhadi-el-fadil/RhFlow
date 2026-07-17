@@ -1,4 +1,5 @@
 """Structured context used to generate a LinkedIn job offer."""
+
 from __future__ import annotations
 
 import re

@@ -1,4 +1,5 @@
 """Pydantic schemas — recruitment domain."""
+
 from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field

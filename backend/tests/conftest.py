@@ -5,6 +5,7 @@ Test infrastructure — SQLite in-memory DB + FastAPI TestClient.
 - app.dependency_overrides[get_db] swaps Postgres for SQLite without
   touching any business logic — dependency inversion in action.
 """
+
 from collections.abc import Callable, Generator
 
 import pytest
@@ -45,6 +46,7 @@ def override_get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
 app.dependency_overrides[get_db] = override_get_db
 
 
@@ -74,6 +76,7 @@ def make_user(db: Session) -> Callable[..., User]:
         make_user("eve@test.com",   "Secret123!", enabled=False)
         make_user("del@test.com",   "Secret123!", is_deleted=True)
     """
+
     def _make(
         email: str,
         password: str,

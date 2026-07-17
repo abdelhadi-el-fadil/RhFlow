@@ -1,6 +1,7 @@
 """
 Pydantic schemas — "users" domain.
 """
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.enums import UserRole

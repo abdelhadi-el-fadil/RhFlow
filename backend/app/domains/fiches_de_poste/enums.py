@@ -1,4 +1,5 @@
 """Domain enums for job descriptions."""
+
 from enum import Enum
 
 

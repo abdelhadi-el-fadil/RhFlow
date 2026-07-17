@@ -1,4 +1,5 @@
 """Recruitment domain enums."""
+
 from enum import Enum
 
 

@@ -1,4 +1,5 @@
 """Router — fiches de poste domain."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -83,9 +84,7 @@ def update_fiche(
 @router.delete("/{fiche_id}", response_model=ApiResponse[None])
 def delete_fiche(
     fiche_id: int,
-    current_user: User = Depends(
-        require_role(UserRole.ADMIN, UserRole.DRH)
-        ),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[None]:
     fiche_service.delete_fiche(db, fiche_id, current_user)

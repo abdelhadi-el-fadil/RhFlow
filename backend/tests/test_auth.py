@@ -6,6 +6,7 @@ Each test name IS the specification of the expected behaviour.
 Note on require_role: tested via a throwaway protected route added inline
 with app.include_router — no need to touch the real router.py.
 """
+
 from collections.abc import Callable
 from datetime import timedelta
 
@@ -26,14 +27,17 @@ from app.main import app
 # Standard practice: test a dependency through a dedicated test route.
 _test_router = APIRouter()
 
+
 @_test_router.get("/test-admin-only")
 def admin_only(_: User = Depends(require_role(UserRole.ADMIN))) -> dict[str, bool]:
     return {"ok": True}
+
 
 app.include_router(_test_router)
 
 
 # ── POST /auth/login ───────────────────────────────────────────────────────
+
 
 def test_login_valid_credentials_returns_200_and_token(
     client: TestClient,
@@ -103,6 +107,7 @@ def test_login_disabled_user_returns_401(
 
 # ── GET /auth/me ───────────────────────────────────────────────────────────
 
+
 def test_me_without_token_returns_401(client: TestClient) -> None:
     r = client.get("/auth/me")
     assert r.status_code == 401
@@ -124,7 +129,7 @@ def test_me_with_valid_token_returns_200_email_correct_and_no_hashed_password(
     assert r.status_code == 200
     body = r.json()["data"]
     assert body["email"] == "eve@test.com"
-    assert "hashed_password" not in body          # security: never expose the hash
+    assert "hashed_password" not in body  # security: never expose the hash
 
 
 def test_me_with_expired_token_returns_401_with_code(
@@ -136,7 +141,7 @@ def test_me_with_expired_token_returns_401_with_code(
     expired_token = create_access_token(
         subject=user.id,
         extra_claims={"role": user.role.value, "email": user.email},
-        expires_delta=timedelta(seconds=-1),   # already expired
+        expires_delta=timedelta(seconds=-1),  # already expired
     )
     r = client.get("/auth/me", headers={"Authorization": f"Bearer {expired_token}"})
     assert r.status_code == 401
@@ -160,6 +165,7 @@ def test_me_with_wrong_signature_returns_401_with_code(
 
 
 # ── require_role ───────────────────────────────────────────────────────────
+
 
 def test_require_role_wrong_role_returns_403_with_code(
     client: TestClient,

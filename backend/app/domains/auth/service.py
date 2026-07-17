@@ -5,6 +5,7 @@ Holds all authentication business logic: credential checks, JWT issuing
 and validation. The router only routes HTTP requests to these functions
 and wraps the result.
 """
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

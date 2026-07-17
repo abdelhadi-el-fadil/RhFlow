@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.ai.factory import configure_llm
+from app.ai.providers.llm.configuration import configure_llm
 from app.ai.router.chat_router import router as ai_router
 from app.ai.router.offer_router import router as ai_offer_router
 from app.config import settings
@@ -17,6 +17,10 @@ from app.core.codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.logging import logger
 from app.domains.auth.router import router as auth_router
+from app.domains.candidatures.router import (
+    project_router as project_candidatures_router,
+)
+from app.domains.candidatures.router import router as candidatures_router
 from app.domains.directions.router import router as directions_router
 from app.domains.fiches_de_poste.router import router as fiches_de_poste_router
 from app.domains.recruitment.router import (
@@ -39,6 +43,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     logger.info("Application shutting down.")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
@@ -62,6 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ---------------------------------------------------------------------------
 # Request logging middleware
 # ---------------------------------------------------------------------------
@@ -81,6 +88,7 @@ async def log_requests(
         duration,
     )
     return response
+
 
 # ---------------------------------------------------------------------------
 # Exception handlers — uniform response {"detail", "code", "status"}
@@ -120,6 +128,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         },
     )
 
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(
     request: Request,
@@ -136,6 +145,8 @@ async def http_exception_handler(
             "status": exc.status_code,
         },
     )
+
+
 # ---------------------------------------------------------------------------
 # Routers — add here as domains are implemented
 # ---------------------------------------------------------------------------
@@ -145,8 +156,11 @@ app.include_router(directions_router)
 app.include_router(fiches_de_poste_router)
 app.include_router(recruitment_router)
 app.include_router(recruitment_besoins_router)
+app.include_router(candidatures_router)
+app.include_router(project_candidatures_router)
 app.include_router(ai_router)
 app.include_router(ai_offer_router)
+
 
 # ---------------------------------------------------------------------------
 # Base routes

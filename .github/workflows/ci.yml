@@ -202,6 +202,7 @@ jobs:
             MINIO_ACCESS_KEY=${{ secrets.MINIO_ROOT_USER }}
             MINIO_SECRET_KEY=${{ secrets.MINIO_ROOT_PASSWORD }}
             MINIO_BUCKET=${{ secrets.MINIO_BUCKET }}
+            MINIO_CANDIDATURES_BUCKET=${{ secrets.MINIO_CANDIDATURES_BUCKET }}
             MINIO_PUBLIC_ENDPOINT=${{ secrets.MINIO_PUBLIC_ENDPOINT }}
             MINIO_PUBLIC_PATH_PREFIX=${{ secrets.MINIO_PUBLIC_PATH_PREFIX }}
             MINIO_PUBLIC_SECURE=true
@@ -216,6 +217,11 @@ jobs:
             LLM_API_KEY=${{ secrets.LLM_API_KEY }}
             LLM_BASE_URL=${{ secrets.LLM_BASE_URL }}
             LLM_MODEL=${{ secrets.LLM_MODEL }}
+            LLAMA_CLOUD_API_KEY=${{ secrets.LLAMA_CLOUD_API_KEY }}
+            LITEPARSE_QUIET=${{ secrets.LITEPARSE_QUIET }}
+            LITEPARSE_MAX_PAGES=${{ secrets.LITEPARSE_MAX_PAGES }}
+            LITEPARSE_OCR_ENABLED=${{ secrets.LITEPARSE_OCR_ENABLED }}
+            LITEPARSE_OCR_LANGUAGE=${{ secrets.LITEPARSE_OCR_LANGUAGE }}
             EOF
 
             docker compose pull

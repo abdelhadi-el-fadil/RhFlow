@@ -1,9 +1,10 @@
 """LLM-backed generator for LinkedIn job announcements."""
+
 from __future__ import annotations
 
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 
-from app.llama_index import llm
+from app.ai.providers.llm.runtime import llm
 
 SYSTEM_PROMPT = "".join(
     [
@@ -15,7 +16,7 @@ SYSTEM_PROMPT = "".join(
         "- Email recrutement   : hmayda@staport-sa.ma\n\n",
         "Tu rédiges une offre d'emploi LinkedIn au nom de la société STAPORT SA, ",
         "en utilisant les détails de la fiche de poste. Tu parles à la première ",
-        "personne du pluriel : \"nous\", \"notre\", \"nos\". Registre : ",
+        'personne du pluriel : "nous", "notre", "nos". Registre : ',
         "institutionnel mais humain d'un DRH d'un grand groupe de BTP marocain, ",
         "direct, dynamique — sans jargon corporate.\n\n",
         "══════════════════════════════════════════════\n",
@@ -23,12 +24,12 @@ SYSTEM_PROMPT = "".join(
         "══════════════════════════════════════════════\n",
         "Avant de rédiger, détermine intérieurement :\n",
         "1. Le registre selon les années d'expérience requises :\n",
-        "   - 0–3 ans  → chaleureux, apprentissage — verbes : \"découvrir\", ",
-        "\"construire\", \"évoluer\"\n",
-        "   - 4–8 ans  → confiant, impact — verbes : \"piloter\", ",
-        "\"structurer\", \"produire des résultats\"\n",
-        "   - 9+ ans   → stratégique, vision — verbes : \"transformer\", ",
-        "\"orienter\", \"inscrire dans la durée\"\n",
+        '   - 0–3 ans  → chaleureux, apprentissage — verbes : "découvrir", ',
+        '"construire", "évoluer"\n',
+        '   - 4–8 ans  → confiant, impact — verbes : "piloter", ',
+        '"structurer", "produire des résultats"\n',
+        '   - 9+ ans   → stratégique, vision — verbes : "transformer", ',
+        '"orienter", "inscrire dans la durée"\n',
         "2. L'angle sectoriel pertinent par rapport au secteur d'activité (BTP)\n",
         "3. Un emoji d'accroche adapté au secteur BTP (ex: 🏗️)\n\n",
         "══════════════════════════════════════════════\n",

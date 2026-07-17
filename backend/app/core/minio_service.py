@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 from io import BytesIO
-from urllib.parse import urlsplit, urlunsplit
 
 from minio import Minio
 from minio.error import S3Error
@@ -73,7 +72,7 @@ class MinioStorageService:
     def get_presigned_get_url(self, object_key: str, expires_minutes: int = 15) -> str:
         self._ensure_bucket()
         try:
-            url = self.public_client.presigned_get_object(
+            return self.public_client.presigned_get_object(
                 bucket_name=self.bucket_name,
                 object_name=object_key,
                 expires=timedelta(minutes=expires_minutes),
@@ -81,13 +80,15 @@ class MinioStorageService:
         except S3Error as exc:
             raise MinioStorageServiceError(str(exc)) from exc
 
-        if not self.public_path_prefix:
-            return url
-
-        parts = urlsplit(url)
-        new_path = f"/{self.public_path_prefix}{parts.path}"
-        return urlunsplit((parts.scheme,
-                           parts.netloc,
-                           new_path,
-                           parts.query,
-                           parts.fragment))
+    def download_bytes(self, object_key: str) -> bytes:
+        self._ensure_bucket()
+        response = None
+        try:
+            response = self.client.get_object(self.bucket_name, object_key)
+            return response.read()
+        except S3Error as exc:
+            raise MinioStorageServiceError(str(exc)) from exc
+        finally:
+            if response is not None:
+                response.close()
+                response.release_conn()

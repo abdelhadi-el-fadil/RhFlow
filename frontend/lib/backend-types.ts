@@ -145,3 +145,54 @@ export type OffrePublicResponse = {
   published_at: string | null
   deadline: string | null
 }
+
+export type CandidatureStatut =
+  | "RECU"
+  | "EN_COURS"
+  | "EVALUE"
+  | "ERREUR"
+  | "RETENU"
+  | "REJETE"
+
+export type RecommandationIA =
+  | "A_CONVOQUER"
+  | "A_ETUDIER"
+  | "NE_CORRESPOND_PAS"
+
+export type FormationExtraite = {
+  titre: string
+  dateObtention: string | null
+}
+
+export type ExperienceExtraite = {
+  titre: string
+  entreprise: string | null
+  periode: string | null
+}
+
+export type CandidatureResponse = {
+  id: number
+  projet_recrutement_id: number
+  nom_fichier: string
+  chemin_minio: string
+  type_fichier: string
+  taille_fichier: number | null
+  contenu_markdown: string | null
+  nom_candidat: string | null
+  email_candidat: string | null
+  telephone_candidat: string | null
+  formations: FormationExtraite[] | null
+  experiences: ExperienceExtraite[] | null
+  score_matching: number | null
+  points_forts: string[] | null
+  points_manquants: string[] | null
+  recommandation: RecommandationIA | null
+  justification_ia: string | null
+  questions_entretien: string[] | null
+  statut: CandidatureStatut
+  depose_le: string
+  evalue_le: string | null
+  version: number
+  created_by_id: number | null
+  updated_by_id: number | null
+}

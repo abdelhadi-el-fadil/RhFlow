@@ -1,4 +1,5 @@
 """Offer-generation service for recruitment projects."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

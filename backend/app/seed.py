@@ -116,8 +116,7 @@ SEED_FICHES: list[dict[str, object]] = [
         "title": "Chef de Projet RH",
         "main_activities": "Pilote les projets de transformation RH.",
         "missions": (
-            "Coordonner les parties prenantes, suivre planning, "
-            "assurer livraison."
+            "Coordonner les parties prenantes, suivre planning, assurer livraison."
         ),
         "experience_level": "5+ years",
         "formation_domain": "Ressources Humaines / Gestion",
@@ -152,8 +151,7 @@ SEED_FICHES: list[dict[str, object]] = [
         "title": "Responsable Production",
         "main_activities": "Supervise les lignes de production et la qualite.",
         "missions": (
-            "Planifier la production, garantir la qualite, piloter "
-            "les equipes terrain."
+            "Planifier la production, garantir la qualite, piloter les equipes terrain."
         ),
         "experience_level": "4+ years",
         "formation_domain": "Genie Industriel",
@@ -396,10 +394,8 @@ def _seed_besoins(
                 if data["processed_by_email"] is not None
                 else None
             ),
-            created_by_id=users_by_email[str(data["owner_email"])]
-            .id,
-            updated_by_id=users_by_email[str(data["owner_email"])]
-            .id,
+            created_by_id=users_by_email[str(data["owner_email"])].id,
+            updated_by_id=users_by_email[str(data["owner_email"])].id,
         )
         db.add(besoin)
         db.flush()

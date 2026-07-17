@@ -4,6 +4,7 @@ Service — "users" domain.
 Holds user account business logic: CRUD operations, soft delete, and
 read filters that enforce "not deleted" in one place.
 """
+
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
@@ -60,9 +61,9 @@ def get_user(db: Session, user_id: int) -> User:
 
 def list_users(db: Session, params: PaginationParams) -> tuple[list[User], int]:
     base_query = select(User).where(User.is_deleted.is_(False)).order_by(User.id)
-    items = list(db.scalars(
-        base_query.offset(params.offset).limit(params.page_size)
-    ).all())
+    items = list(
+        db.scalars(base_query.offset(params.offset).limit(params.page_size)).all()
+    )
     total_items = db.scalar(
         select(func.count()).select_from(User).where(User.is_deleted.is_(False))
     )

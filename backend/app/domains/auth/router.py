@@ -4,6 +4,7 @@ Router — "auth" domain.
 POST /auth/login — exchange credentials for a JWT
 GET  /auth/me    — profile of the authenticated user
 """
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends

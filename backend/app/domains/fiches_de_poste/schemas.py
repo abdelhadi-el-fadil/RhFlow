@@ -1,4 +1,5 @@
 """Pydantic schemas — fiches de poste domain."""
+
 from pydantic import BaseModel, ConfigDict
 
 

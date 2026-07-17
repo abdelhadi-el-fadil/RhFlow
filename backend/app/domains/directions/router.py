@@ -64,6 +64,7 @@ def create_direction(
     direction = directions_service.create_direction(db, payload, current_user)
     return ApiResponse(data=DirectionResponse.model_validate(direction))
 
+
 @router.put("/{direction_id}", response_model=ApiResponse[DirectionResponse])
 def update_direction(
     direction_id: int,

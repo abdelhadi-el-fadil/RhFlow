@@ -1,6 +1,7 @@
 """
 Pydantic schemas — "directions" domain.
 """
+
 from pydantic import BaseModel, ConfigDict, Field
 
 

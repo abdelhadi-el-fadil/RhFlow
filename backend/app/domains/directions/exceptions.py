@@ -1,6 +1,7 @@
 """
 Business exceptions — "directions" domain.
 """
+
 from app.core.exceptions import AppException, ConflictException
 
 

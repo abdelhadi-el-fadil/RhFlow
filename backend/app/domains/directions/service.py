@@ -3,6 +3,7 @@ Service — "directions" domain.
 
 Contains CRUD operations with soft-delete filtering and audit population.
 """
+
 import re
 from datetime import datetime, timezone
 
@@ -31,8 +32,10 @@ def _generate_direction_code(db: Session, name: str) -> str:
     candidate = base_code
     suffix = 1
 
-    while db.scalars(
-        select(Direction).where(Direction.code == candidate)).first() is not None:
+    while (
+        db.scalars(select(Direction).where(Direction.code == candidate)).first()
+        is not None
+    ):
         suffix_str = f"-{suffix}"
         candidate = f"{base_code[: max(1, 20 - len(suffix_str))]}{suffix_str}"
         suffix += 1
@@ -44,9 +47,7 @@ def create_direction(
     db: Session, payload: DirectionCreate, current_user: User
 ) -> Direction:
     code = payload.code or _generate_direction_code(db, payload.name)
-    existing = db.scalars(
-        select(Direction).where(Direction.code == code)
-    ).first()
+    existing = db.scalars(select(Direction).where(Direction.code == code)).first()
     if existing is not None:
         raise DirectionCodeAlreadyExistsException()
 
