@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from io import BytesIO
+from urllib.parse import urlsplit, urlunsplit
 
 from minio import Minio
 from minio.error import S3Error
@@ -42,6 +43,21 @@ class MinioStorageService:
             region="us-east-1",
         )
 
+    def _apply_public_path_prefix(self, presigned_url: str) -> str:
+        if not self.public_path_prefix:
+            return presigned_url
+
+        parsed = urlsplit(presigned_url)
+        prefix = f"/{self.public_path_prefix}"
+        if parsed.path == prefix or parsed.path.startswith(f"{prefix}/"):
+            return presigned_url
+
+        path = parsed.path if parsed.path.startswith("/") else f"/{parsed.path}"
+        new_path = f"{prefix}{path}"
+        return urlunsplit(
+            (parsed.scheme, parsed.netloc, new_path, parsed.query, parsed.fragment)
+        )
+
     def _ensure_bucket(self) -> None:
         try:
             if not self.client.bucket_exists(self.bucket_name):
@@ -72,11 +88,12 @@ class MinioStorageService:
     def get_presigned_get_url(self, object_key: str, expires_minutes: int = 15) -> str:
         self._ensure_bucket()
         try:
-            return self.public_client.presigned_get_object(
+            url = self.public_client.presigned_get_object(
                 bucket_name=self.bucket_name,
                 object_name=object_key,
                 expires=timedelta(minutes=expires_minutes),
             )
+            return self._apply_public_path_prefix(url)
         except S3Error as exc:
             raise MinioStorageServiceError(str(exc)) from exc
 
