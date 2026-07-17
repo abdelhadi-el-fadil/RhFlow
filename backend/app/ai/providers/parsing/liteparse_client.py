@@ -23,5 +23,7 @@ def create_liteparse_client() -> LiteParseClient:
         max_pages=settings.LITEPARSE_MAX_PAGES,
         ocr_enabled=settings.LITEPARSE_OCR_ENABLED,
         ocr_language=settings.LITEPARSE_OCR_LANGUAGE,
+        output_format="markdown",
+        image_mode="off",
     )
     return cast(LiteParseClient, client)

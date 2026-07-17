@@ -305,53 +305,6 @@ def _mark_candidature_error(
     db.add(candidature)
 
 
-def _build_candidat_context(candidature: Candidature) -> str:
-    formation_lines = []
-    for formation in candidature.formations or []:
-        if not isinstance(formation, dict):
-            continue
-        titre = str(formation.get("titre") or "").strip()
-        date_obtention = str(formation.get("dateObtention") or "").strip()
-        if titre and date_obtention:
-            formation_lines.append(f"- {titre} ({date_obtention})")
-        elif titre:
-            formation_lines.append(f"- {titre}")
-
-    experience_lines = []
-    for experience in candidature.experiences or []:
-        if not isinstance(experience, dict):
-            continue
-        titre = str(experience.get("titre") or "").strip()
-        entreprise = str(experience.get("entreprise") or "").strip()
-        periode = str(experience.get("periode") or "").strip()
-        details = ", ".join(part for part in (entreprise, periode) if part)
-        if titre and details:
-            experience_lines.append(f"- {titre} ({details})")
-        elif titre:
-            experience_lines.append(f"- {titre}")
-
-    formations = (
-        "\n".join(formation_lines) if formation_lines else "- Aucune formation extraite"
-    )
-    experiences = (
-        "\n".join(experience_lines)
-        if experience_lines
-        else "- Aucune experience extraite"
-    )
-
-    return "\n".join(
-        [
-            f"Nom: {candidature.nom_candidat or '-'}",
-            f"Email: {candidature.email_candidat or '-'}",
-            f"Telephone: {candidature.telephone_candidat or '-'}",
-            "Formations:",
-            formations,
-            "Experiences:",
-            experiences,
-        ]
-    )
-
-
 def _coerce_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
@@ -578,8 +531,7 @@ def process_candidature_evaluation(
         db.add(candidature)
 
         fiche_de_poste = _build_fiche_de_poste_context(candidature)
-        candidate_profile = _build_candidat_context(candidature)
-        evaluation = evaluate_cv(fiche_de_poste, candidate_profile, cv_markdown)
+        evaluation = evaluate_cv(fiche_de_poste, cv_markdown)
         _apply_evaluation_result(db, candidature, evaluation)
         db.commit()
     except Exception as exc:

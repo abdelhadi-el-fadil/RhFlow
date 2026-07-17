@@ -627,17 +627,20 @@ def extract_candidat_info(cv_markdown: str) -> CandidatInfo:
 
 def evaluate_cv(
     fiche_de_poste: str,
-    candidate_profile: str,
     cv_markdown: str,
 ) -> EvaluationCv:
-    """Agent 2 - Evaluate CV against project job description context."""
+    """Agent 2 - Evaluate CV against project job description context.
+
+    Evaluates directly against the full CV markdown rather than the
+    (lossy) profile extracted by agent 1, so an incomplete or wrong
+    extraction cannot silently bias the score. Agent 1's output is used
+    only for persistence/display, never as an input here.
+    """
     user_prompt = (
-        "Evalue la correspondance entre ce profil candidat extrait "
-        "et cette fiche de poste.\n\n"
+        "Evalue la correspondance entre ce candidat et cette fiche de poste.\n\n"
         f"CONTEXTE DU POSTE :\n{fiche_de_poste}\n\n"
-        f"PROFIL CANDIDAT EXTRAIT :\n{candidate_profile}\n\n"
-        "CV DU CANDIDAT (Markdown brut, utilise seulement pour verifier "
-        "ou completer les faits deja extraits) :\n"
+        "CV DU CANDIDAT (Markdown brut, source unique et complete pour "
+        "l'analyse) :\n"
         f"{cv_markdown}"
     )
     return _run_structured_chat(EvaluationCv, EVALUATION_SYSTEM_PROMPT, user_prompt)

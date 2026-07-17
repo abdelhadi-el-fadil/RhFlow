@@ -256,11 +256,8 @@ def test_process_candidature_evaluation_uses_fiche_chain_and_extracted_profile(
         ),
     )
 
-    def _fake_evaluate_cv(
-        fiche_de_poste: str, candidate_profile: str, cv_markdown: str
-    ) -> EvaluationCv:
+    def _fake_evaluate_cv(fiche_de_poste: str, cv_markdown: str) -> EvaluationCv:
         captured["fiche_de_poste"] = fiche_de_poste
-        captured["candidate_profile"] = candidate_profile
         captured["cv_markdown"] = cv_markdown
         return EvaluationCv(
             score_matching=87,
@@ -292,6 +289,4 @@ def test_process_candidature_evaluation_uses_fiche_chain_and_extracted_profile(
     assert refreshed.statut == CandidatureStatut.EVALUE
     assert "Ingenieur IA" in captured["fiche_de_poste"]
     assert "Python, LLM, FastAPI" in captured["fiche_de_poste"]
-    assert "Alice Dupont" in captured["candidate_profile"]
-    assert "Master IA" in captured["candidate_profile"]
     assert captured["cv_markdown"] == candidature.contenu_markdown
