@@ -89,6 +89,7 @@ jobs:
           MINIO_ACCESS_KEY: ci-test-key
           MINIO_SECRET_KEY: ci-test-secret
           MINIO_BUCKET: rhflow-test
+          MINIO_CANDIDATURES_BUCKET: rhflow-test-candidatures
           MINIO_SECURE: "false"
           MINIO_PUBLIC_SECURE: "false"
           MINIO_PUBLIC_PATH_PREFIX: ""
@@ -96,6 +97,11 @@ jobs:
           LLM_API_KEY: ci-test-llm-key
           LLM_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai/
           LLM_MODEL: gemini-2.5-flash
+          LLAMA_CLOUD_API_KEY: ci-test-llama-key
+          LITEPARSE_QUIET: "true"
+          LITEPARSE_MAX_PAGES: "10"
+          LITEPARSE_OCR_ENABLED: "false"
+          LITEPARSE_OCR_LANGUAGE: "fr"
         run: python -m pytest backend/tests
 
       - name: Set up Docker Buildx

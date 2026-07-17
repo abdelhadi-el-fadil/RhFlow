@@ -4,6 +4,9 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.config import settings
+
+# importing models
+
 from app.domains.candidatures.model import Candidature
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.directions.model import Direction
