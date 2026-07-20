@@ -109,12 +109,6 @@ def test_create_uploaded_candidature_stores_markdown_on_upload(
     project = _create_project_chain(db, user)
     storage = FakeStorage()
 
-    monkeypatch.setattr(
-        candidatures_service,
-        "extract_cv_to_markdown",
-        lambda path: "# CV\n\nNom: Alice Dupont\nEmail: alice@example.com",
-    )
-
     candidature = candidatures_service.create_uploaded_candidature(
         db=db,
         projet_recrutement_id=project.id,
@@ -125,13 +119,37 @@ def test_create_uploaded_candidature_stores_markdown_on_upload(
         payload=b"fake-pdf",
     )
 
-    assert (
-        candidature.contenu_markdown
-        == "# CV\n\nNom: Alice Dupont\nEmail: alice@example.com"
-    )
-    assert candidature.statut == CandidatureStatut.RECU
+    assert candidature.contenu_markdown is None
+    assert candidature.statut == CandidatureStatut.EN_COURS
     assert len(storage.uploaded) == 1
     assert storage.deleted == []
+
+
+def test_create_uploaded_candidature_persists_row_for_background_worker(
+    db: Session,
+    make_user: Callable[..., User],
+) -> None:
+    user = make_user("ai-bg@test.com", "Secret123!", role=UserRole.ADMIN)
+    project = _create_project_chain(db, user)
+    storage = FakeStorage()
+
+    candidature = candidatures_service.create_uploaded_candidature(
+        db=db,
+        projet_recrutement_id=project.id,
+        current_user=user,
+        storage=storage,
+        filename="bg.pdf",
+        content_type="application/pdf",
+        payload=b"fake-pdf",
+    )
+    candidature_id = candidature.id
+
+    db.commit()
+    db.expire_all()
+
+    persisted = db.scalar(select(Candidature).where(Candidature.id == candidature_id))
+    assert persisted is not None
+    assert persisted.statut == CandidatureStatut.EN_COURS
 
 
 def test_process_candidature_extraction_uses_cached_markdown(
@@ -181,6 +199,7 @@ def test_process_candidature_extraction_uses_cached_markdown(
                     periode="2024-2026",
                 )
             ],
+            skills=["Python", "FastAPI", "LLM"],
         ),
     )
 
@@ -200,6 +219,7 @@ def test_process_candidature_extraction_uses_cached_markdown(
             "periode": "2024-2026",
         }
     ]
+    assert refreshed.skills == ["Python", "FastAPI", "LLM"]
     assert refreshed.statut == CandidatureStatut.RECU
 
 

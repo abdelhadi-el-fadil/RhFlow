@@ -11,6 +11,7 @@ from uuid import uuid4
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.ai.providers.llm.configuration import configure_llm
 from app.ai.service.cv.analysis_agents_service import (
     EvaluationCv,
     evaluate_cv,
@@ -18,6 +19,7 @@ from app.ai.service.cv.analysis_agents_service import (
     sanitize_candidate_identity,
 )
 from app.ai.service.cv.extraction_service import extract_cv_to_markdown
+from app.core.logging import logger
 from app.core.minio_service import MinioStorageServiceError
 from app.core.schemas import PaginationParams
 from app.database import SessionLocal
@@ -219,6 +221,7 @@ def requeue_candidature_analysis(
     candidature.telephone_candidat = None
     candidature.formations = None
     candidature.experiences = None
+    candidature.skills = None
 
     candidature.score_matching = None
     candidature.points_forts = None
@@ -261,9 +264,6 @@ def create_uploaded_candidature(
             payload=payload,
             content_type=content_type,
         )
-        cv_markdown = _parse_uploaded_payload_to_markdown(
-            safe_filename, payload
-        ).strip()
     except MinioStorageServiceError as exc:
         raise CandidatureStorageException(str(exc)) from exc
     except Exception:
@@ -273,21 +273,14 @@ def create_uploaded_candidature(
             pass
         raise
 
-    if not cv_markdown:
-        try:
-            storage.delete_object(object_key)
-        except MinioStorageServiceError:
-            pass
-        raise ValueError("Parsed CV markdown is empty")
-
     candidature = Candidature(
         projet_recrutement_id=project.id,
         nom_fichier=safe_filename,
         chemin_minio=object_key,
         type_fichier=content_type,
         taille_fichier=len(payload),
-        contenu_markdown=cv_markdown,
-        statut=CandidatureStatut.RECU,
+        contenu_markdown=None,
+        statut=CandidatureStatut.EN_COURS,
         created_by_id=current_user.id,
         updated_by_id=current_user.id,
     )
@@ -385,6 +378,7 @@ def _extract_and_apply_candidate_info(
         }
         for item in candidat_info.experiences
     ]
+    candidature.skills = candidat_info.skills
     db.add(candidature)
 
 
@@ -426,6 +420,7 @@ def start_candidature_extraction(
     candidature.telephone_candidat = None
     candidature.formations = None
     candidature.experiences = None
+    candidature.skills = None
 
     candidature.score_matching = None
     candidature.points_forts = None
@@ -489,6 +484,12 @@ def process_candidature_extraction(
         db.commit()
     except Exception as exc:
         db.rollback()
+        logger.error(
+            "Candidature extraction failed id=%s error=%s",
+            candidature_id,
+            exc,
+            exc_info=True,
+        )
         try:
             candidature = _load_candidature_for_pipeline(db, candidature_id)
             _mark_candidature_error(db, candidature, str(exc))
@@ -516,6 +517,7 @@ def process_candidature_evaluation(
             and candidature.telephone_candidat is None
             and not candidature.formations
             and not candidature.experiences
+            and not candidature.skills
         ):
             _extract_and_apply_candidate_info(db, candidature, cv_markdown)
 
@@ -536,6 +538,12 @@ def process_candidature_evaluation(
         db.commit()
     except Exception as exc:
         db.rollback()
+        logger.error(
+            "Candidature evaluation failed id=%s error=%s",
+            candidature_id,
+            exc,
+            exc_info=True,
+        )
         try:
             candidature = _load_candidature_for_pipeline(db, candidature_id)
             _mark_candidature_error(db, candidature, str(exc))
@@ -550,5 +558,6 @@ def process_candidature_pipeline(
     candidature_id: int, storage: CandidatureStorage
 ) -> None:
     """Run parse + two independent LLM agents and persist final status."""
+    configure_llm()
     process_candidature_extraction(candidature_id, storage)
     process_candidature_evaluation(candidature_id, storage)

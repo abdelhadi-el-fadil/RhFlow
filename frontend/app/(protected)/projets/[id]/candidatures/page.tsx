@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { use, useEffect, useMemo, useRef, useState } from "react"
-import { Loader2, RefreshCcw, Search, Upload } from "lucide-react"
+import { FileText, Loader2, Search, Sparkles, Upload, UserRound } from "lucide-react"
 
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import type {
   ApiResponse,
   CandidatureResponse,
   PaginatedResponse,
+  ProjetRecrutementResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import {
@@ -22,19 +23,6 @@ import {
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
 const ALLOWED_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg"])
-
-function formatBytes(size: number | null): string {
-  if (size === null) {
-    return "-"
-  }
-  if (size < 1024) {
-    return `${size} B`
-  }
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`
-  }
-  return `${(size / (1024 * 1024)).toFixed(2)} MB`
-}
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -73,15 +61,17 @@ export default function ProjetCandidaturesPage({ params }: { params: Promise<{ i
 
 function Content({ projectId }: { projectId: number }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const [items, setItems] = useState<CandidatureResponse[]>([])
   const [loading, setLoading] = useState(true)
-  const [reloading, setReloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [actionInfo, setActionInfo] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [query, setQuery] = useState("")
+  const [projectTitle, setProjectTitle] = useState<string>(`Projet #${projectId}`)
+  const [ficheTitle, setFicheTitle] = useState<string>("Fiche de poste")
 
   const loadItems = async (): Promise<void> => {
     const response = await apiClient.get<PaginatedResponse<CandidatureResponse>>(
@@ -97,7 +87,18 @@ function Content({ projectId }: { projectId: number }) {
       setLoading(true)
       setError(null)
       try {
-        await loadItems()
+        const [projectResponse] = await Promise.all([
+          apiClient.get<ApiResponse<ProjetRecrutementResponse>>(`/projets/${projectId}`),
+          loadItems(),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        const project = projectResponse.data.data
+        setProjectTitle(project.title)
+        setFicheTitle(project.fiche_title ?? "Fiche de poste")
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -127,7 +128,7 @@ function Content({ projectId }: { projectId: number }) {
 
     const interval = window.setInterval(() => {
       void loadItems().catch(() => {
-        // silent polling
+        // silent polling while background pipeline runs
       })
     }, 3000)
 
@@ -136,27 +137,10 @@ function Content({ projectId }: { projectId: number }) {
     }
   }, [items, projectId])
 
-  const refreshItems = async (): Promise<void> => {
-    setReloading(true)
-    setActionError(null)
-    setActionInfo(null)
-    try {
-      await loadItems()
-    } catch (err) {
-      setActionError(
-        err instanceof ApiHttpError
-          ? err.message
-          : "Impossible de rafraîchir les candidatures.",
-      )
-    } finally {
-      setReloading(false)
-    }
-  }
-
   const validateSelectedFile = (file: File): string | null => {
     const extension = file.name.split(".").pop()?.toLowerCase() ?? ""
     if (!ALLOWED_EXTENSIONS.has(extension)) {
-      return "Format non supporté. Utilisez PDF, PNG, JPG ou JPEG."
+      return "Format non supporte. Utilisez PDF, PNG, JPG ou JPEG."
     }
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       return "Fichier trop volumineux (max 10 MB)."
@@ -196,44 +180,50 @@ function Content({ projectId }: { projectId: number }) {
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
-      setActionInfo("CV uploadé. Cliquez sur Voir candidature pour lancer extraction et évaluation.")
+      setActionInfo(
+        "CV televerse. Le parsing markdown, l'extraction LLM et l'evaluation IA s'executent en arriere-plan.",
+      )
     } catch (err) {
       if (err instanceof ApiHttpError) {
         setActionError(err.message)
       } else {
-        setActionError("Échec de l'upload de la candidature.")
+        setActionError("Echec de l'upload de la candidature.")
       }
     } finally {
       setUploading(false)
     }
   }
 
-  const visibleItems = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    if (!normalized) {
+  const normalizedQuery = query.trim().toLowerCase()
+  const matchingItems = useMemo(() => {
+    if (!normalizedQuery) {
       return items
     }
     return items.filter((item) => {
       const text = [
         item.nom_candidat,
         item.email_candidat,
-        item.telephone_candidat,
         item.nom_fichier,
-        item.recommandation,
+        item.type_fichier,
         item.statut,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-      return text.includes(normalized)
+      return text.includes(normalizedQuery)
     })
-  }, [items, query])
+  }, [items, normalizedQuery])
+
+  const processingItems = matchingItems.filter((item) => item.statut === "EN_COURS")
+  const readyItems = matchingItems.filter((item) => item.statut === "EVALUE")
+  const erroredItems = matchingItems.filter((item) => item.statut === "ERREUR")
 
   return (
     <div className="stagger-enter space-y-6">
       <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-stone-50 via-amber-50 to-teal-50">
         <CardHeader>
-          <CardTitle className="premium-title">CV du projet #{projectId}</CardTitle>
+          <CardTitle className="premium-title">{projectTitle}</CardTitle>
+          <p className="premium-copy text-sm">{ficheTitle}</p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-col gap-3 rounded-lg border border-stone-300/70 bg-white/70 p-3 md:flex-row md:items-center">
@@ -256,22 +246,18 @@ function Content({ projectId }: { projectId: number }) {
                 Choisir un CV
               </label>
             </Button>
-            <input
+            <Input
               value={selectedFile?.name ?? ""}
               readOnly
-              placeholder="Aucun fichier sélectionné"
+              placeholder="Aucun fichier selectionne"
               className="w-full"
             />
             <Button onClick={() => void uploadCandidature()} disabled={uploading || !selectedFile}>
               {uploading ? (
                 <><Loader2 className="mr-2 size-4 animate-spin" />Upload en cours</>
               ) : (
-                <><Upload className="mr-2 size-4" />Téléverser le CV</>
+                <><Sparkles className="mr-2 size-4" />Upload et traitement IA</>
               )}
-            </Button>
-            <Button variant="outline" onClick={() => void refreshItems()} disabled={reloading}>
-              {reloading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RefreshCcw className="mr-2 size-4" />}
-              Rafraîchir
             </Button>
           </div>
 
@@ -281,13 +267,13 @@ function Content({ projectId }: { projectId: number }) {
               className="pl-8"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher candidat, email, statut, fichier"
+              placeholder="Rechercher candidat, fichier, type, statut"
             />
           </div>
 
-          {selectedFile && (
-            <p className="premium-subtle text-sm">
-              Fichier sélectionné: {selectedFile.name} ({formatBytes(selectedFile.size)})
+          {processingItems.length > 0 && (
+            <p className="text-sm text-teal-700">
+              {processingItems.length} candidature(s) en cours de traitement IA.
             </p>
           )}
           {actionInfo && <p className="text-sm text-emerald-700">{actionInfo}</p>}
@@ -297,7 +283,7 @@ function Content({ projectId }: { projectId: number }) {
 
       {loading && (
         <Card className="premium-panel">
-          <CardContent className="premium-copy">Chargement des candidatures…</CardContent>
+          <CardContent className="premium-copy">Chargement des candidatures...</CardContent>
         </Card>
       )}
 
@@ -307,39 +293,63 @@ function Content({ projectId }: { projectId: number }) {
         </Card>
       )}
 
-      {!loading && !error && visibleItems.length === 0 && (
+      {!loading && !error && readyItems.length === 0 && (
         <Card className="premium-panel">
           <CardContent className="premium-subtle">
-            Aucun CV pour ce projet ou pour la recherche en cours.
+            Aucune candidature evaluee pour le moment.
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {visibleItems.map((item) => (
+        {readyItems.map((item) => (
           <Card key={item.id} className="premium-panel premium-lift border-stone-300/70 bg-white/90">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-3 text-base">
-                <span className="line-clamp-1">{item.nom_candidat ?? item.nom_fichier}</span>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-base">{ficheTitle}</CardTitle>
+              <p className="text-sm text-slate-700">{item.nom_candidat ?? "Candidat non identifie"}</p>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <FileText className="size-4 text-teal-700" />
+                <span className="line-clamp-1">{item.nom_fichier}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{item.type_fichier}</Badge>
                 <Badge variant={badgeVariantFromCandidatureStatut(item.statut)}>
                   {labelFromCandidatureStatut(item.statut)}
                 </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Fichier: {item.nom_fichier}</p>
-              <p>Type: {item.type_fichier}</p>
-              <p>Taille: {formatBytes(item.taille_fichier)}</p>
-              <p>Déposé: {formatDate(item.depose_le)}</p>
+              </div>
+              <p className="text-xs text-slate-600">Depose le {formatDate(item.depose_le)}</p>
               <Button asChild className="w-full">
-                <Link href={`/projets/${projectId}/candidatures/${item.id}`}>
-                  Voir candidature
-                </Link>
+                <Link href={`/projets/${projectId}/candidatures/${item.id}`}>Voir details</Link>
               </Button>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {erroredItems.length > 0 && (
+        <Card className="premium-panel border-red-200/70 bg-red-50/60">
+          <CardHeader>
+            <CardTitle className="text-base text-red-800">Candidatures en erreur</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {erroredItems.map((item) => (
+              <Link
+                key={item.id}
+                href={`/projets/${projectId}/candidatures/${item.id}`}
+                className="flex items-center justify-between rounded-lg border border-red-200 bg-white/90 px-3 py-2 hover:bg-red-50"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <UserRound className="size-4 text-red-700" />
+                  {item.nom_candidat ?? item.nom_fichier}
+                </span>
+                <Badge variant="destructive">Erreur</Badge>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

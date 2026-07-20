@@ -84,6 +84,16 @@ async def upload_candidature(
         payload=payload,
     )
 
+    # Persist row before launching background work so the worker session can load it.
+    db.commit()
+    db.refresh(candidature)
+
+    background_tasks.add_task(
+        candidatures_service.process_candidature_pipeline,
+        candidature.id,
+        storage,
+    )
+
     return ApiResponse(data=CandidatureResponse.model_validate(candidature))
 
 

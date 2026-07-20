@@ -55,6 +55,7 @@ class Candidature(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     experiences: Mapped[list[dict[str, str]] | None] = mapped_column(
         JSON, nullable=True
     )
+    skills: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     score_matching: Mapped[int | None] = mapped_column(Integer, nullable=True)
     points_forts: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)

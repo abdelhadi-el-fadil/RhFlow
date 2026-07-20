@@ -9,6 +9,8 @@ __pycache__/
 venv/
 .venv/
 structure.md
+**/DOCUMENTATION.md
+WORKFLOW.md
 
 # =====================
 # Node / Next.js

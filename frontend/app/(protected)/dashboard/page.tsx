@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Activity,
   Building2,
   ClipboardList,
   FileText,
   Gauge,
+  FolderKanban,
   Users,
 } from "lucide-react";
 
@@ -26,6 +26,7 @@ import type {
   DirectionResponse,
   FicheDePosteResponse,
   PaginatedResponse,
+  ProjetRecrutementCardResponse,
   UserResponse,
 } from "@/lib/backend-types";
 
@@ -34,15 +35,20 @@ type Counts = {
   directions: number;
   fiches: number;
   besoins: number;
+  projets: number;
 };
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isAdminOrDrh = user?.role === "ADMIN" || user?.role === "DRH";
+  const canSeeOperationalCards =
+    isAdminOrDrh || user?.role === "DIRECTEUR" || user?.role === "DG";
   const [counts, setCounts] = useState<Counts>({
     users: 0,
     directions: 0,
     fiches: 0,
     besoins: 0,
+    projets: 0,
   });
   const [recentBesoins, setRecentBesoins] = useState<
     BesoinRecrutementResponse[]
@@ -54,12 +60,15 @@ export default function DashboardPage() {
 
     const load = async () => {
       try {
-        const canSeeAdminData = user?.role === "ADMIN" || user?.role === "DRH";
-        const canSeeNeeds = canSeeAdminData || user?.role === "DIRECTEUR";
+        const canSeeAdminData = isAdminOrDrh;
+        const canSeeNeeds = canSeeOperationalCards;
+        const canSeeProjects = canSeeOperationalCards;
 
         let usersRes: PaginatedResponse<UserResponse> | null = null;
         let directionsRes: PaginatedResponse<DirectionResponse> | null = null;
         let besoinsRes: PaginatedResponse<BesoinRecrutementResponse> | null =
+          null;
+        let projetsRes: PaginatedResponse<ProjetRecrutementCardResponse> | null =
           null;
 
         if (canSeeAdminData) {
@@ -85,6 +94,15 @@ export default function DashboardPage() {
           ).data;
         }
 
+        if (canSeeProjects) {
+          projetsRes = (
+            await apiClient.get<PaginatedResponse<ProjetRecrutementCardResponse>>(
+              "/projets/",
+              { params: { page: 1, page_size: 1 } },
+            )
+          ).data;
+        }
+
         const fichesRes = (
           await apiClient.get<PaginatedResponse<FicheDePosteResponse>>(
             "/fiches-de-poste/",
@@ -101,11 +119,12 @@ export default function DashboardPage() {
           directions: directionsRes?.meta.total_items ?? 0,
           fiches: fichesRes.data.length ? fichesRes.meta.total_items : 0,
           besoins: besoinsRes?.meta.total_items ?? 0,
+          projets: projetsRes?.meta.total_items ?? 0,
         });
         setRecentBesoins(besoinsRes?.data ?? []);
       } catch {
         if (!cancelled) {
-          setCounts({ users: 0, directions: 0, fiches: 0, besoins: 0 });
+          setCounts({ users: 0, directions: 0, fiches: 0, besoins: 0, projets: 0 });
           setRecentBesoins([]);
         }
       } finally {
@@ -119,7 +138,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.role]);
+  }, [user?.role, isAdminOrDrh, canSeeOperationalCards]);
 
   const firstName =
     user?.full_name?.split(" ")[0] ??
@@ -128,7 +147,7 @@ export default function DashboardPage() {
 
   return (
     <div className="stagger-enter space-y-6">
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-amber-50 via-stone-50 to-teal-50">
+      <Card className="premium-panel premium-lift border-amber-200/65 bg-linear-to-br from-amber-50 via-stone-50 to-teal-50">
         <CardHeader>
           <CardDescription className="premium-copy">
             Bonjour {firstName}
@@ -148,98 +167,70 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Utilisateurs"
-          value={counts.users}
-          href="/users"
-          loading={loading}
-          tone="from-stone-50 via-amber-50 to-emerald-50"
-          border="border-amber-200/70"
-          textColor="text-slate-900"
-          accentColor="text-emerald-700"
-          linkColor="text-teal-800 hover:text-teal-950"
-        />
-        <StatCard
-          title="Directions"
-          value={counts.directions}
-          href="/directions"
-          loading={loading}
-          tone="from-teal-50 via-cyan-50 to-stone-50"
-          border="border-teal-200/70"
-          textColor="text-slate-900"
-          accentColor="text-teal-700"
-          linkColor="text-teal-800 hover:text-teal-950"
-        />
-        <StatCard
-          title="Fiches de poste"
-          value={counts.fiches}
-          href="/fiches-de-poste"
-          loading={loading}
-          tone="from-stone-50 via-teal-50 to-emerald-50"
-          border="border-emerald-200/70"
-          textColor="text-slate-900"
-          accentColor="text-emerald-700"
-          linkColor="text-teal-800 hover:text-teal-950"
-        />
-        <StatCard
-          title="Besoins"
-          value={counts.besoins}
-          href="/besoins"
-          loading={loading}
-          tone="from-emerald-50 via-stone-50 to-cyan-50"
-          border="border-cyan-200/70"
-          textColor="text-slate-900"
-          accentColor="text-cyan-700"
-          linkColor="text-teal-800 hover:text-teal-950"
-        />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {isAdminOrDrh && (
+          <StatCard
+            title="Utilisateurs"
+            value={counts.users}
+            href="/users"
+            loading={loading}
+            tone="from-stone-50 via-amber-50 to-emerald-50"
+            border="border-amber-200/70"
+            textColor="text-slate-900"
+            accentColor="text-emerald-700"
+          />
+        )}
+        {isAdminOrDrh && (
+          <StatCard
+            title="Directions"
+            value={counts.directions}
+            href="/directions"
+            loading={loading}
+            tone="from-teal-50 via-cyan-50 to-stone-50"
+            border="border-teal-200/70"
+            textColor="text-slate-900"
+            accentColor="text-teal-700"
+          />
+        )}
+        {canSeeOperationalCards && (
+          <StatCard
+            title="Fiches de poste"
+            value={counts.fiches}
+            href="/fiches-de-poste"
+            loading={loading}
+            tone="from-stone-50 via-teal-50 to-emerald-50"
+            border="border-emerald-200/70"
+            textColor="text-slate-900"
+            accentColor="text-emerald-700"
+          />
+        )}
+        {canSeeOperationalCards && (
+          <StatCard
+            title="Besoins"
+            value={counts.besoins}
+            href="/besoins"
+            loading={loading}
+            tone="from-emerald-50 via-stone-50 to-cyan-50"
+            border="border-cyan-200/70"
+            textColor="text-slate-900"
+            accentColor="text-cyan-700"
+          />
+        )}
+        {canSeeOperationalCards && (
+          <StatCard
+            title="Projets"
+            value={counts.projets}
+            href="/projets"
+            loading={loading}
+            tone="from-cyan-50 via-stone-50 to-amber-50"
+            border="border-cyan-200/70"
+            textColor="text-slate-900"
+            accentColor="text-cyan-700"
+          />
+        )}
       </div>
 
-      <Card className="premium-panel premium-lift border-amber-200/65 bg-gradient-to-br from-stone-50 via-amber-50 to-teal-50">
-        <CardHeader>
-          <CardDescription className="premium-copy">Raccourcis</CardDescription>
-          <CardTitle className="premium-title flex items-center gap-2">
-            <Activity className="size-5 text-teal-700" />
-            Navigation rapide
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 text-sm premium-copy">
-          <Link
-            className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
-            href="/fiches-de-poste"
-          >
-            Voir les fiches de poste
-          </Link>
-          {user?.role !== "DG" && (
-            <Link
-              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
-              href="/besoins"
-            >
-              Voir les besoins
-            </Link>
-          )}
-          {(user?.role === "ADMIN" ||
-            user?.role === "DRH" ||
-            user?.role === "DIRECTEUR") && (
-            <Link
-              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
-              href="/projets"
-            >
-              Voir les projets
-            </Link>
-          )}
-          {(user?.role === "ADMIN" || user?.role === "DRH") && (
-            <Link
-              className="premium-link rounded-lg border border-stone-300/75 bg-white/85 px-3 py-2 transition-colors duration-200 hover:bg-amber-50"
-              href="/offres"
-            >
-              Voir les offres
-            </Link>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="premium-panel premium-lift border-teal-200/65 bg-gradient-to-br from-teal-50 via-stone-50 to-cyan-50">
+      <Card className="premium-panel premium-lift border-teal-200/65 bg-linear-to-br from-teal-50 via-stone-50 to-cyan-50">
         <CardHeader>
           <CardDescription className="premium-copy">
             Derniers besoins
@@ -285,7 +276,6 @@ function StatCard({
   border,
   textColor,
   accentColor,
-  linkColor,
 }: {
   title: string;
   value: number;
@@ -295,32 +285,30 @@ function StatCard({
   border: string;
   textColor: string;
   accentColor: string;
-  linkColor: string;
 }) {
   const icon =
     title === "Utilisateurs" ? (
       <Users className={`size-4 ${accentColor}`} />
     ) : title === "Directions" ? (
       <Building2 className={`size-4 ${accentColor}`} />
+    ) : title === "Projets" ? (
+      <FolderKanban className={`size-4 ${accentColor}`} />
     ) : title === "Fiches de poste" ? (
       <FileText className={`size-4 ${accentColor}`} />
     ) : (
       <ClipboardList className={`size-4 ${accentColor}`} />
     );
   return (
-    <Card className={`premium-panel premium-lift ${border} bg-gradient-to-br ${tone}`}>
-      <CardHeader>
-        <CardDescription className={`flex items-center gap-2 ${accentColor}`}>
-          {icon}
-          {title}
-        </CardDescription>
-        <CardTitle className={textColor}>{loading ? "…" : value}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Link href={href} className={`text-sm ${linkColor} hover:underline`}>
-          Ouvrir
-        </Link>
-      </CardContent>
-    </Card>
+    <Link href={href} className="block">
+      <Card className={`premium-panel premium-lift w-full ${border} bg-linear-to-br ${tone}`}>
+        <CardHeader>
+          <CardDescription className={`flex items-center gap-2 ${accentColor}`}>
+            {icon}
+            {title}
+          </CardDescription>
+          <CardTitle className={textColor}>{loading ? "…" : value}</CardTitle>
+        </CardHeader>
+      </Card>
+    </Link>
   );
 }

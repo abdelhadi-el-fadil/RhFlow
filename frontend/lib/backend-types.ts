@@ -183,6 +183,7 @@ export type CandidatureResponse = {
   telephone_candidat: string | null
   formations: FormationExtraite[] | null
   experiences: ExperienceExtraite[] | null
+  skills: string[] | null
   score_matching: number | null
   points_forts: string[] | null
   points_manquants: string[] | null

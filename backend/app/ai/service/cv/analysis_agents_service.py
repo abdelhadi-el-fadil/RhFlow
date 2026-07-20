@@ -89,6 +89,7 @@ class CandidatInfo(BaseModel):
     )
     formations: list[FormationInfo] = Field(default_factory=list)
     experiences: list[ExperienceInfo] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -121,10 +122,12 @@ Regles:
 - Ne jamais inventer, deduire ou completer une information absente.
 - Retourner null pour une valeur scalaire absente/ambigue.
 - Retourner une liste vide s'il n'y a aucune formation ou experience.
+- Retourner une liste vide s'il n'y a aucune competence explicite.
 - Preserver l'ordre des formations et experiences tel qu'il apparait dans le CV.
 - Pour les formations, extraire le diplome ou l'intitule le plus precis disponible.
 - Pour les experiences, extraire le poste puis l'entreprise
     et la periode si elles sont ecrites.
+- Pour les competences, retourner des libelles courts, concrets et deduplices.
 - Respecter strictement le schema de sortie fourni."""
 
 
@@ -477,8 +480,28 @@ def _normalize_candidate_payload(raw: dict[str, object]) -> dict[str, object]:
                 }
             )
 
+    skills = _string_list_from_value(
+        _find_first_list_by_keys(
+            raw,
+            ("skills", "competences", "competencies", "technical_skills", "stack"),
+        )
+        or _find_first_text_by_keys(
+            raw,
+            ("skills", "competences", "competencies", "technical_skills", "stack"),
+        )
+    )
+    deduped_skills: list[str] = []
+    seen: set[str] = set()
+    for skill in skills:
+        token = _normalized_key(skill)
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        deduped_skills.append(skill)
+
     normalized["formations"] = formations
     normalized["experiences"] = experiences
+    normalized["skills"] = deduped_skills
     return normalized
 
 
@@ -611,6 +634,16 @@ def _post_validate_candidate(candidate: CandidatInfo, cv_markdown: str) -> Candi
     candidate.experiences = [
         e for e in candidate.experiences if e.titre and e.titre.strip()
     ]
+    normalized_skills: list[str] = []
+    seen: set[str] = set()
+    for skill in candidate.skills:
+        cleaned = skill.strip(" -\t\n\r")
+        token = _normalized_key(cleaned)
+        if not cleaned or not token or token in seen:
+            continue
+        seen.add(token)
+        normalized_skills.append(cleaned)
+    candidate.skills = normalized_skills
     return candidate
 
 

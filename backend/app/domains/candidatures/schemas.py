@@ -33,6 +33,7 @@ class CandidatureResponse(BaseModel):
     telephone_candidat: str | None
     formations: list[FormationExtraite] | None
     experiences: list[ExperienceExtraite] | None
+    skills: list[str] | None
     score_matching: int | None
     points_forts: list[str] | None
     points_manquants: list[str] | None
