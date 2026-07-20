@@ -132,7 +132,7 @@ function InboxContent() {
             Boite de reception
           </CardTitle>
           <p className="premium-copy text-sm">
-            Toutes les candidatures dont le traitement automatique a echoue, avec une explication claire du probleme.
+            Toutes les candidatures dont le traitement automatique a echoue.
           </p>
         </CardHeader>
         <CardContent>

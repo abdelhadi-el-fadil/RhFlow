@@ -228,6 +228,11 @@ jobs:
             LITEPARSE_MAX_PAGES=${{ secrets.LITEPARSE_MAX_PAGES }}
             LITEPARSE_OCR_ENABLED=${{ secrets.LITEPARSE_OCR_ENABLED }}
             LITEPARSE_OCR_LANGUAGE=${{ secrets.LITEPARSE_OCR_LANGUAGE }}
+            N8N_HOST=${{ secrets.N8N_HOST }}
+            N8N_WEBHOOK_URL=${{ secrets.N8N_WEBHOOK_URL }}
+            N8N_TIMEZONE=${{ secrets.N8N_TIMEZONE }}
+            N8N_ENCRYPTION_KEY=${{ secrets.N8N_ENCRYPTION_KEY }}
+            N8N_POSTGRES_DB=${{ secrets.N8N_POSTGRES_DB }}
             EOF
 
             docker compose pull
