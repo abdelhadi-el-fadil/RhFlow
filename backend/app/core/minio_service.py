@@ -93,7 +93,7 @@ class MinioStorageService:
                 object_name=object_key,
                 expires=timedelta(minutes=expires_minutes),
             )
-            return url
+            return self._apply_public_path_prefix(url)
         except S3Error as exc:
             raise MinioStorageServiceError(str(exc)) from exc
 
