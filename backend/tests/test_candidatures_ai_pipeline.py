@@ -13,6 +13,7 @@ from app.ai.service.cv.analysis_agents_service import (
     RecommendationValue,
 )
 from app.core.enums import UserRole
+from app.core.schemas import PaginationParams
 from app.domains.candidatures import service as candidatures_service
 from app.domains.candidatures.enums import CandidatureStatut, RecommandationIA
 from app.domains.candidatures.model import Candidature
@@ -301,7 +302,9 @@ def test_process_candidature_evaluation_uses_fiche_chain_and_extracted_profile(
     candidatures_service.process_candidature_evaluation(candidature.id, storage)
 
     db.expire_all()
-    refreshed = db.scalar(select(Candidature).where(Candidature.id == candidature.id))
+    refreshed = db.scalar(
+        select(Candidature).where(Candidature.id == candidature.id)
+        )
     assert refreshed is not None
     assert refreshed.score_matching == 87
     assert refreshed.recommandation == RecommandationIA.A_CONVOQUER
@@ -310,3 +313,50 @@ def test_process_candidature_evaluation_uses_fiche_chain_and_extracted_profile(
     assert "Ingenieur IA" in captured["fiche_de_poste"]
     assert "Python, LLM, FastAPI" in captured["fiche_de_poste"]
     assert captured["cv_markdown"] == candidature.contenu_markdown
+
+
+def test_list_candidatures_excludes_errored_items_from_project_page(
+    db: Session,
+    make_user: Callable[..., User],
+) -> None:
+    user = make_user("ai-list@test.com", "Secret123!", role=UserRole.ADMIN)
+    project = _create_project_chain(db, user)
+
+    ok_candidature = Candidature(
+        projet_recrutement_id=project.id,
+        nom_fichier="ok.pdf",
+        chemin_minio="cvs/ok.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.EVALUE,
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    error_candidature = Candidature(
+        projet_recrutement_id=project.id,
+        nom_fichier="error.pdf",
+        chemin_minio="cvs/error.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.ERREUR,
+        justification_ia="Parsed CV markdown is empty",
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    db.add_all([ok_candidature, error_candidature])
+    db.commit()
+
+    items, total = candidatures_service.list_candidatures(
+        db,
+        PaginationParams(page=1, page_size=100),
+        project.id,
+        user,
+    )
+
+    assert total == 1
+    assert [item.id for item in items] == [ok_candidature.id]
+
+    fetched_error = candidatures_service.get_candidature(db,
+                                                         error_candidature.id,
+                                                         user)
+    assert fetched_error.id == error_candidature.id

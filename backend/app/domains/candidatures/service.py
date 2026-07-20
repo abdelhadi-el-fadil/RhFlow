@@ -19,11 +19,13 @@ from app.ai.service.cv.analysis_agents_service import (
     sanitize_candidate_identity,
 )
 from app.ai.service.cv.extraction_service import extract_cv_to_markdown
+from app.core.exceptions import ForbiddenException
 from app.core.logging import logger
 from app.core.minio_service import MinioStorageServiceError
 from app.core.schemas import PaginationParams
 from app.database import SessionLocal
 from app.domains.candidatures.enums import CandidatureStatut, RecommandationIA
+from app.domains.candidatures.error_messages import humanize_candidature_error
 from app.domains.candidatures.exceptions import (
     CandidatureAnalysisInProgressException,
     CandidatureFileTooLargeException,
@@ -172,6 +174,7 @@ def list_candidatures(
         .where(
             Candidature.projet_recrutement_id == projet_id,
             Candidature.is_deleted.is_(False),
+            Candidature.statut != CandidatureStatut.ERREUR,
         )
         .order_by(Candidature.id.desc())
     )
@@ -184,9 +187,38 @@ def list_candidatures(
         .where(
             Candidature.projet_recrutement_id == projet_id,
             Candidature.is_deleted.is_(False),
+            Candidature.statut != CandidatureStatut.ERREUR,
         )
     )
     return items, int(total_items or 0)
+
+
+def list_errored_candidatures(
+    db: Session,
+    params: PaginationParams,
+    current_user: User,
+) -> tuple[list[Candidature], int]:
+    base_query = (
+        select(Candidature)
+        .options(selectinload(Candidature.projet_recrutement))
+        .where(
+            Candidature.is_deleted.is_(False),
+            Candidature.statut == CandidatureStatut.ERREUR,
+        )
+        .order_by(Candidature.id.desc())
+    )
+
+    items = list(db.scalars(base_query).all())
+    visible_items: list[Candidature] = []
+    for item in items:
+        try:
+            get_project(db, item.projet_recrutement_id, current_user)
+        except ForbiddenException:
+            continue
+        visible_items.append(item)
+    total_items = len(visible_items)
+    visible_items = visible_items[params.offset : params.offset + params.page_size]
+    return visible_items, total_items
 
 
 def get_candidature(
@@ -206,6 +238,28 @@ def get_candidature(
         raise CandidatureNotFoundException()
 
     _ = get_project(db, candidature.projet_recrutement_id, current_user)
+    return candidature
+
+
+def delete_candidature(
+    db: Session,
+    candidature_id: int,
+    current_user: User,
+    storage: CandidatureStorage,
+) -> Candidature:
+    candidature = get_candidature(db, candidature_id, current_user)
+
+    candidature.is_deleted = True
+    candidature.deleted_at = datetime.now(timezone.utc)
+    candidature.updated_by_id = current_user.id
+    db.add(candidature)
+    db.flush()
+
+    try:
+        storage.delete_object(candidature.chemin_minio)
+    except MinioStorageServiceError as exc:
+        raise CandidatureStorageException(str(exc)) from exc
+
     return candidature
 
 
@@ -294,7 +348,13 @@ def _mark_candidature_error(
     db: Session, candidature: Candidature, message: str
 ) -> None:
     candidature.statut = CandidatureStatut.ERREUR
-    candidature.justification_ia = message[:4000]
+    readable_message = humanize_candidature_error(message)
+    if readable_message and readable_message != message:
+        candidature.justification_ia = (
+            f"{readable_message}\n\nDetail technique: {message[:3400]}"
+        )
+    else:
+        candidature.justification_ia = message[:4000]
     db.add(candidature)
 
 

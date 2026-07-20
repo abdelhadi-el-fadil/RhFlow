@@ -23,6 +23,7 @@ class CandidatureResponse(BaseModel):
 
     id: int
     projet_recrutement_id: int
+    projet_title: str | None = None
     nom_fichier: str
     chemin_minio: str
     type_fichier: str
@@ -39,6 +40,8 @@ class CandidatureResponse(BaseModel):
     points_manquants: list[str] | None
     recommandation: RecommandationIA | None
     justification_ia: str | None
+    error_summary: str | None = None
+    error_detail: str | None = None
     questions_entretien: list[str] | None
     statut: CandidatureStatut
     depose_le: datetime

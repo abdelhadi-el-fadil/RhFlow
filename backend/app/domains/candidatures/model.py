@@ -20,6 +20,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domains.candidatures.enums import CandidatureStatut, RecommandationIA
+from app.domains.candidatures.error_messages import humanize_candidature_error
 from app.models.base import AuditMixin, Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
@@ -95,3 +96,26 @@ class Candidature(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
         "ProjetRecrutement",
         back_populates="candidatures",
     )
+
+    @property
+    def projet_title(self) -> str | None:
+        projet = self.projet_recrutement
+        if projet is None:
+            return None
+        return getattr(projet, "title", None)
+
+    @property
+    def error_summary(self) -> str | None:
+        if self.statut != CandidatureStatut.ERREUR:
+            return None
+        if self.justification_ia and "\n\nDetail technique: " in self.justification_ia:
+            return self.justification_ia.split("\n\nDetail technique: ", maxsplit=1)[0]
+        return humanize_candidature_error(self.justification_ia)
+
+    @property
+    def error_detail(self) -> str | None:
+        if self.statut != CandidatureStatut.ERREUR:
+            return None
+        if self.justification_ia and "\n\nDetail technique: " in self.justification_ia:
+            return self.justification_ia.split("\n\nDetail technique: ", maxsplit=1)[1]
+        return self.justification_ia

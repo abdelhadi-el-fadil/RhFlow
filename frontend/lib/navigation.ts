@@ -7,6 +7,7 @@ export type NavIconKey =
   | "fiches"
   | "besoins"
   | "projets"
+  | "inbox"
   | "archives"
   | "settings"
 
@@ -30,6 +31,7 @@ const NAV_PRIMARY: NavItem[] = [
   { label: "Fiches de poste", href: "/fiches-de-poste", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "fiches" },
   { label: "Besoins", href: "/besoins", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "besoins" },
   { label: "Projets", href: "/projets", roles: ["ADMIN", "DRH", "DIRECTEUR"], icon: "projets" },
+  { label: "Boite de reception", href: "/boite-de-reception", roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"], icon: "inbox" },
   {
     label: "Archives",
     roles: ["ADMIN", "DRH", "DIRECTEUR", "DG"],

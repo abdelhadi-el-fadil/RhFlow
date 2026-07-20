@@ -173,6 +173,7 @@ export type ExperienceExtraite = {
 export type CandidatureResponse = {
   id: number
   projet_recrutement_id: number
+  projet_title: string | null
   nom_fichier: string
   chemin_minio: string
   type_fichier: string
@@ -189,6 +190,8 @@ export type CandidatureResponse = {
   points_manquants: string[] | null
   recommandation: RecommandationIA | null
   justification_ia: string | null
+  error_summary: string | null
+  error_detail: string | null
   questions_entretien: string[] | null
   statut: CandidatureStatut
   depose_le: string

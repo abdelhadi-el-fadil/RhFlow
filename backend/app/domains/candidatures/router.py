@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import (
     get_current_user,
     get_minio_candidatures_storage_service,
+    require_role,
 )
+from app.core.enums import UserRole
 from app.core.minio_service import MinioStorageService
 from app.core.schemas import (
     ApiResponse,
@@ -54,6 +56,38 @@ def list_candidatures(
             total_pages=(total + params.page_size - 1) // params.page_size,
         ),
     )
+
+
+@router.get("/errors/", response_model=PaginatedResponse[CandidatureResponse])
+def list_errored_candidatures(
+    params: Annotated[PaginationParams, Depends()],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[CandidatureResponse]:
+    items, total = candidatures_service.list_errored_candidatures(
+        db,
+        params,
+        current_user,
+    )
+    return PaginatedResponse(
+        data=[CandidatureResponse.model_validate(item) for item in items],
+        meta=PaginationMeta(
+            page=params.page,
+            page_size=params.page_size,
+            total_items=total,
+            total_pages=(total + params.page_size - 1) // params.page_size,
+        ),
+    )
+
+
+@router.get("/{candidature_id}", response_model=ApiResponse[CandidatureResponse])
+def get_candidature(
+    candidature_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[CandidatureResponse]:
+    candidature = candidatures_service.get_candidature(db, candidature_id, current_user)
+    return ApiResponse(data=CandidatureResponse.model_validate(candidature))
 
 
 @router.post(
@@ -155,3 +189,14 @@ def evaluate_candidature(
         data=CandidatureResponse.model_validate(candidature),
         message="Evaluation completed",
     )
+
+
+@router.delete("/{candidature_id}", response_model=ApiResponse[None])
+def delete_candidature(
+    candidature_id: int,
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DRH)),
+    db: Session = Depends(get_db),
+    storage: MinioStorageService = Depends(get_minio_candidatures_storage_service),
+) -> ApiResponse[None]:
+    candidatures_service.delete_candidature(db, candidature_id, current_user, storage)
+    return ApiResponse(data=None)

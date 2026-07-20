@@ -10,6 +10,7 @@ import {
   ClipboardList,
   FileText,
   Gauge,
+  Inbox,
   LogOut,
   Menu,
   Settings,
@@ -34,6 +35,7 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
   fiches: FileText,
   besoins: ClipboardList,
   projets: BookUser,
+  inbox: Inbox,
   archives: Archive,
   settings: Settings,
 };

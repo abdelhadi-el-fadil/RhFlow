@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { use, useEffect, useMemo, useRef, useState } from "react"
-import { FileText, Loader2, Search, Sparkles, Upload, UserRound } from "lucide-react"
+import { use, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { FileText, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react"
+import { toast } from "sonner"
 
+import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -60,6 +62,7 @@ export default function ProjetCandidaturesPage({ params }: { params: Promise<{ i
 }
 
 function Content({ projectId }: { projectId: number }) {
+  const { user } = useAuth()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [items, setItems] = useState<CandidatureResponse[]>([])
@@ -68,18 +71,20 @@ function Content({ projectId }: { projectId: number }) {
   const [actionInfo, setActionInfo] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [query, setQuery] = useState("")
   const [projectTitle, setProjectTitle] = useState<string>(`Projet #${projectId}`)
   const [ficheTitle, setFicheTitle] = useState<string>("Fiche de poste")
+  const canDelete = user?.role === "ADMIN" || user?.role === "DRH"
 
-  const loadItems = async (): Promise<void> => {
+  const loadItems = useEffectEvent(async (): Promise<void> => {
     const response = await apiClient.get<PaginatedResponse<CandidatureResponse>>(
       `/projets/${projectId}/candidatures/`,
       { params: { page: 1, page_size: 100 } },
     )
     setItems(response.data.data)
-  }
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -194,6 +199,30 @@ function Content({ projectId }: { projectId: number }) {
     }
   }
 
+  const deleteCandidature = async (candidatureId: number): Promise<void> => {
+    if (!canDelete) {
+      return
+    }
+    if (!window.confirm("Supprimer cette candidature ?")) {
+      return
+    }
+
+    setActionError(null)
+    setActionInfo(null)
+    setDeletingId(candidatureId)
+    try {
+      await apiClient.delete(`/candidatures/${candidatureId}`)
+      setItems((current) => current.filter((item) => item.id !== candidatureId))
+      toast.success("Candidature supprimée avec succès.")
+    } catch (err) {
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette candidature."
+      setActionError(message)
+      toast.error(message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const normalizedQuery = query.trim().toLowerCase()
   const matchingItems = useMemo(() => {
     if (!normalizedQuery) {
@@ -214,9 +243,10 @@ function Content({ projectId }: { projectId: number }) {
     })
   }, [items, normalizedQuery])
 
-  const processingItems = matchingItems.filter((item) => item.statut === "EN_COURS")
-  const readyItems = matchingItems.filter((item) => item.statut === "EVALUE")
-  const erroredItems = matchingItems.filter((item) => item.statut === "ERREUR")
+  const visibleItems = matchingItems.filter((item) => item.statut !== "ERREUR")
+  const processingItems = visibleItems.filter((item) => item.statut === "EN_COURS")
+  const readyItems = visibleItems.filter((item) => item.statut === "EVALUE")
+  const otherItems = visibleItems.filter((item) => item.statut !== "EVALUE" && item.statut !== "EN_COURS")
 
   return (
     <div className="stagger-enter space-y-6">
@@ -320,32 +350,47 @@ function Content({ projectId }: { projectId: number }) {
                 </Badge>
               </div>
               <p className="text-xs text-slate-600">Depose le {formatDate(item.depose_le)}</p>
-              <Button asChild className="w-full">
-                <Link href={`/projets/${projectId}/candidatures/${item.id}`}>Voir details</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild className="flex-1">
+                  <Link href={`/projets/${projectId}/candidatures/${item.id}`}>Voir details</Link>
+                </Button>
+                {canDelete && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={deletingId === item.id}
+                    onClick={() => void deleteCandidature(item.id)}
+                    aria-label="Supprimer la candidature"
+                  >
+                    {deletingId === item.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {erroredItems.length > 0 && (
-        <Card className="premium-panel border-red-200/70 bg-red-50/60">
+      {otherItems.length > 0 && (
+        <Card className="premium-panel">
           <CardHeader>
-            <CardTitle className="text-base text-red-800">Candidatures en erreur</CardTitle>
+            <CardTitle className="text-base">Autres candidatures</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {erroredItems.map((item) => (
-              <Link
+            {otherItems.map((item) => (
+              <div
                 key={item.id}
-                href={`/projets/${projectId}/candidatures/${item.id}`}
-                className="flex items-center justify-between rounded-lg border border-red-200 bg-white/90 px-3 py-2 hover:bg-red-50"
+                className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/90 px-3 py-2"
               >
-                <span className="inline-flex items-center gap-2">
-                  <UserRound className="size-4 text-red-700" />
-                  {item.nom_candidat ?? item.nom_fichier}
-                </span>
-                <Badge variant="destructive">Erreur</Badge>
-              </Link>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-slate-900">{item.nom_candidat ?? item.nom_fichier}</p>
+                  <p className="text-xs text-slate-600">{labelFromCandidatureStatut(item.statut)} · {formatDate(item.depose_le)}</p>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/projets/${projectId}/candidatures/${item.id}`}>Voir</Link>
+                </Button>
+              </div>
             ))}
           </CardContent>
         </Card>

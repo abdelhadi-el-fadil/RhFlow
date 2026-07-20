@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { use, useEffect, useMemo, useState } from "react"
+import { use, useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   Award,
@@ -12,18 +13,21 @@ import {
   Loader2,
   Mail,
   Phone,
+  Trash2,
+  TriangleAlert,
   UserRound,
 } from "lucide-react"
+import { toast } from "sonner"
 
+import { useAuth } from "@/components/auth-provider"
 import { RoleGate } from "@/components/role-gate"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
-  CandidatureResponse,
-  PaginatedResponse,
-  ProjetRecrutementResponse,
   ApiResponse,
+  CandidatureResponse,
+  ProjetRecrutementResponse,
 } from "@/lib/backend-types"
 import { ApiHttpError, apiClient } from "@/lib/http"
 import {
@@ -78,21 +82,24 @@ function DetailContent({
   projectId: number
   candidatureId: number
 }) {
+  const router = useRouter()
+  const { user } = useAuth()
   const [item, setItem] = useState<CandidatureResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [projectTitle, setProjectTitle] = useState<string>(`Projet #${projectId}`)
   const [ficheTitle, setFicheTitle] = useState<string>("Fiche de poste")
+  const canDelete = user?.role === "ADMIN" || user?.role === "DRH"
 
-  const loadItem = async (): Promise<CandidatureResponse | null> => {
-    const response = await apiClient.get<PaginatedResponse<CandidatureResponse>>(
-      `/projets/${projectId}/candidatures/`,
-      { params: { page: 1, page_size: 100 } },
+  const loadItem = useEffectEvent(async (): Promise<CandidatureResponse | null> => {
+    const response = await apiClient.get<ApiResponse<CandidatureResponse>>(
+      `/candidatures/${candidatureId}`,
     )
-    const found = response.data.data.find((candidate) => candidate.id === candidatureId) ?? null
+    const found = response.data.data
     setItem(found)
     return found
-  }
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -164,6 +171,29 @@ function DetailContent({
     return "Ne correspond pas"
   }, [item?.recommandation])
 
+  const deleteCurrentCandidature = async (): Promise<void> => {
+    if (!item || !canDelete) {
+      return
+    }
+    if (!window.confirm("Supprimer cette candidature ?")) {
+      return
+    }
+
+    setDeleting(true)
+    setError(null)
+    try {
+      await apiClient.delete(`/candidatures/${item.id}`)
+      toast.success("Candidature supprimée avec succès.")
+      router.push(`/projets/${projectId}/candidatures`)
+    } catch (err) {
+      const message = err instanceof ApiHttpError ? err.message : "Impossible de supprimer cette candidature."
+      setError(message)
+      toast.error(message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="stagger-enter space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -172,11 +202,19 @@ function DetailContent({
             <ArrowLeft className="mr-2 size-4" />Retour aux candidatures
           </Link>
         </Button>
-        {item && (
-          <Badge variant={badgeVariantFromCandidatureStatut(item.statut)}>
-            {labelFromCandidatureStatut(item.statut)}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {item && (
+            <Badge variant={badgeVariantFromCandidatureStatut(item.statut)}>
+              {labelFromCandidatureStatut(item.statut)}
+            </Badge>
+          )}
+          {item && canDelete && (
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => void deleteCurrentCandidature()}>
+              {deleting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Trash2 className="mr-2 size-4" />}
+              Supprimer
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading && (
@@ -211,6 +249,26 @@ function DetailContent({
                 <Loader2 className="size-4 animate-spin" />
                 Traitement en cours: parsing markdown, extraction LLM, evaluation IA.
               </div>
+            )}
+
+            {item.statut === "ERREUR" && (
+              <Card className="border-red-200 bg-red-50/80">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base text-red-800">
+                    <TriangleAlert className="size-4" />
+                    Erreur de traitement
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-red-950">
+                  <p>{item.error_summary ?? "Le traitement automatique de cette candidature a echoue."}</p>
+                  {item.error_detail && (
+                    <div className="rounded-lg border border-red-200 bg-white/90 p-3">
+                      <p className="mb-1 font-medium text-red-900">Detail technique</p>
+                      <p className="whitespace-pre-wrap text-red-800">{item.error_detail}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             <div className="space-y-4">
@@ -319,7 +377,7 @@ function DetailContent({
                   </p>
                   <p className="text-sm text-slate-700">Evalue le: {formatDate(item.evalue_le)}</p>
 
-                  {item.justification_ia && (
+                  {item.justification_ia && item.statut !== "ERREUR" && (
                     <div>
                       <p className="mb-1 font-medium text-slate-900">Justification</p>
                       <p className="text-sm text-slate-700">{item.justification_ia}</p>
@@ -350,7 +408,7 @@ function DetailContent({
 
                   {item.questions_entretien && item.questions_entretien.length > 0 && (
                     <div>
-                      <p className="mb-1 font-medium text-slate-900">Questions d'entretien</p>
+                      <p className="mb-1 font-medium text-slate-900">Questions d&apos;entretien</p>
                       <ul className="list-disc pl-5 text-sm text-slate-700">
                         {item.questions_entretien.map((question, idx) => (
                           <li key={`${item.id}-q-${idx}`}>{question}</li>
