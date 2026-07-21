@@ -174,6 +174,45 @@ REGLES ABSOLUES :
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
+SKILL_SECTION_KEYS = {
+    "skills",
+    "skill",
+    "competences",
+    "competence",
+    "competencestechniques",
+    "stack",
+    "technologies",
+    "outilsettechnologies",
+}
+SKILL_STOP_TITLES = {
+    "langues",
+    "langue",
+    "experiences",
+    "experience",
+    "formations",
+    "formation",
+    "education",
+    "contact",
+    "profil",
+}
+SKILL_NOISE_TOKENS = {
+    "langues",
+    "langue",
+    "maternelle",
+    "professionnel",
+    "professionnelle",
+    "niveau",
+    "email",
+    "telephone",
+    "tel",
+    "contact",
+    "adresse",
+}
+TECH_TOKEN_PATTERN = re.compile(
+    r"\b(?:python|java|javascript|typescript|php|c\+\+|c#|c\b|html5?|css3?|sql|postgresql|mysql|sqlite|oracle|mongodb|redis|fastapi|django|flask|spring|react|next\.js|node\.js|docker|kubernetes|git|github|linux|azure|aws|gcp|tensorflow|pytorch|scikit-learn|power\s?bi)\b",
+    flags=re.IGNORECASE,
+)
+
 
 def _run_structured_chat(
     output_cls: type[ModelT],
@@ -239,6 +278,21 @@ def _extract_json_object(text: str) -> dict[str, object]:
     raise ValueError("JSON payload is not an object")
 
 
+def _is_llm_output_parsing_failure(exc: Exception) -> bool:
+    lowered = str(exc).lower()
+    return any(
+        token in lowered
+        for token in (
+            "fallback parsing failed",
+            "fallback response is empty",
+            "no json object found",
+            "json payload is not an object",
+            "structured output could not be parsed",
+            "json",
+        )
+    )
+
+
 def _run_json_schema_fallback(
     output_cls: type[ModelT],
     system_prompt: str,
@@ -257,19 +311,96 @@ def _run_json_schema_fallback(
         f"Schema: {schema}"
     )
 
-    response = llm.chat(
-        [
-            ChatMessage(role=MessageRole.SYSTEM, content=fallback_system),
-            ChatMessage(role=MessageRole.USER, content=user_prompt),
-        ]
-    )
-    message = response.message
-    content = message.content if message is not None else None
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError("Fallback response is empty")
+    attempts = [user_prompt, _truncate_prompt(user_prompt, max_chars=12000)]
+    last_error: Exception | None = None
+    for attempt_prompt in attempts:
+        try:
+            response = llm.chat(
+                [
+                    ChatMessage(role=MessageRole.SYSTEM, content=fallback_system),
+                    ChatMessage(role=MessageRole.USER, content=attempt_prompt),
+                ]
+            )
+            content = _extract_response_text(response)
+            if not content:
+                raise ValueError("Fallback response is empty")
+            data = _extract_json_object(content)
+            return output_cls.model_validate(data)
+        except Exception as exc:
+            last_error = exc
 
-    data = _extract_json_object(content)
-    return output_cls.model_validate(data)
+    if last_error is not None:
+        raise ValueError(f"Fallback parsing failed: {last_error}") from last_error
+    raise ValueError("Fallback response is empty")
+
+
+def _truncate_prompt(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n\n[TRONQUE POUR RETRY Fallback]"
+
+
+def _extract_response_text(response: object) -> str | None:
+    message = getattr(response, "message", None)
+    message_content = getattr(message, "content", None) if message is not None else None
+    extracted = _extract_text_payload(message_content)
+    if extracted:
+        return extracted
+
+    raw = getattr(response, "raw", None)
+    raw_text = _extract_text_payload(raw)
+    if raw_text:
+        return raw_text
+
+    text_attr = getattr(response, "text", None)
+    text_value = _extract_text_payload(text_attr)
+    if text_value:
+        return text_value
+
+    return None
+
+
+def _extract_text_payload(payload: object) -> str | None:
+    if isinstance(payload, str):
+        text = payload.strip()
+        return text or None
+
+    if isinstance(payload, list):
+        parts: list[str] = []
+        for item in payload:
+            nested = _extract_text_payload(item)
+            if nested:
+                parts.append(nested)
+        if parts:
+            return "\n".join(parts)
+        return None
+
+    if isinstance(payload, dict):
+        if isinstance(payload.get("text"), str) and payload["text"].strip():
+            return str(payload["text"]).strip()
+        if isinstance(payload.get("content"), str) and payload["content"].strip():
+            return str(payload["content"]).strip()
+
+        choices = payload.get("choices")
+        if isinstance(choices, list):
+            for choice in choices:
+                nested = _extract_text_payload(choice)
+                if nested:
+                    return nested
+
+        message = payload.get("message")
+        if message is not None:
+            nested = _extract_text_payload(message)
+            if nested:
+                return nested
+
+        delta = payload.get("delta")
+        if delta is not None:
+            nested = _extract_text_payload(delta)
+            if nested:
+                return nested
+
+    return None
 
 
 def _pick_first_text(data: dict[str, object], keys: tuple[str, ...]) -> str | None:
@@ -505,6 +636,252 @@ def _normalize_candidate_payload(raw: dict[str, object]) -> dict[str, object]:
     return normalized
 
 
+def _extract_skills_from_cv_markdown(cv_markdown: str) -> list[str]:
+    parsed: list[str] = []
+    parsed.extend(_extract_skill_section_values(cv_markdown))
+    parsed.extend(_extract_known_tech_tokens(cv_markdown))
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in parsed:
+        normalized = _normalize_skill_label(value)
+        token = _normalized_key(normalized)
+        if not normalized or not _is_probable_skill(normalized):
+            continue
+        if token in seen:
+            continue
+        seen.add(token)
+        deduped.append(normalized)
+        if len(deduped) >= 20:
+            break
+    return deduped
+
+
+def _extract_skill_section_values(cv_markdown: str) -> list[str]:
+    lines = cv_markdown.splitlines()
+    in_skill_block = False
+    values: list[str] = []
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            if in_skill_block:
+                in_skill_block = False
+            continue
+
+        plain = line.lstrip("#-*").strip()
+        lower_key = _normalized_key(plain)
+
+        if lower_key in SKILL_SECTION_KEYS:
+            in_skill_block = True
+            continue
+
+        if lower_key in SKILL_STOP_TITLES:
+            in_skill_block = False
+            continue
+
+        if ":" in plain:
+            left, right = plain.split(":", maxsplit=1)
+            left_key = _normalized_key(left)
+            if left_key in SKILL_SECTION_KEYS:
+                in_skill_block = True
+                values.extend(_split_skill_candidates(right))
+                continue
+            if in_skill_block and left_key in SKILL_STOP_TITLES:
+                in_skill_block = False
+                continue
+
+        if in_skill_block:
+            values.extend(_split_skill_candidates(plain))
+
+    return values
+
+
+def _split_skill_candidates(raw: str) -> list[str]:
+    parts = re.split(r"[,;|•·/]", raw)
+    output: list[str] = []
+    for part in parts:
+        cleaned = part.strip(" -\t\n\r")
+        if cleaned:
+            output.append(cleaned)
+    return output
+
+
+def _extract_known_tech_tokens(cv_markdown: str) -> list[str]:
+    matches = TECH_TOKEN_PATTERN.findall(cv_markdown)
+    return [match.strip() for match in matches if match.strip()]
+
+
+def _normalize_skill_label(value: str) -> str:
+    cleaned = value.strip().strip(".,:;()[]{}")
+    compact = re.sub(r"\s+", " ", cleaned)
+    mapping = {
+        "javascript": "JavaScript",
+        "typescript": "TypeScript",
+        "node.js": "Node.js",
+        "next.js": "Next.js",
+        "c++": "C++",
+        "c#": "C#",
+        "html": "HTML",
+        "html5": "HTML5",
+        "css": "CSS",
+        "css3": "CSS3",
+        "sql": "SQL",
+        "postgresql": "PostgreSQL",
+        "mysql": "MySQL",
+        "sqlite": "SQLite",
+        "mongodb": "MongoDB",
+        "power bi": "Power BI",
+        "scikit-learn": "Scikit-learn",
+        "github": "GitHub",
+    }
+    lowered = compact.lower()
+    if lowered in mapping:
+        return mapping[lowered]
+    if len(compact) <= 4 and compact.upper() == compact:
+        return compact
+    return compact
+
+
+def _is_probable_skill(value: str) -> bool:
+    lowered = value.lower()
+    token = _normalized_key(value)
+    if not token or len(token) < 2:
+        return False
+    if any(noise in lowered for noise in SKILL_NOISE_TOKENS):
+        return False
+    if "@" in value:
+        return False
+    if re.search(r"\d{4}", value):
+        return False
+    if len(value.split()) > 4:
+        return False
+    return True
+
+
+def _merge_skill_lists(primary: list[str], secondary: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for source in (primary, secondary):
+        for item in source:
+            normalized = _normalize_skill_label(item)
+            token = _normalized_key(normalized)
+            if not normalized or token in seen or not _is_probable_skill(normalized):
+                continue
+            seen.add(token)
+            merged.append(normalized)
+            if len(merged) >= 20:
+                return merged
+    return merged
+
+
+def _should_use_heuristic_candidate(candidate: CandidatInfo) -> bool:
+    has_contact = bool(candidate.email or candidate.telephone)
+    has_skills = len(candidate.skills) >= 4
+    return has_contact and has_skills
+
+
+def _build_candidate_fallback(cv_markdown: str) -> CandidatInfo:
+    nom, email, telephone = sanitize_candidate_identity(None, None, None, cv_markdown)
+    return CandidatInfo(
+        nom=nom,
+        email=email,
+        telephone=telephone,
+        formations=[],
+        experiences=[],
+        skills=_extract_skills_from_cv_markdown(cv_markdown),
+    )
+
+
+def _extract_fiche_keywords(fiche_de_poste: str) -> list[str]:
+    normalized = fiche_de_poste.replace("\n", " ")
+    chunks = re.split(r"[,;/|]", normalized)
+    keywords: list[str] = []
+    seen: set[str] = set()
+    for chunk in chunks:
+        value = chunk.strip(" -\t\n\r")
+        token = _normalized_key(value)
+        if len(token) < 4 or token in seen:
+            continue
+        seen.add(token)
+        keywords.append(value)
+        if len(keywords) >= 12:
+            break
+    return keywords
+
+
+def _heuristic_score(fiche_de_poste: str, cv_markdown: str) -> int:
+    fiche_tokens = {
+        token
+        for token in re.findall(r"[a-zA-ZÀ-ÿ]{4,}", fiche_de_poste.lower())
+        if token not in {"avec", "pour", "dans", "des", "les", "une", "par", "sur"}
+    }
+    cv_tokens = {
+        token
+        for token in re.findall(r"[a-zA-ZÀ-ÿ]{4,}", cv_markdown.lower())
+        if token not in {"avec", "pour", "dans", "des", "les", "une", "par", "sur"}
+    }
+    if not fiche_tokens:
+        return 60
+    overlap = len(fiche_tokens.intersection(cv_tokens))
+    ratio = overlap / max(1, min(len(fiche_tokens), 40))
+    score = int(round(45 + ratio * 45))
+    return max(35, min(90, score))
+
+
+def _build_evaluation_fallback(fiche_de_poste: str, cv_markdown: str) -> EvaluationCv:
+    score = _heuristic_score(fiche_de_poste, cv_markdown)
+    if score >= 75:
+        recommendation = RecommendationValue.A_CONVOQUER
+    elif score >= 55:
+        recommendation = RecommendationValue.A_ETUDIER
+    else:
+        recommendation = RecommendationValue.NE_CORRESPOND_PAS
+
+    candidate_skills = _extract_skills_from_cv_markdown(cv_markdown)
+    fiche_keywords = _extract_fiche_keywords(fiche_de_poste)
+
+    points_forts: list[str] = []
+    if candidate_skills:
+        points_forts.append(
+            f"Competences explicites detectees: {', '.join(candidate_skills[:3])}")
+    points_forts.append("CV lisible avec informations de contact identifiees")
+    points_forts.append("Parcours exploitable pour une preselection RH")
+
+    points_manquants: list[str] = []
+    if fiche_keywords:
+        points_manquants.append(
+            f"Verifier en entretien la maitrise de: {', '.join(fiche_keywords[:3])}"
+        )
+    points_manquants.append("Confirmer le niveau d'autonomie sur les missions cles")
+    points_manquants.append(
+        "Valider les experiences recentes par des exemples concrets")
+
+    questions = [
+        "Pouvez-vous decrire votre realisation la plus pertinente pour ce poste ?",
+        (
+            "Quelles competences techniques appliquez-vous au quotidien "
+            "et dans quel contexte ?"
+        ),
+        "Quels sont vos objectifs d'evolution sur les 12 prochains mois ?",
+    ]
+
+    justification = (
+        "Analyse produite en mode de secours car la reponse structuree IA "
+        "etait invalide. Une preselection automatique a ete calculee "
+        "a partir du contenu du CV et de la fiche de poste."
+    )
+
+    return EvaluationCv(
+        score_matching=score,
+        points_forts=points_forts[:5],
+        points_manquants=points_manquants[:5],
+        recommandation=recommendation,
+        justification_ia=justification,
+        questions_entretien=questions,
+    )
+
+
 def _extract_email_from_text(text: str) -> str | None:
     match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)
     return match.group(0) if match else None
@@ -634,27 +1011,30 @@ def _post_validate_candidate(candidate: CandidatInfo, cv_markdown: str) -> Candi
     candidate.experiences = [
         e for e in candidate.experiences if e.titre and e.titre.strip()
     ]
-    normalized_skills: list[str] = []
-    seen: set[str] = set()
-    for skill in candidate.skills:
-        cleaned = skill.strip(" -\t\n\r")
-        token = _normalized_key(cleaned)
-        if not cleaned or not token or token in seen:
-            continue
-        seen.add(token)
-        normalized_skills.append(cleaned)
-    candidate.skills = normalized_skills
+    heuristic_skills = _extract_skills_from_cv_markdown(cv_markdown)
+    candidate.skills = _merge_skill_lists(candidate.skills, heuristic_skills)
     return candidate
 
 
 def extract_candidat_info(cv_markdown: str) -> CandidatInfo:
     """Agent 1 - Extract candidate information from CV markdown."""
+    heuristic_candidate = _build_candidate_fallback(cv_markdown)
+    if _should_use_heuristic_candidate(heuristic_candidate):
+        return _post_validate_candidate(heuristic_candidate, cv_markdown)
+
     user_prompt = (
         f"CV (Markdown brut, conserve tel quel):\n```markdown\n{cv_markdown}\n```"
     )
-    candidate = _run_structured_chat(
-        CandidatInfo, EXTRACTION_SYSTEM_PROMPT, user_prompt
-    )
+    try:
+        candidate = _run_structured_chat(
+            CandidatInfo, EXTRACTION_SYSTEM_PROMPT, user_prompt
+        )
+    except Exception as exc:
+        if not _is_llm_output_parsing_failure(exc):
+            raise
+        candidate = heuristic_candidate
+
+    candidate.skills = _merge_skill_lists(candidate.skills, heuristic_candidate.skills)
     return _post_validate_candidate(candidate, cv_markdown)
 
 
@@ -676,4 +1056,9 @@ def evaluate_cv(
         "l'analyse) :\n"
         f"{cv_markdown}"
     )
-    return _run_structured_chat(EvaluationCv, EVALUATION_SYSTEM_PROMPT, user_prompt)
+    try:
+        return _run_structured_chat(EvaluationCv, EVALUATION_SYSTEM_PROMPT, user_prompt)
+    except Exception as exc:
+        if not _is_llm_output_parsing_failure(exc):
+            raise
+        return _build_evaluation_fallback(fiche_de_poste, cv_markdown)

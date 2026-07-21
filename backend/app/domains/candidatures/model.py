@@ -9,10 +9,10 @@ from sqlalchemy import (
     JSON,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
-    UniqueConstraint,
     func,
     text,
 )
@@ -30,10 +30,12 @@ if TYPE_CHECKING:
 class Candidature(Base, TimestampMixin, SoftDeleteMixin, AuditMixin):
     __tablename__ = "candidatures"
     __table_args__ = (
-        UniqueConstraint(
+        Index(
+            "uq_candidatures_projet_email_candidat_active",
             "projet_recrutement_id",
             "email_candidat",
-            name="uq_candidatures_projet_email_candidat",
+            unique=True,
+            postgresql_where=text("is_deleted = false AND email_candidat IS NOT NULL"),
         ),
     )
 

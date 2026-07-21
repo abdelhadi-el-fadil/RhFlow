@@ -243,10 +243,7 @@ function Content({ projectId }: { projectId: number }) {
     })
   }, [items, normalizedQuery])
 
-  const visibleItems = matchingItems.filter((item) => item.statut !== "ERREUR")
-  const processingItems = visibleItems.filter((item) => item.statut === "EN_COURS")
-  const readyItems = visibleItems.filter((item) => item.statut === "EVALUE")
-  const otherItems = visibleItems.filter((item) => item.statut !== "EVALUE" && item.statut !== "EN_COURS")
+  const readyItems = matchingItems.filter((item) => item.statut === "EVALUE")
 
   return (
     <div className="stagger-enter space-y-6">
@@ -301,11 +298,6 @@ function Content({ projectId }: { projectId: number }) {
             />
           </div>
 
-          {processingItems.length > 0 && (
-            <p className="text-sm text-teal-700">
-              {processingItems.length} candidature(s) en cours de traitement IA.
-            </p>
-          )}
           {actionInfo && <p className="text-sm text-emerald-700">{actionInfo}</p>}
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
         </CardContent>
@@ -372,29 +364,6 @@ function Content({ projectId }: { projectId: number }) {
         ))}
       </div>
 
-      {otherItems.length > 0 && (
-        <Card className="premium-panel">
-          <CardHeader>
-            <CardTitle className="text-base">Autres candidatures</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {otherItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/90 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">{item.nom_candidat ?? item.nom_fichier}</p>
-                  <p className="text-xs text-slate-600">{labelFromCandidatureStatut(item.statut)} · {formatDate(item.depose_le)}</p>
-                </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/projets/${projectId}/candidatures/${item.id}`}>Voir</Link>
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

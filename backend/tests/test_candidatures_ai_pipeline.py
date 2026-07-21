@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import date
 
+import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -16,6 +17,7 @@ from app.core.enums import UserRole
 from app.core.schemas import PaginationParams
 from app.domains.candidatures import service as candidatures_service
 from app.domains.candidatures.enums import CandidatureStatut, RecommandationIA
+from app.domains.candidatures.error_messages import humanize_candidature_error
 from app.domains.candidatures.model import Candidature
 from app.domains.directions.model import Direction
 from app.domains.fiches_de_poste.model import FicheDePoste
@@ -360,3 +362,60 @@ def test_list_candidatures_excludes_errored_items_from_project_page(
                                                          error_candidature.id,
                                                          user)
     assert fetched_error.id == error_candidature.id
+
+
+def test_extract_candidate_info_normalizes_email_and_detects_duplicate_case_insensitive(
+    db: Session,
+    make_user: Callable[..., User],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    user = make_user("ai-dup@test.com", "Secret123!", role=UserRole.ADMIN)
+    project = _create_project_chain(db, user)
+
+    existing = Candidature(
+        projet_recrutement_id=project.id,
+        nom_fichier="existing.pdf",
+        chemin_minio="cvs/existing.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.EVALUE,
+        email_candidat="Abdellhadi.elfadil@gmail.com",
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    incoming = Candidature(
+        projet_recrutement_id=project.id,
+        nom_fichier="incoming.pdf",
+        chemin_minio="cvs/incoming.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.EN_COURS,
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    db.add_all([existing, incoming])
+    db.commit()
+    db.refresh(incoming)
+
+    monkeypatch.setattr(
+        candidatures_service,
+        "extract_candidat_info",
+        lambda markdown: CandidatInfo.model_construct(
+            nom="EL FADIL Abdelhadi",
+            email="abdellhadi.elfadil@gmail.com",
+            telephone="+212654099755",
+            formations=[],
+            experiences=[],
+            skills=[],
+        ),
+    )
+
+    with pytest.raises(ValueError, match="Duplicate candidate email"):
+        candidatures_service._extract_and_apply_candidate_info(db, incoming, "# CV")
+
+
+def test_humanize_error_does_not_map_css3_to_storage() -> None:
+    detail = "Skill list includes CSS3 and PostgreSQL"
+    message = humanize_candidature_error(detail)
+    assert message is not None
+    assert "stockage" not in message.lower()

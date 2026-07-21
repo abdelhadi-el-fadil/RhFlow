@@ -31,7 +31,13 @@ def humanize_candidature_error(detail: str | None) -> str | None:
             "Relancez l'analyse ou verifiez la disponibilite des services IA."
         )
 
-    if "storage" in lowered or "minio" in lowered or "s3" in lowered:
+    if "429" in lowered or "too many requests" in lowered or "rate limit" in lowered:
+        return (
+            "Le service IA est temporairement surcharge. "
+            "Relancez le traitement dans quelques instants."
+        )
+
+    if "storage" in lowered or "minio" in lowered:
         return (
             "Le fichier du CV n'a pas pu etre lu depuis le stockage. "
             "Verifiez le service de stockage et reessayez."

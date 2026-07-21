@@ -9,6 +9,7 @@ from typing import Protocol
 from uuid import uuid4
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.ai.providers.llm.configuration import configure_llm
@@ -46,6 +47,7 @@ ALLOWED_CANDIDATURE_CONTENT_TYPES = {
 ALLOWED_CANDIDATURE_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 MAX_CANDIDATURE_FILE_SIZE_BYTES = 10 * 1024 * 1024
 CANDIDATURE_IN_PROGRESS_TIMEOUT_SECONDS = 8 * 60
+DUPLICATE_EMAIL_CONSTRAINT = "uq_candidatures_projet_email_candidat"
 
 
 class CandidatureStorage(Protocol):
@@ -407,12 +409,13 @@ def _extract_and_apply_candidate_info(
     cv_markdown: str,
 ) -> None:
     candidat_info = extract_candidat_info(cv_markdown)
+    normalized_email = _normalize_candidate_email(candidat_info.email)
 
-    if candidat_info.email:
+    if normalized_email:
         duplicate = db.scalars(
             select(Candidature).where(
                 Candidature.projet_recrutement_id == candidature.projet_recrutement_id,
-                Candidature.email_candidat == candidat_info.email,
+                func.lower(Candidature.email_candidat) == normalized_email,
                 Candidature.id != candidature.id,
                 Candidature.is_deleted.is_(False),
             )
@@ -421,7 +424,7 @@ def _extract_and_apply_candidate_info(
             raise ValueError("Duplicate candidate email for the same project")
 
     candidature.nom_candidat = candidat_info.nom
-    candidature.email_candidat = candidat_info.email
+    candidature.email_candidat = normalized_email
     candidature.telephone_candidat = candidat_info.telephone
     candidature.formations = [
         {
@@ -458,6 +461,18 @@ def _parse_cv_markdown(candidature: Candidature, storage: CandidatureStorage) ->
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+def _normalize_candidate_email(email: str | None) -> str | None:
+    if not email:
+        return None
+    normalized = email.strip().lower()
+    return normalized or None
+
+
+def _is_duplicate_email_integrity_error(exc: IntegrityError) -> bool:
+    lowered = str(exc).lower()
+    return DUPLICATE_EMAIL_CONSTRAINT.lower() in lowered
 
 
 def start_candidature_extraction(
@@ -546,6 +561,25 @@ def process_candidature_extraction(
         candidature.justification_ia = None
         db.add(candidature)
         db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        logger.error(
+            "Candidature extraction integrity failure id=%s error=%s",
+            candidature_id,
+            exc,
+            exc_info=True,
+        )
+        message = (
+            "Duplicate candidate email for the same project"
+            if _is_duplicate_email_integrity_error(exc)
+            else str(exc)
+        )
+        try:
+            candidature = _load_candidature_for_pipeline(db, candidature_id)
+            _mark_candidature_error(db, candidature, message)
+            db.commit()
+        except Exception:
+            db.rollback()
     except Exception as exc:
         db.rollback()
         logger.error(
@@ -591,6 +625,22 @@ def process_candidature_evaluation(
             candidature.telephone_candidat,
             cv_markdown,
         )
+        safe_email = _normalize_candidate_email(safe_email)
+        if safe_email:
+            duplicate = db.scalars(
+                select(Candidature).where(
+                    (
+                        Candidature.projet_recrutement_id
+                        == candidature.projet_recrutement_id
+                    ),
+                    func.lower(Candidature.email_candidat) == safe_email,
+                    Candidature.id != candidature.id,
+                    Candidature.is_deleted.is_(False),
+                )
+            ).first()
+            if duplicate is not None:
+                raise ValueError("Duplicate candidate email for the same project")
+
         candidature.nom_candidat = safe_nom
         candidature.email_candidat = safe_email
         candidature.telephone_candidat = safe_phone
@@ -600,6 +650,25 @@ def process_candidature_evaluation(
         evaluation = evaluate_cv(fiche_de_poste, cv_markdown)
         _apply_evaluation_result(db, candidature, evaluation)
         db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        logger.error(
+            "Candidature evaluation integrity failure id=%s error=%s",
+            candidature_id,
+            exc,
+            exc_info=True,
+        )
+        message = (
+            "Duplicate candidate email for the same project"
+            if _is_duplicate_email_integrity_error(exc)
+            else str(exc)
+        )
+        try:
+            candidature = _load_candidature_for_pipeline(db, candidature_id)
+            _mark_candidature_error(db, candidature, message)
+            db.commit()
+        except Exception:
+            db.rollback()
     except Exception as exc:
         db.rollback()
         logger.error(
@@ -628,4 +697,11 @@ def process_candidature_pipeline(
         storage,
         keep_in_progress=True,
     )
+    db = SessionLocal()
+    try:
+        candidature = _load_candidature_for_pipeline(db, candidature_id)
+        if candidature.statut == CandidatureStatut.ERREUR:
+            return
+    finally:
+        db.close()
     process_candidature_evaluation(candidature_id, storage)
