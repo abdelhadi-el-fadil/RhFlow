@@ -527,7 +527,10 @@ def start_candidature_evaluation(
 
 
 def process_candidature_extraction(
-    candidature_id: int, storage: CandidatureStorage
+    candidature_id: int,
+    storage: CandidatureStorage,
+    *,
+    keep_in_progress: bool = False,
 ) -> None:
     db = SessionLocal()
     try:
@@ -538,7 +541,8 @@ def process_candidature_extraction(
 
         candidature.contenu_markdown = cv_markdown
         _extract_and_apply_candidate_info(db, candidature, cv_markdown)
-        candidature.statut = CandidatureStatut.RECU
+        if not keep_in_progress:
+            candidature.statut = CandidatureStatut.RECU
         candidature.justification_ia = None
         db.add(candidature)
         db.commit()
@@ -619,5 +623,9 @@ def process_candidature_pipeline(
 ) -> None:
     """Run parse + two independent LLM agents and persist final status."""
     configure_llm()
-    process_candidature_extraction(candidature_id, storage)
+    process_candidature_extraction(
+        candidature_id,
+        storage,
+        keep_in_progress=True,
+    )
     process_candidature_evaluation(candidature_id, storage)
