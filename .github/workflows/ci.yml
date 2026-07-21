@@ -102,6 +102,7 @@ jobs:
           LITEPARSE_MAX_PAGES: "10"
           LITEPARSE_OCR_ENABLED: "false"
           LITEPARSE_OCR_LANGUAGE: "fr"
+          CANDIDATURE_API_KEY: ci-test-key-not-real
         run: python -m pytest backend/tests
 
       - name: Set up Docker Buildx
@@ -233,6 +234,7 @@ jobs:
             N8N_TIMEZONE=${{ secrets.N8N_TIMEZONE }}
             N8N_ENCRYPTION_KEY=${{ secrets.N8N_ENCRYPTION_KEY }}
             N8N_POSTGRES_DB=${{ secrets.N8N_POSTGRES_DB }}
+            CANDIDATURE_API_KEY=${{ secrets.CANDIDATURE_API_KEY }}
             EOF
 
             docker compose pull

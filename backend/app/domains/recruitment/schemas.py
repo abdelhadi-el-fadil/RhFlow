@@ -100,3 +100,9 @@ class ProjetRecrutementResponse(BaseModel):
     archived_at: datetime | None = None
     created_by_id: int | None
     updated_by_id: int | None
+
+
+class ProjetByEmailSubjectLookupResponse(BaseModel):
+    projet_recrutement_id: int
+    besoin_recrutement_id: int
+    email_subject: str | None

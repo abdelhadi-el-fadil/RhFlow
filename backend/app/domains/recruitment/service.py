@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.enums import UserRole
@@ -171,6 +171,22 @@ def get_project(
         project, current_user
     ):
         raise ForbiddenException()
+    return project
+
+
+def get_project_by_email_subject(
+    db: Session,
+    subject: str,
+) -> ProjetRecrutement:
+    normalized = subject.strip().lower()
+    project = db.scalars(
+        _project_query().where(
+            ProjetRecrutement.is_deleted.is_(False),
+            func.lower(ProjetRecrutement.email_subject) == normalized,
+        )
+    ).first()
+    if project is None:
+        raise ProjetRecrutementNotFoundException()
     return project
 
 

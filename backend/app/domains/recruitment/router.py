@@ -5,7 +5,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, require_role
+from app.core.dependencies import (
+    get_current_user,
+    require_role,
+    require_service_api_key,
+)
 from app.core.enums import UserRole
 from app.core.schemas import (
     ApiResponse,
@@ -20,6 +24,7 @@ from app.domains.recruitment.schemas import (
     BesoinRecrutementCreate,
     BesoinRecrutementResponse,
     BesoinRecrutementUpdate,
+    ProjetByEmailSubjectLookupResponse,
     ProjetRecrutementCardResponse,
     ProjetRecrutementCreate,
     ProjetRecrutementResponse,
@@ -29,7 +34,28 @@ from app.domains.recruitment.schemas import (
 from app.domains.users.model import User
 
 router = APIRouter(prefix="/projets", tags=["Recruitment projects"])
+lookup_router = APIRouter(
+    prefix="/projets-recrutement", tags=["Recruitment projects"]
+)
 besoins_router = APIRouter(prefix="/besoins", tags=["Recruitment needs"])
+
+
+@lookup_router.get(
+    "/by-email-subject",
+    response_model=ApiResponse[ProjetByEmailSubjectLookupResponse],
+)
+def get_project_by_email_subject(
+    subject: str,
+    _: None = Depends(require_service_api_key),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProjetByEmailSubjectLookupResponse]:
+    project = recruitment_service.get_project_by_email_subject(db, subject)
+    payload = ProjetByEmailSubjectLookupResponse(
+        projet_recrutement_id=project.id,
+        besoin_recrutement_id=project.besoin_recrutement_id,
+        email_subject=project.email_subject,
+    )
+    return ApiResponse(data=payload)
 
 
 @router.get("/", response_model=PaginatedResponse[ProjetRecrutementCardResponse])

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str
     LLM_MODEL: str
     LLAMA_CLOUD_API_KEY: str
+    CANDIDATURE_API_KEY: str | None = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     MINIO_ENDPOINT: str
     MINIO_PUBLIC_ENDPOINT: str

@@ -298,7 +298,7 @@ def requeue_candidature_analysis(
 def create_uploaded_candidature(
     db: Session,
     projet_recrutement_id: int,
-    current_user: User,
+    current_user: User | None,
     storage: CandidatureStorage,
     filename: str,
     content_type: str,
@@ -337,8 +337,8 @@ def create_uploaded_candidature(
         taille_fichier=len(payload),
         contenu_markdown=None,
         statut=CandidatureStatut.EN_COURS,
-        created_by_id=current_user.id,
-        updated_by_id=current_user.id,
+        created_by_id=current_user.id if current_user else None,
+        updated_by_id=current_user.id if current_user else None,
     )
     db.add(candidature)
     db.flush()

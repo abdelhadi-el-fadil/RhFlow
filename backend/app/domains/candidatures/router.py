@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import (
     get_current_user,
+    get_current_user_or_service_api_key,
     get_minio_candidatures_storage_service,
     require_role,
 )
@@ -99,7 +100,7 @@ async def upload_candidature(
     background_tasks: BackgroundTasks,
     projet_recrutement_id: int = Form(...),
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_or_service_api_key),
     db: Session = Depends(get_db),
     storage: MinioStorageService = Depends(get_minio_candidatures_storage_service),
 ) -> ApiResponse[CandidatureResponse]:

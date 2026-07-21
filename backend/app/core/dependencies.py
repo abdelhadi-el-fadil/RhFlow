@@ -21,15 +21,16 @@ Usage
 
 from collections.abc import Callable
 from functools import lru_cache
+from secrets import compare_digest
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.enums import UserRole
-from app.core.exceptions import ForbiddenException
+from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.minio_service import MinioStorageService
 from app.database import get_db
 from app.domains.auth.service import get_current_user_from_token
@@ -39,6 +40,8 @@ from app.domains.users.model import User
 # OAuth2 scheme — points to /auth/login for Swagger's "Authorize" button
 # ---------------------------------------------------------------------------
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_optional_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +53,40 @@ def get_current_user(
 ) -> User:
     """Resolve the authenticated user from the Bearer token."""
     return get_current_user_from_token(db, token)
+
+
+def _is_valid_service_api_key(api_key: str | None) -> bool:
+    configured = settings.CANDIDATURE_API_KEY
+    if not configured or not api_key:
+        return False
+    return compare_digest(api_key, configured)
+
+
+def get_current_user_or_service_api_key(
+    token: Annotated[str | None, Depends(oauth2_optional_scheme)],
+    api_key: Annotated[str | None, Depends(api_key_scheme)],
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Allow either JWT user auth or service API key auth.
+
+    Returns:
+        User for JWT-authenticated calls, None for service-authenticated calls.
+    """
+    if _is_valid_service_api_key(api_key):
+        return None
+
+    if token:
+        return get_current_user_from_token(db, token)
+
+    raise UnauthorizedException()
+
+
+def require_service_api_key(
+    api_key: Annotated[str | None, Depends(api_key_scheme)],
+) -> None:
+    """Require static service API key for machine-to-machine endpoints."""
+    if not _is_valid_service_api_key(api_key):
+        raise UnauthorizedException()
 
 
 # ---------------------------------------------------------------------------

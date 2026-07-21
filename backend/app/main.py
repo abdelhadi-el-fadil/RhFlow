@@ -27,6 +27,9 @@ from app.domains.recruitment.router import (
     besoins_router as recruitment_besoins_router,
 )
 from app.domains.recruitment.router import (
+    lookup_router as recruitment_lookup_router,
+)
+from app.domains.recruitment.router import (
     router as recruitment_router,
 )
 from app.domains.users.router import router as users_router
@@ -155,6 +158,7 @@ app.include_router(users_router)
 app.include_router(directions_router)
 app.include_router(fiches_de_poste_router)
 app.include_router(recruitment_router)
+app.include_router(recruitment_lookup_router)
 app.include_router(recruitment_besoins_router)
 app.include_router(candidatures_router)
 app.include_router(project_candidatures_router)
