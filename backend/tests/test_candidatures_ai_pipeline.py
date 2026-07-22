@@ -296,6 +296,16 @@ def test_process_candidature_evaluation_uses_fiche_chain_and_extracted_profile(
                 "Comment structurez-vous un pipeline d'extraction CV ?",
                 "Comment validez-vous la qualite d'une evaluation LLM ?",
                 "Quel a ete votre principal projet FastAPI ?",
+                "Comment priorisez-vous les controles de qualite sur des sorties IA ?",
+                "Quelle experience avez-vous de la mise en production d'API Python ?",
+                (
+                    "Comment detectez-vous les erreurs de parsing sur des "
+                    "documents reels ?"
+                ),
+                (
+                    "Comment rapprochez-vous les exigences d'une fiche avec un "
+                    "CV incomplet ?"
+                ),
             ],
         )
 

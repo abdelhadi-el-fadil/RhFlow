@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from enum import Enum
 from typing import TypeVar, cast
 
-from pydantic import AliasChoices, BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, ValidationError, model_validator
+
+from app.config import settings
+from app.core.logging import logger
 
 
 class RecommendationValue(str, Enum):
@@ -105,7 +109,7 @@ class EvaluationCv(BaseModel):
     points_manquants: list[str] = Field(min_length=3, max_length=5)
     recommandation: RecommendationValue
     justification_ia: str
-    questions_entretien: list[str] = Field(min_length=3, max_length=5)
+    questions_entretien: list[str] = Field(min_length=7)
 
     @model_validator(mode="before")
     @classmethod
@@ -159,8 +163,9 @@ Redige une synthese argumentee a destination du DRH :
 explique le score, la recommandation, et ce qui distingue ce candidat.
 Sois precis, professionnel et utile pour la decision finale.
 
-QUESTIONS D'ENTRETIEN (3 a 5 questions) :
-Genere des questions ciblees pour approfondir les points cles identifies.
+QUESTIONS D'ENTRETIEN (AU MOINS 7 questions) :
+Genere au minimum 7 questions ciblees pour approfondir les points cles identifies.
+Chaque question doit etre specifique au CV et a la fiche, sans remplissage generique.
 Formule chaque question de facon directe et professionnelle.
 
 REGLES ABSOLUES :
@@ -169,10 +174,12 @@ REGLES ABSOLUES :
 3. Le champ recommandation doit etre EXACTEMENT l'une des 3 valeurs ci-dessus.
 4. Le score doit etre coherent avec la recommandation choisie.
 5. Repondre en francais, ton professionnel.
-6. Respecter strictement le schema de sortie fourni."""
+6. Le champ questions_entretien doit contenir AU MOINS 7 questions pertinentes.
+7. Respecter strictement le schema de sortie fourni."""
 
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+MAX_STRUCTURED_OUTPUT_ATTEMPTS = 3
 
 SKILL_SECTION_KEYS = {
     "skills",
@@ -278,19 +285,66 @@ def _extract_json_object(text: str) -> dict[str, object]:
     raise ValueError("JSON payload is not an object")
 
 
+def _is_timeout_error(exc: Exception) -> bool:
+    seen: set[int] = set()
+    current: Exception | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, TimeoutError):
+            return True
+
+        lowered = str(current).lower()
+        if any(
+            token in lowered
+            for token in (
+                "timed out",
+                "timeout",
+                "read timeout",
+                "connect timeout",
+                "request timeout",
+            )
+        ):
+            return True
+
+        next_error = current.__cause__ or current.__context__
+        current = next_error if isinstance(next_error, Exception) else None
+
+    return False
+
+
 def _is_llm_output_parsing_failure(exc: Exception) -> bool:
-    lowered = str(exc).lower()
-    return any(
-        token in lowered
-        for token in (
-            "fallback parsing failed",
-            "fallback response is empty",
-            "no json object found",
-            "json payload is not an object",
-            "structured output could not be parsed",
-            "json",
-        )
-    )
+    if _is_timeout_error(exc):
+        return False
+
+    seen: set[int] = set()
+    current: Exception | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, (ValidationError, json.JSONDecodeError)):
+            return True
+
+        lowered = str(current).lower()
+        if any(
+            token in lowered
+            for token in (
+                "fallback parsing failed",
+                "fallback response is empty",
+                "no json object found",
+                "json payload is not an object",
+                "structured output could not be parsed",
+                "validation error",
+                "questions_entretien",
+                "score_matching",
+                "recommandation",
+                "justification_ia",
+            )
+        ):
+            return True
+
+        next_error = current.__cause__ or current.__context__
+        current = next_error if isinstance(next_error, Exception) else None
+
+    return False
 
 
 def _run_json_schema_fallback(
@@ -321,6 +375,10 @@ def _run_json_schema_fallback(
                     ChatMessage(role=MessageRole.USER, content=attempt_prompt),
                 ]
             )
+        except Exception:
+            raise
+
+        try:
             content = _extract_response_text(response)
             if not content:
                 raise ValueError("Fallback response is empty")
@@ -332,6 +390,101 @@ def _run_json_schema_fallback(
     if last_error is not None:
         raise ValueError(f"Fallback parsing failed: {last_error}") from last_error
     raise ValueError("Fallback response is empty")
+
+
+def _summarize_error(exc: Exception) -> str:
+    message = str(exc).strip()
+    if not message:
+        message = exc.__class__.__name__
+    compact = re.sub(r"\s+", " ", message)
+    return compact[:280]
+
+
+def _remaining_retry_budget_seconds(started_at: float) -> float:
+    elapsed = time.monotonic() - started_at
+    return max(0.0, settings.LLM_OPERATION_BUDGET_SECONDS - elapsed)
+
+
+def _build_retry_user_prompt(
+    base_user_prompt: str,
+    *,
+    attempt_number: int,
+    retry_instruction: str,
+    error: Exception,
+) -> str:
+    return (
+        f"{base_user_prompt}\n\n"
+        "RETRY "
+        f"{attempt_number}: la reponse precedente etait invalide "
+        f"({_summarize_error(error)}).\n"
+        f"{retry_instruction}\n"
+        "Reprends depuis les documents source et retourne uniquement un objet "
+        "JSON conforme au schema."
+    )
+
+
+def _run_structured_chat_with_retries(
+    output_cls: type[ModelT],
+    system_prompt: str,
+    user_prompt: str,
+    *,
+    operation_name: str,
+    retry_instruction: str,
+) -> ModelT:
+    attempt_prompt = user_prompt
+    last_error: Exception | None = None
+    started_at = time.monotonic()
+
+    for attempt in range(1, MAX_STRUCTURED_OUTPUT_ATTEMPTS + 1):
+        remaining_budget = _remaining_retry_budget_seconds(started_at)
+        if remaining_budget <= 0:
+            raise TimeoutError(
+                f"LLM {operation_name} exceeded retry budget of "
+                f"{settings.LLM_OPERATION_BUDGET_SECONDS}s"
+            ) from last_error
+        if (
+            attempt > 1
+            and remaining_budget < settings.LLM_REQUEST_TIMEOUT_SECONDS
+        ):
+            raise TimeoutError(
+                f"LLM {operation_name} exhausted retry budget after {attempt - 1} "
+                f"attempt(s); {remaining_budget:.2f}s remaining is below the per-call "
+                f"timeout of {settings.LLM_REQUEST_TIMEOUT_SECONDS}s"
+            ) from last_error
+
+        try:
+            return _run_structured_chat(output_cls, system_prompt, attempt_prompt)
+        except Exception as exc:
+            if _is_timeout_error(exc):
+                raise TimeoutError(
+                    f"LLM {operation_name} timed out on attempt "
+                    f"{attempt}/{MAX_STRUCTURED_OUTPUT_ATTEMPTS}"
+                ) from exc
+            if not _is_llm_output_parsing_failure(exc):
+                raise
+
+            last_error = exc
+            logger.warning(
+                "Invalid structured LLM output during %s attempt %s/%s: %s",
+                operation_name,
+                attempt,
+                MAX_STRUCTURED_OUTPUT_ATTEMPTS,
+                _summarize_error(exc),
+            )
+
+            if attempt == MAX_STRUCTURED_OUTPUT_ATTEMPTS:
+                break
+
+            attempt_prompt = _build_retry_user_prompt(
+                user_prompt,
+                attempt_number=attempt + 1,
+                retry_instruction=retry_instruction,
+                error=exc,
+            )
+
+    if last_error is not None:
+        raise last_error
+    raise ValueError(f"No LLM attempts were executed for {operation_name}")
 
 
 def _truncate_prompt(text: str, max_chars: int) -> str:
@@ -467,16 +620,53 @@ def _string_list_from_value(value: object) -> list[str]:
     return []
 
 
+def _log_score_clamp(raw_value: object, clamped_value: int) -> None:
+    logger.warning(
+        "Clamped LLM evaluation score from %r to %s",
+        raw_value,
+        clamped_value,
+    )
+
+
 def _extract_score(value: object) -> int | None:
     if isinstance(value, int):
-        return max(0, min(100, value))
+        clamped = max(0, min(100, value))
+        if clamped != value:
+            _log_score_clamp(value, clamped)
+        return clamped
     if isinstance(value, float):
-        return max(0, min(100, int(round(value))))
+        rounded = int(round(value))
+        clamped = max(0, min(100, rounded))
+        if clamped != rounded:
+            _log_score_clamp(value, clamped)
+        return clamped
     if isinstance(value, str):
         match = re.search(r"\d{1,3}", value)
         if match:
-            return max(0, min(100, int(match.group(0))))
+            parsed = int(match.group(0))
+            clamped = max(0, min(100, parsed))
+            if clamped != parsed:
+                _log_score_clamp(value, clamped)
+            return clamped
     return None
+
+
+def _truncate_log_value(value: object) -> str:
+    compact = re.sub(r"\s+", " ", repr(value))
+    return compact[:160]
+
+
+def _log_dropped_candidate_item(
+    item_type: str,
+    item: object,
+    reason: str,
+) -> None:
+    logger.warning(
+        "Dropping malformed candidate %s entry: %s (item=%s)",
+        item_type,
+        reason,
+        _truncate_log_value(item),
+    )
 
 
 def _normalize_recommendation(value: object) -> str | None:
@@ -534,8 +724,15 @@ def _normalize_evaluation_payload(raw: dict[str, object]) -> dict[str, object]:
         justification_value.strip() if isinstance(justification_value, str) else ""
     )
 
+    if score is None:
+        raise ValueError("LLM evaluation missing score_matching")
+    if recommandation is None:
+        raise ValueError("LLM evaluation missing valid recommandation")
+    if not justification:
+        raise ValueError("LLM evaluation missing justification_ia")
+
     output: dict[str, object] = {
-        "score_matching": score if score is not None else 0,
+        "score_matching": score,
         "points_forts": points_forts,
         "points_manquants": points_manquants,
         "recommandation": recommandation,
@@ -563,11 +760,15 @@ def _normalize_candidate_payload(raw: dict[str, object]) -> dict[str, object]:
     if isinstance(raw_formations, list):
         for item in raw_formations:
             if not isinstance(item, dict):
+                _log_dropped_candidate_item("formation", item, "entry is not an object")
                 continue
             titre = _pick_first_text(
                 item, ("titre", "title", "degree", "diplome", "formation")
             )
             if titre is None:
+                _log_dropped_candidate_item(
+                    "formation", item, "missing title/degree field"
+                )
                 continue
             formations.append(
                 {
@@ -593,11 +794,17 @@ def _normalize_candidate_payload(raw: dict[str, object]) -> dict[str, object]:
     if isinstance(raw_experiences, list):
         for item in raw_experiences:
             if not isinstance(item, dict):
+                _log_dropped_candidate_item(
+                    "experience", item, "entry is not an object"
+                )
                 continue
             titre = _pick_first_text(
                 item, ("titre", "title", "poste", "role", "position")
             )
             if titre is None:
+                _log_dropped_candidate_item(
+                    "experience", item, "missing title/role field"
+                )
                 continue
             experiences.append(
                 {
@@ -775,12 +982,6 @@ def _merge_skill_lists(primary: list[str], secondary: list[str]) -> list[str]:
     return merged
 
 
-def _should_use_heuristic_candidate(candidate: CandidatInfo) -> bool:
-    has_contact = bool(candidate.email or candidate.telephone)
-    has_skills = len(candidate.skills) >= 4
-    return has_contact and has_skills
-
-
 def _build_candidate_fallback(cv_markdown: str) -> CandidatInfo:
     nom, email, telephone = sanitize_candidate_identity(None, None, None, cv_markdown)
     return CandidatInfo(
@@ -790,95 +991,6 @@ def _build_candidate_fallback(cv_markdown: str) -> CandidatInfo:
         formations=[],
         experiences=[],
         skills=_extract_skills_from_cv_markdown(cv_markdown),
-    )
-
-
-def _extract_fiche_keywords(fiche_de_poste: str) -> list[str]:
-    normalized = fiche_de_poste.replace("\n", " ")
-    chunks = re.split(r"[,;/|]", normalized)
-    keywords: list[str] = []
-    seen: set[str] = set()
-    for chunk in chunks:
-        value = chunk.strip(" -\t\n\r")
-        token = _normalized_key(value)
-        if len(token) < 4 or token in seen:
-            continue
-        seen.add(token)
-        keywords.append(value)
-        if len(keywords) >= 12:
-            break
-    return keywords
-
-
-def _heuristic_score(fiche_de_poste: str, cv_markdown: str) -> int:
-    fiche_tokens = {
-        token
-        for token in re.findall(r"[a-zA-ZÀ-ÿ]{4,}", fiche_de_poste.lower())
-        if token not in {"avec", "pour", "dans", "des", "les", "une", "par", "sur"}
-    }
-    cv_tokens = {
-        token
-        for token in re.findall(r"[a-zA-ZÀ-ÿ]{4,}", cv_markdown.lower())
-        if token not in {"avec", "pour", "dans", "des", "les", "une", "par", "sur"}
-    }
-    if not fiche_tokens:
-        return 60
-    overlap = len(fiche_tokens.intersection(cv_tokens))
-    ratio = overlap / max(1, min(len(fiche_tokens), 40))
-    score = int(round(45 + ratio * 45))
-    return max(35, min(90, score))
-
-
-def _build_evaluation_fallback(fiche_de_poste: str, cv_markdown: str) -> EvaluationCv:
-    score = _heuristic_score(fiche_de_poste, cv_markdown)
-    if score >= 75:
-        recommendation = RecommendationValue.A_CONVOQUER
-    elif score >= 55:
-        recommendation = RecommendationValue.A_ETUDIER
-    else:
-        recommendation = RecommendationValue.NE_CORRESPOND_PAS
-
-    candidate_skills = _extract_skills_from_cv_markdown(cv_markdown)
-    fiche_keywords = _extract_fiche_keywords(fiche_de_poste)
-
-    points_forts: list[str] = []
-    if candidate_skills:
-        points_forts.append(
-            f"Competences explicites detectees: {', '.join(candidate_skills[:3])}")
-    points_forts.append("CV lisible avec informations de contact identifiees")
-    points_forts.append("Parcours exploitable pour une preselection RH")
-
-    points_manquants: list[str] = []
-    if fiche_keywords:
-        points_manquants.append(
-            f"Verifier en entretien la maitrise de: {', '.join(fiche_keywords[:3])}"
-        )
-    points_manquants.append("Confirmer le niveau d'autonomie sur les missions cles")
-    points_manquants.append(
-        "Valider les experiences recentes par des exemples concrets")
-
-    questions = [
-        "Pouvez-vous decrire votre realisation la plus pertinente pour ce poste ?",
-        (
-            "Quelles competences techniques appliquez-vous au quotidien "
-            "et dans quel contexte ?"
-        ),
-        "Quels sont vos objectifs d'evolution sur les 12 prochains mois ?",
-    ]
-
-    justification = (
-        "Analyse produite en mode de secours car la reponse structuree IA "
-        "etait invalide. Une preselection automatique a ete calculee "
-        "a partir du contenu du CV et de la fiche de poste."
-    )
-
-    return EvaluationCv(
-        score_matching=score,
-        points_forts=points_forts[:5],
-        points_manquants=points_manquants[:5],
-        recommandation=recommendation,
-        justification_ia=justification,
-        questions_entretien=questions,
     )
 
 
@@ -1019,19 +1131,32 @@ def _post_validate_candidate(candidate: CandidatInfo, cv_markdown: str) -> Candi
 def extract_candidat_info(cv_markdown: str) -> CandidatInfo:
     """Agent 1 - Extract candidate information from CV markdown."""
     heuristic_candidate = _build_candidate_fallback(cv_markdown)
-    if _should_use_heuristic_candidate(heuristic_candidate):
-        return _post_validate_candidate(heuristic_candidate, cv_markdown)
-
     user_prompt = (
         f"CV (Markdown brut, conserve tel quel):\n```markdown\n{cv_markdown}\n```"
     )
     try:
-        candidate = _run_structured_chat(
-            CandidatInfo, EXTRACTION_SYSTEM_PROMPT, user_prompt
+        candidate = _run_structured_chat_with_retries(
+            CandidatInfo,
+            EXTRACTION_SYSTEM_PROMPT,
+            user_prompt,
+            operation_name="cv_extraction",
+            retry_instruction=(
+                "Verifie a nouveau toutes les formations, experiences, competences et "
+                "coordonnees explicitement presentes dans le CV. N'omets pas les "
+                "sections "
+                "formation ou experience lorsqu'elles existent."
+            ),
         )
     except Exception as exc:
         if not _is_llm_output_parsing_failure(exc):
             raise
+        logger.warning(
+            (
+                "Falling back to heuristic CV extraction after repeated invalid "
+                "LLM output: %s"
+            ),
+            _summarize_error(exc),
+        )
         candidate = heuristic_candidate
 
     candidate.skills = _merge_skill_lists(candidate.skills, heuristic_candidate.skills)
@@ -1056,9 +1181,15 @@ def evaluate_cv(
         "l'analyse) :\n"
         f"{cv_markdown}"
     )
-    try:
-        return _run_structured_chat(EvaluationCv, EVALUATION_SYSTEM_PROMPT, user_prompt)
-    except Exception as exc:
-        if not _is_llm_output_parsing_failure(exc):
-            raise
-        return _build_evaluation_fallback(fiche_de_poste, cv_markdown)
+    return _run_structured_chat_with_retries(
+        EvaluationCv,
+        EVALUATION_SYSTEM_PROMPT,
+        user_prompt,
+        operation_name="cv_evaluation",
+        retry_instruction=(
+            "Regenerer une evaluation complete et conforme. Le champ "
+            "questions_entretien doit contenir au moins 7 questions specifiques "
+            "au candidat et au poste, sans "
+            "question generique de remplissage."
+        ),
+    )

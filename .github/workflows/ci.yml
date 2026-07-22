@@ -103,6 +103,9 @@ jobs:
           LITEPARSE_OCR_ENABLED: "false"
           LITEPARSE_OCR_LANGUAGE: "fr"
           CANDIDATURE_API_KEY: ci-test-key-not-real
+          LLM_REQUEST_TIMEOUT_SECONDS: "30"
+          LLM_OPERATION_BUDGET_SECONDS: "60"
+          
         run: python -m pytest backend/tests
 
       - name: Set up Docker Buildx
@@ -229,6 +232,8 @@ jobs:
             LITEPARSE_MAX_PAGES=${{ secrets.LITEPARSE_MAX_PAGES }}
             LITEPARSE_OCR_ENABLED=${{ secrets.LITEPARSE_OCR_ENABLED }}
             LITEPARSE_OCR_LANGUAGE=${{ secrets.LITEPARSE_OCR_LANGUAGE }}
+            LLM_REQUEST_TIMEOUT_SECONDS=${{ secrets.LLM_REQUEST_TIMEOUT_SECONDS }}
+            LLM_OPERATION_BUDGET_SECONDS=${{ secrets.LLM_OPERATION_BUDGET_SECONDS }}
             N8N_HOST=${{ secrets.N8N_HOST }}
             N8N_WEBHOOK_URL=${{ secrets.N8N_WEBHOOK_URL }}
             N8N_TIMEZONE=${{ secrets.N8N_TIMEZONE }}

@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     LLM_API_KEY: str
     LLM_BASE_URL: str
     LLM_MODEL: str
+    LLM_REQUEST_TIMEOUT_SECONDS: int = 30
+    LLM_OPERATION_BUDGET_SECONDS: int = 60
     LLAMA_CLOUD_API_KEY: str
     CANDIDATURE_API_KEY: str | None = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int

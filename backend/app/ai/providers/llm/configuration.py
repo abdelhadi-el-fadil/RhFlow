@@ -23,4 +23,5 @@ def configure_llm() -> None:
         api_key=settings.LLM_API_KEY,
         api_base=api_base,
         is_chat_model=True,
+        timeout=float(settings.LLM_REQUEST_TIMEOUT_SECONDS),
     )
