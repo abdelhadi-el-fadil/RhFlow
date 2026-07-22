@@ -182,6 +182,7 @@ def get_project_by_email_subject(
     project = db.scalars(
         _project_query().where(
             ProjetRecrutement.is_deleted.is_(False),
+            ProjetRecrutement.status == ProjetStatus.ACTIVE,
             func.lower(ProjetRecrutement.email_subject) == normalized,
         )
     ).first()

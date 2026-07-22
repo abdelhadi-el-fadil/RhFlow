@@ -94,7 +94,7 @@ def _prepare_project_with_subject(
     client: TestClient,
     make_user: Callable[..., User],
     subject: str,
-) -> tuple[int, str]:
+) -> tuple[int, str, str]:
     suffix = uuid4().hex[:8]
     admin = make_user(
         f"api-key-admin-{suffix}@test.com", "Secret123!", role=UserRole.ADMIN
@@ -146,7 +146,7 @@ def _prepare_project_with_subject(
         headers=_auth(admin_token),
     )
     assert update.status_code == 200
-    return cast(int, project["id"]), drh_token
+    return cast(int, project["id"]), drh_token, admin_token
 
 
 def test_lookup_project_by_email_subject_with_jwt_is_rejected(
@@ -154,7 +154,7 @@ def test_lookup_project_by_email_subject_with_jwt_is_rejected(
     make_user: Callable[..., User],
 ) -> None:
     subject = "Candidature - API KEY - JWT"
-    _, drh_token = _prepare_project_with_subject(client, make_user, subject)
+    _, drh_token, _ = _prepare_project_with_subject(client, make_user, subject)
 
     response = client.get(
         "/projets-recrutement/by-email-subject",
@@ -172,7 +172,7 @@ def test_lookup_project_by_email_subject_with_service_api_key(
 ) -> None:
     monkeypatch.setattr(settings, "CANDIDATURE_API_KEY", "service-key-123")
     subject = "Candidature - API KEY - SERVICE"
-    project_id, _ = _prepare_project_with_subject(client, make_user, subject)
+    project_id, _, _ = _prepare_project_with_subject(client, make_user, subject)
 
     response = client.get(
         "/projets-recrutement/by-email-subject",
@@ -196,13 +196,49 @@ def test_lookup_project_by_email_subject_requires_auth(
     assert response.status_code == 401
 
 
+def test_lookup_project_by_email_subject_ignores_closed_projects(
+    client: TestClient,
+    make_user: Callable[..., User],
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(settings, "CANDIDATURE_API_KEY", "service-key-closed")
+    subject = "Candidature - API KEY - CLOSED"
+    project_id, _, admin_token = _prepare_project_with_subject(
+        client, make_user, subject
+    )
+
+    close_response = client.patch(
+        f"/projets/{project_id}/cloturer",
+        headers=_auth(admin_token),
+    )
+    assert close_response.status_code == 200
+
+    missing_subject = "Candidature - API KEY - DOES-NOT-EXIST"
+    missing_response = client.get(
+        "/projets-recrutement/by-email-subject",
+        params={"subject": missing_subject},
+        headers={"X-API-Key": "service-key-closed"},
+    )
+    closed_response = client.get(
+        "/projets-recrutement/by-email-subject",
+        params={"subject": subject},
+        headers={"X-API-Key": "service-key-closed"},
+    )
+
+    assert missing_response.status_code == 404
+    assert closed_response.status_code == 404
+    assert missing_response.json()["code"] == "RECRUTEMENT_PROJET_NOT_FOUND"
+    assert closed_response.json()["code"] == "RECRUTEMENT_PROJET_NOT_FOUND"
+    assert closed_response.json() == missing_response.json()
+
+
 def test_upload_candidature_with_service_api_key(
     client: TestClient,
     make_user: Callable[..., User],
     monkeypatch: Any,
 ) -> None:
     monkeypatch.setattr(settings, "CANDIDATURE_API_KEY", "service-key-upload")
-    project_id, _ = _prepare_project_with_subject(
+    project_id, _, _ = _prepare_project_with_subject(
         client,
         make_user,
         "Candidature - Upload API Key",
