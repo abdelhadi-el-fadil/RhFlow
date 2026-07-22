@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -372,6 +372,64 @@ def test_list_candidatures_excludes_errored_items_from_project_page(
                                                          error_candidature.id,
                                                          user)
     assert fetched_error.id == error_candidature.id
+
+
+def test_list_errored_candidatures_skips_orphaned_deleted_projects(
+    db: Session,
+    make_user: Callable[..., User],
+) -> None:
+    _, baseline_total = candidatures_service.list_errored_candidatures(
+        db,
+        PaginationParams(page=1, page_size=100),
+        make_user("ai-errors-baseline@test.com", "Secret123!", role=UserRole.ADMIN),
+    )
+
+    user = make_user("ai-errors@test.com", "Secret123!", role=UserRole.ADMIN)
+    other_user = make_user(
+        "ai-errors-2@test.com", "Secret123!", role=UserRole.ADMIN
+    )
+    visible_project = _create_project_chain(db, user)
+    deleted_project = _create_project_chain(db, other_user)
+
+    deleted_project.is_deleted = True
+    deleted_project.deleted_at = datetime.now(timezone.utc)
+    deleted_project.updated_by_id = user.id
+
+    visible_error = Candidature(
+        projet_recrutement_id=visible_project.id,
+        nom_fichier="visible-error.pdf",
+        chemin_minio="cvs/visible-error.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.ERREUR,
+        justification_ia="LLM evaluation failed",
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    orphaned_error = Candidature(
+        projet_recrutement_id=deleted_project.id,
+        nom_fichier="orphaned-error.pdf",
+        chemin_minio="cvs/orphaned-error.pdf",
+        type_fichier="application/pdf",
+        taille_fichier=100,
+        statut=CandidatureStatut.ERREUR,
+        justification_ia="LLM extraction failed",
+        created_by_id=user.id,
+        updated_by_id=user.id,
+    )
+    db.add_all([visible_error, orphaned_error, deleted_project])
+    db.commit()
+
+    items, total = candidatures_service.list_errored_candidatures(
+        db,
+        PaginationParams(page=1, page_size=100),
+        user,
+    )
+
+    item_ids = [item.id for item in items]
+    assert total == baseline_total + 1
+    assert visible_error.id in item_ids
+    assert orphaned_error.id not in item_ids
 
 
 def test_extract_candidate_info_normalizes_email_and_detects_duplicate_case_insensitive(

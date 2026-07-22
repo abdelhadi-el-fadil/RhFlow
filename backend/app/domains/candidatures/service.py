@@ -35,6 +35,7 @@ from app.domains.candidatures.exceptions import (
     CandidatureStorageException,
 )
 from app.domains.candidatures.model import Candidature
+from app.domains.recruitment.exceptions import ProjetRecrutementNotFoundException
 from app.domains.recruitment.model import BesoinRecrutement, ProjetRecrutement
 from app.domains.recruitment.service import get_project
 from app.domains.users.model import User
@@ -215,6 +216,16 @@ def list_errored_candidatures(
     for item in items:
         try:
             get_project(db, item.projet_recrutement_id, current_user)
+        except ProjetRecrutementNotFoundException:
+            logger.warning(
+                (
+                    "Skipping errored candidature %s because linked "
+                    "project %s is missing or deleted"
+                ),
+                item.id,
+                item.projet_recrutement_id,
+            )
+            continue
         except ForbiddenException:
             continue
         visible_items.append(item)

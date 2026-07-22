@@ -16,6 +16,7 @@ export function RoleGate({
   const router = useRouter()
   const { user, isLoading } = useAuth()
 
+  
   useEffect(() => {
     if (!isLoading && user && !roles.includes(user.role)) {
       router.replace("/403")
