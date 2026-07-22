@@ -982,18 +982,6 @@ def _merge_skill_lists(primary: list[str], secondary: list[str]) -> list[str]:
     return merged
 
 
-def _build_candidate_fallback(cv_markdown: str) -> CandidatInfo:
-    nom, email, telephone = sanitize_candidate_identity(None, None, None, cv_markdown)
-    return CandidatInfo(
-        nom=nom,
-        email=email,
-        telephone=telephone,
-        formations=[],
-        experiences=[],
-        skills=_extract_skills_from_cv_markdown(cv_markdown),
-    )
-
-
 def _extract_email_from_text(text: str) -> str | None:
     match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)
     return match.group(0) if match else None
@@ -1123,43 +1111,27 @@ def _post_validate_candidate(candidate: CandidatInfo, cv_markdown: str) -> Candi
     candidate.experiences = [
         e for e in candidate.experiences if e.titre and e.titre.strip()
     ]
-    heuristic_skills = _extract_skills_from_cv_markdown(cv_markdown)
-    candidate.skills = _merge_skill_lists(candidate.skills, heuristic_skills)
+    candidate.skills = _merge_skill_lists(candidate.skills, [])
     return candidate
 
 
 def extract_candidat_info(cv_markdown: str) -> CandidatInfo:
     """Agent 1 - Extract candidate information from CV markdown."""
-    heuristic_candidate = _build_candidate_fallback(cv_markdown)
     user_prompt = (
         f"CV (Markdown brut, conserve tel quel):\n```markdown\n{cv_markdown}\n```"
     )
-    try:
-        candidate = _run_structured_chat_with_retries(
-            CandidatInfo,
-            EXTRACTION_SYSTEM_PROMPT,
-            user_prompt,
-            operation_name="cv_extraction",
-            retry_instruction=(
-                "Verifie a nouveau toutes les formations, experiences, competences et "
-                "coordonnees explicitement presentes dans le CV. N'omets pas les "
-                "sections "
-                "formation ou experience lorsqu'elles existent."
-            ),
-        )
-    except Exception as exc:
-        if not _is_llm_output_parsing_failure(exc):
-            raise
-        logger.warning(
-            (
-                "Falling back to heuristic CV extraction after repeated invalid "
-                "LLM output: %s"
-            ),
-            _summarize_error(exc),
-        )
-        candidate = heuristic_candidate
-
-    candidate.skills = _merge_skill_lists(candidate.skills, heuristic_candidate.skills)
+    candidate = _run_structured_chat_with_retries(
+        CandidatInfo,
+        EXTRACTION_SYSTEM_PROMPT,
+        user_prompt,
+        operation_name="cv_extraction",
+        retry_instruction=(
+            "Verifie a nouveau toutes les formations, experiences, competences et "
+            "coordonnees explicitement presentes dans le CV. N'omets pas les "
+            "sections "
+            "formation ou experience lorsqu'elles existent."
+        ),
+    )
     return _post_validate_candidate(candidate, cv_markdown)
 
 

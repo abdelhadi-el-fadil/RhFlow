@@ -12,7 +12,7 @@ from app.ai.service.cv.analysis_agents_service import (
 )
 
 
-def test_extract_candidat_info_falls_back_on_invalid_llm_payload(
+def test_extract_candidat_info_raises_on_invalid_llm_payload(
     monkeypatch: MonkeyPatch,
 ) -> None:
     def _raise_invalid(*args: object, **kwargs: object) -> CandidatInfo:
@@ -29,12 +29,8 @@ def test_extract_candidat_info_falls_back_on_invalid_llm_payload(
         "Competences: Python, FastAPI, Docker\n"
     )
 
-    candidate = analysis_agents_service.extract_candidat_info(cv_markdown)
-
-    assert candidate.email == "Abdellhadi.elfadil@gmail.com"
-    assert candidate.telephone is not None
-    assert candidate.nom is not None
-    assert len(candidate.skills) >= 1
+    with pytest.raises(ValueError, match="Fallback parsing failed"):
+        analysis_agents_service.extract_candidat_info(cv_markdown)
 
 
 def test_evaluate_cv_retries_until_it_gets_seven_llm_questions(
@@ -198,16 +194,14 @@ def test_extract_candidat_info_uses_llm_even_when_contact_and_skills_present(
     ]
     assert candidate.experiences[0].titre == "Ingenieur IA"
     assert candidate.experiences[0].entreprise == "STAPORT"
-    assert set(candidate.skills) >= {
+    assert candidate.skills == [
         "Python",
         "FastAPI",
         "Docker",
-        "PostgreSQL",
-        "GitHub",
-    }
+    ]
 
 
-def test_extract_candidat_info_falls_back_only_after_repeated_invalid_llm_payloads(
+def test_extract_candidat_info_raises_after_repeated_invalid_llm_payloads(
     monkeypatch: MonkeyPatch,
 ) -> None:
     attempts = {"count": 0}
@@ -227,13 +221,10 @@ def test_extract_candidat_info_falls_back_only_after_repeated_invalid_llm_payloa
         "Competences: Python, FastAPI, Docker\n"
     )
 
-    candidate = analysis_agents_service.extract_candidat_info(cv_markdown)
+    with pytest.raises(ValueError, match="Fallback parsing failed"):
+        analysis_agents_service.extract_candidat_info(cv_markdown)
 
     assert attempts["count"] == 3
-    assert candidate.email == "Abdellhadi.elfadil@gmail.com"
-    assert candidate.telephone is not None
-    assert candidate.nom is not None
-    assert len(candidate.skills) >= 1
 
 
 def test_extract_candidat_info_stops_when_retry_budget_is_exhausted(
