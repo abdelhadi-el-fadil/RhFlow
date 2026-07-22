@@ -429,3 +429,20 @@ def test_humanize_error_does_not_map_css3_to_storage() -> None:
     message = humanize_candidature_error(detail)
     assert message is not None
     assert "stockage" not in message.lower()
+
+
+def test_humanize_error_maps_retry_budget_to_clear_message() -> None:
+    detail = (
+        "LLM cv_extraction exhausted retry budget after 1 attempt(s); "
+        "25.00s remaining is below the per-call timeout of 30s"
+    )
+    message = humanize_candidature_error(detail)
+    assert message is not None
+    assert "temps imparti" in message.lower()
+
+
+def test_humanize_error_maps_llm_structured_output_failures_to_clear_message() -> None:
+    detail = "LLM evaluation missing score_matching"
+    message = humanize_candidature_error(detail)
+    assert message is not None
+    assert "format attendu" in message.lower()

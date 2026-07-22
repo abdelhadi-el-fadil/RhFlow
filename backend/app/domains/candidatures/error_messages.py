@@ -25,6 +25,14 @@ def humanize_candidature_error(detail: str | None) -> str | None:
             "Supprimez le doublon ou utilisez un autre CV."
         )
 
+    if "retry budget" in lowered or "exhausted retry budget" in lowered:
+        return (
+            "Le service IA n'a pas reussi a produire une reponse valide dans "
+            "le temps imparti. "
+            "Relancez l'analyse; si le probleme persiste, verifiez la latence "
+            "ou la disponibilite du fournisseur IA."
+        )
+
     if "timeout" in lowered or "timed out" in lowered:
         return (
             "Le traitement a depasse le temps autorise. "
@@ -47,6 +55,19 @@ def humanize_candidature_error(detail: str | None) -> str | None:
         return (
             "Le service d'analyse a renvoye une reponse invalide. "
             "Relancez le traitement ou verifiez la configuration IA."
+        )
+
+    if (
+        "structured output could not be parsed" in lowered
+        or "fallback parsing failed" in lowered
+        or "llm evaluation missing score_matching" in lowered
+        or "llm evaluation missing valid recommandation" in lowered
+        or "llm evaluation missing justification_ia" in lowered
+    ):
+        return (
+            "Le modele IA a renvoye une sortie incomplete ou non conforme au "
+            "format attendu. "
+            "Relancez l'analyse ou ajustez les consignes du modele."
         )
 
     if "forbidden" in lowered or "403" in lowered:
