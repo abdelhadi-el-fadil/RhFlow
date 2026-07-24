@@ -31,7 +31,7 @@ function formatDate(value: string | null): string {
 
 export default function InboxPage() {
   return (
-    <RoleGate roles={["ADMIN", "DRH", "DIRECTEUR", "DG"]}>
+    <RoleGate roles={["ADMIN", "DRH"]}>
       <InboxContent />
     </RoleGate>
   )
